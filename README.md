@@ -1,7 +1,8 @@
-# Planet Hunters TESS Subject Lightcurve Viewer
+  # Planet Hunters TESS Subject Lightcurve Viewer
+  [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/orionlee/PH_TESS_I_LightCurveViewer/master?filepath=PH_TESS_I_LightCurveViewer.ipynb)
 
-A Jupyter Notebook that lets you interactively visualize the a star's lightcurve provided by Planet Hunters TESS:
-  https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess
+  A Jupyter Notebook that lets you interactively visualize the a star's lightcurve provided by Planet Hunters TESS:
+    https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess
 
 ## Instructions
 1. Goto the subject page of a star ([example](https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/subjects/36971891)) on Planet Hunters TESS
