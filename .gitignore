@@ -1,0 +1,10 @@
+# Backup files
+*~
+
+# python cache
+__pycache__/
+
+# juypter internals
+.ipynb_checkpoints/
+
+# output files
