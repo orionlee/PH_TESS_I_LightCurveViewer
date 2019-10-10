@@ -7,4 +7,8 @@ __pycache__/
 # juypter internals
 .ipynb_checkpoints/
 
+# data files downloaded
+data/*.fits
+data/*/*
+
 # output files
