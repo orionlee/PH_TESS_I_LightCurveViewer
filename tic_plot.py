@@ -16,7 +16,7 @@ def lcf_of_sector(lcf_coll, sectorNum):
     return None
 
 # Plot the flux changes (not flux themselves) to get a sense of the rate of changes, not too helpful yet.
-def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='1h'):
+def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='30min'):
     # default plot text properties
     matplotlib.rcParams.update({'font.size':36}) 
     matplotlib.rcParams.update({'font.family':'sans-serif'})
@@ -69,7 +69,7 @@ def as_4decimal(float_num):
     else: 
         return '{0:.4f}'.format(float_num)
 
-def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='1h'):
+def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min'):
     if lcf == None:
         print("Warning: lcf is None. Plot skipped")
         return
