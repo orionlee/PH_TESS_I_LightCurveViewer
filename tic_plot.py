@@ -69,6 +69,15 @@ def as_4decimal(float_num):
     else: 
         return '{0:.4f}'.format(float_num)
 
+def add_flux_moving_average(lc, moving_avg_window):
+    df = lc.to_pandas(columns=['time', 'flux'])
+    df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(x, unit='D'))
+    # the timestamp above is good for relative time.
+    # if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
+    # df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s'))
+    df['flux_mavg'] = df.rolling(moving_avg_window, on='time_ts')['flux'].mean()    
+    return df
+    
 def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min'):
     if lcf == None:
         print("Warning: lcf is None. Plot skipped")
@@ -82,14 +91,7 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     ax = lc.scatter(ax=ax)
     
     # convert to dataframe to add moving average
-    df = lc.to_pandas(columns=['time', 'flux'])
-    df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(x, unit='D'))
-    # the timestamp above is good for relative time.
-    # if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
-    # df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s'))
-    df['flux_mavg'] = df.rolling(moving_avg_window, on='time_ts')['flux'].mean()    
-    plt.plot(lc.time, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
-    
+    df = add_flux_moving_average(lc, moving_avg_window)    
     
     # annotate the graph
     lcfh = lcf.header()
@@ -104,13 +106,16 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
         ax.axvline(t_end)
     if t0 is not None:
         ax.axvline(t0, ymin=0, ymax=0.3, color='black', linewidth=6, linestyle='--', label=f"t0 ~= {t0}")
-            
+    
+    transit_duration_msg = ''
+    if t_start is not None and t_end is not None:
+        transit_duration_msg = f'\ntransit duration ~= {as_4decimal(24 * (t_end - t_start))}h'        
     flux_t0 = flux_mavg_near(df, t0)
     flux_dip = None
     if flux_t0 is not None:
         flux_begin = max(flux_mavg_near(df, t_start), flux_mavg_near(df, t_end))
         flux_dip = flux_begin - flux_t0
-    ax.set_title(f"{lc.label}, sector {lcfh['SECTOR']} \nflux@t0 ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%")
+    ax.set_title(f"{lc.label}, sector {lcfh['SECTOR']} \nflux@t0 ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{transit_duration_msg}")
     ax.legend()
     return ax
 
