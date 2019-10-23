@@ -78,7 +78,7 @@ def add_flux_moving_average(lc, moving_avg_window):
     df['flux_mavg'] = df.rolling(moving_avg_window, on='time_ts')['flux'].mean()    
     return df
     
-def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min'):
+def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', lc_tweak_fn=None):
     if lcf == None:
         print("Warning: lcf is None. Plot skipped")
         return
@@ -87,12 +87,16 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
 
     lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
     
+    if lc_tweak_fn is not None:
+        lc = lc_tweak_fn(lc)
+    
     # Basic scatter of the observation
     ax = lc.scatter(ax=ax)
     
     # convert to dataframe to add moving average
     df = add_flux_moving_average(lc, moving_avg_window)    
-    
+    ax.plot(lc.time, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
+
     # annotate the graph
     lcfh = lcf.header()
     if xmin is None and t_start is not None:
@@ -120,7 +124,7 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     return ax
 
 # Do the actual plots
-def plot_all(lcf_coll): 
+def plot_all(lcf_coll, lc_tweak_fn=None): 
     matplotlib.rcParams.update({'font.size':36}) 
     matplotlib.rcParams.update({'font.family':'sans-serif'})
     # choice 1: use the built-in plot method
@@ -142,7 +146,10 @@ def plot_all(lcf_coll):
     # choice 4: plot the lightcurve sector by sector: each sector in its own graph
     for i in range(0, len(lcf_coll)):
         ax = lcf_fig().gca()
-        lcf_coll[i].PDCSAP_FLUX.scatter(ax=ax, normalize=True)
-        ax.set_title(f"TIC {lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].header()['SECTOR']}")
+        lc = lcf_coll[i].PDCSAP_FLUX
+        if lc_tweak_fn is not None:
+            lc = lc_tweak_fn(lc)             
+        lc.scatter(ax=ax, normalize=True)
+        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].header()['SECTOR']}")
                  
     return None
