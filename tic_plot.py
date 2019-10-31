@@ -77,7 +77,12 @@ def add_flux_moving_average(lc, moving_avg_window):
     # df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s'))
     df['flux_mavg'] = df.rolling(moving_avg_window, on='time_ts')['flux'].mean()    
     return df
-    
+
+def add_relative_time(lc):
+    t_start = lc.time[0]
+    lc.time_rel = lc.time - t_start
+    return lc.time_rel
+
 def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', lc_tweak_fn=None):
     if lcf == None:
         print("Warning: lcf is None. Plot skipped")
@@ -124,7 +129,7 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     return ax
 
 # Do the actual plots
-def plot_all(lcf_coll, lc_tweak_fn=None): 
+def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None, use_relative_time=False): 
     matplotlib.rcParams.update({'font.size':36}) 
     matplotlib.rcParams.update({'font.family':'sans-serif'})
     # choice 1: use the built-in plot method
@@ -145,11 +150,106 @@ def plot_all(lcf_coll, lc_tweak_fn=None):
 
     # choice 4: plot the lightcurve sector by sector: each sector in its own graph
     for i in range(0, len(lcf_coll)):
-        ax = lcf_fig().gca()
+        if ax_fn is None:         
+            ax = lcf_fig().gca()
+        else:
+            ax = ax_fn()
         lc = lcf_coll[i].PDCSAP_FLUX
+        lc = lc.normalize(unit='percent')
         if lc_tweak_fn is not None:
-            lc = lc_tweak_fn(lc)             
-        lc.scatter(ax=ax, normalize=True)
-        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].header()['SECTOR']}")
+            lc = lc_tweak_fn(lc) 
+
+        # temporarily change time to a relative one if specified         
+        if use_relative_time:
+            add_relative_time(lc)
+            lc.time_orig = lc.time
+            lc.time = lc.time_rel
                  
+        lc.scatter(ax=ax)
+                 
+        # convert to dataframe to add moving average
+        if moving_avg_window is not None: 
+            df = add_flux_moving_average(lc, moving_avg_window)    
+            ax.plot(lc.time, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
+                 
+        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].header()['SECTOR']}")
+#         ax.legend()
+        if use_relative_time:
+            ax.xaxis.set_label_text('Time - relative')         
+            # restore original time after plot is done             
+            lc.time = lc.time_orig                     
+                     
     return None
+
+
+def scatter_centroids(lcf, c=None):
+    lc = lcf.PDCSAP_FLUX
+    sector = lcf.header()['SECTOR']
+    fig = plt.figure(figsize=(12,12))
+    fig.gca().scatter(lc.centroid_col, lc.centroid_row, label=f"sector {sector}", c=c)
+    fig.gca().set_title('Centroids')
+    fig.legend()
+                     
+                     
+import matplotlib.animation as animation
+
+def _update_anim(n, ax, lc, label, num_centroids_to_show, use_relative_time, c):
+    ax.cla()
+    # fix the x/y scale to ensure it doesn't change over the animation
+    ax.set_xlim(np.nanmin(lc.centroid_col), np.nanmax(lc.centroid_col))
+    ax.set_ylim(np.nanmin(lc.centroid_row), np.nanmax(lc.centroid_row))
+
+    if use_relative_time:
+        time_label = f"{as_4decimal(lc.time_rel[n])} ({as_4decimal(lc.time[n])})"
+    else: 
+        time_label = f"{as_4decimal(lc.time[n])}"                   
+
+                     
+    if num_centroids_to_show is None:
+        col = lc.centroid_col[:n]
+        row = lc.centroid_row[:n]
+    else:
+        n_start = max(0, n - num_centroids_to_show)
+        col = lc.centroid_col[n_start:n]
+        row = lc.centroid_row[n_start:n]
+
+    ax.set_title(f'TIC {lc.targetid} Centroids, {label}\nday: {time_label}')
+    ax.scatter(col, row, c=c)
+
+def animate_centroids(lcf, frames=None, num_obs_per_frame=240, interval=250, use_relative_time=False, accumulative=True, c=None, display=True):
+    '''
+    Animate centroids to visualize changes over time.
+
+    '''
+    lc = lcf.PDCSAP_FLUX
+    label = f"sector {lcf.header()['SECTOR']}"
+    
+    fig = plt.figure(figsize=(12,12))
+    if frames is None:
+        num_obs = len(lc.centroid_row)
+        num_frames = int(num_obs / num_obs_per_frame) # default 240 is about every 8 hours, given 2-minute intervals
+        ary_n = np.linspace(1, num_obs, num=num_frames, endpoint=False)
+        ary_n[0] = np.ceil(ary_n[1] /2)
+        ary_n = list(map(lambda n: int(n), ary_n))
+    else:
+        ary_n = frames
+        num_obs_per_frame = frames[-1] - frames[-2] # assume the spacing of input is linear
+
+    num_centroids_to_show = num_obs_per_frame
+    if accumulative:
+        num_centroids_to_show = None                     
+#     print(f'Steps: {ary_n}')
+    if use_relative_time:
+        add_relative_time(lc)                     
+    anim = animation.FuncAnimation(fig, _update_anim, frames=ary_n
+                                   , fargs=(fig.gca(), lc, label, num_centroids_to_show, use_relative_time, c)
+                                   , interval=interval, blit=False)
+    if display:
+        # for inline display in jupyter
+        try:
+            from IPython.display import HTML
+            return HTML(anim.to_jshtml(default_mode='once'))            
+        except ImportError:
+            print('WARNING: animate_centroids() - inline display not possible Not in IPython envrionment.')
+            return anim
+
