@@ -6,6 +6,7 @@ LigthCurveFileCollection
 
 import matplotlib.pyplot as plt
 import matplotlib as matplotlib
+from matplotlib.ticker import FormatStrFormatter
 import numpy as np
 import pandas as pd
 
@@ -91,11 +92,14 @@ def mask_gap(x, y, min_x_diff):
     x_diff = np.diff(x, prepend=-min_x_diff)
     return np.ma.masked_where(x_diff > min_x_diff, y)
 
-def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', lc_tweak_fn=None):
+def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', lc_tweak_fn=None, ax_tweak_fn=None):
     if lcf == None:
         print("Warning: lcf is None. Plot skipped")
         return
     
+    matplotlib.rcParams.update({'font.size':18}) 
+    matplotlib.rcParams.update({'font.family':'sans-serif'})
+
     # possible input arguments
 
     lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
@@ -107,8 +111,12 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     ax = lc.scatter(ax=ax)
     
     # convert to dataframe to add moving average
-    df = add_flux_moving_average(lc, moving_avg_window)    
-    ax.plot(lc.time, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
+    if moving_avg_window is not None: 
+        df = add_flux_moving_average(lc, moving_avg_window)    
+        ax.plot(lc.time, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
+    else:
+        df = add_flux_moving_average(lc, '2min') # still needed for some subsequent calc, but don't plot it
+        
 
     # annotate the graph
     lcfh = lcf.header()
@@ -132,13 +140,20 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     if flux_t0 is not None:
         flux_begin = max(flux_mavg_near(df, t_start), flux_mavg_near(df, t_end))
         flux_dip = flux_begin - flux_t0
-    ax.set_title(f"{lc.label}, sector {lcfh['SECTOR']} \nflux@t0 ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{transit_duration_msg}")
+    ax.set_title(f"{lc.label}, sector {lcfh['SECTOR']} \nflux@t0 ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{transit_duration_msg}", {'fontsize': 24})
     ax.legend()
+    
+    # to avoid occasional formating in scentific notations
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    
+    if ax_tweak_fn is not None:
+        ax_tweak_fn(ax)
+
     return ax
 
 # Do the actual plots
-def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None, use_relative_time=False): 
-    matplotlib.rcParams.update({'font.size':36}) 
+def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None, use_relative_time=False, ax_tweak_fn=None): 
+    matplotlib.rcParams.update({'font.size':18}) 
     matplotlib.rcParams.update({'font.family':'sans-serif'})
     # choice 1: use the built-in plot method
 #    ax_all = plt.figure(figsize=(30, 15)).gca()
@@ -181,14 +196,23 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None, use
             # mask_gap: if there is a gap larger than 2 hours, 
             # show the gap rather than trying to fill the gap with a straight line.     
             ax.plot(lc.time, mask_gap(lc.time, df['flux_mavg'], 2/24), c='black', label=f"Moving average ({moving_avg_window})")
-                 
-        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].header()['SECTOR']}")
+        
+        title_extras = ''
+        if lc_tweak_fn is not None:
+            title_extras = '\nLC tweaked, e.g., outliers removed'
+            
+        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].header()['SECTOR']}{title_extras}", {'fontsize': 36})
+#        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors N/A - Kepler")
 #         ax.legend()
         if use_relative_time:
             ax.xaxis.set_label_text('Time - relative')         
             # restore original time after plot is done             
             lc.time = lc.time_orig                     
-                     
+
+        # to avoid occasional formating in scentific notations
+        ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        if ax_tweak_fn is not None:
+            ax_tweak_fn(ax)    
     return None
 
 
@@ -226,7 +250,7 @@ def _update_anim(n, ax, lc, label, num_centroids_to_show, use_relative_time, c):
     ax.set_title(f'TIC {lc.targetid} Centroids, {label}\nday: {time_label}')
     ax.scatter(col, row, c=c)
 
-def animate_centroids(lcf, frames=None, num_obs_per_frame=240, interval=250, use_relative_time=False, accumulative=True, c=None, display=True):
+def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interval=250, use_relative_time=False, accumulative=True, c=None, display=True):
     '''
     Animate centroids to visualize changes over time.
 
@@ -234,7 +258,8 @@ def animate_centroids(lcf, frames=None, num_obs_per_frame=240, interval=250, use
     lc = lcf.PDCSAP_FLUX
     label = f"sector {lcf.header()['SECTOR']}"
     
-    fig = plt.figure(figsize=(12,12))
+    if fig is None:
+        fig = plt.figure(figsize=(12,12))
     if frames is None:
         num_obs = len(lc.centroid_row)
         num_frames = int(num_obs / num_obs_per_frame) # default 240 is about every 8 hours, given 2-minute intervals
