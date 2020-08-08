@@ -79,8 +79,8 @@ def add_flux_moving_average(lc, moving_avg_window):
     df['flux_mavg'] = df.rolling(moving_avg_window, on='time_ts')['flux'].mean()    
     return df
 
-def add_relative_time(lc):
-    t_start = lc.time[0]
+def add_relative_time(lc, lcf):
+    t_start = lcf.header()['TSTART']
     lc.time_rel = lc.time - t_start
     return lc.time_rel
 
@@ -177,14 +177,15 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None, use
             ax = lcf_fig().gca()
         else:
             ax = ax_fn()
-        lc = lcf_coll[i].PDCSAP_FLUX
+        lcf = lcf_coll[i] 
+        lc = lcf.PDCSAP_FLUX
         lc = lc.normalize(unit='percent')
         if lc_tweak_fn is not None:
             lc = lc_tweak_fn(lc) 
 
         # temporarily change time to a relative one if specified         
         if use_relative_time:
-            add_relative_time(lc)
+            add_relative_time(lc, lcf)
             lc.time_orig = lc.time
             lc.time = lc.time_rel
                  
@@ -275,7 +276,7 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
         num_centroids_to_show = None                     
 #     print(f'Steps: {ary_n}')
     if use_relative_time:
-        add_relative_time(lc)                     
+        add_relative_time(lc, lcf)                     
     anim = animation.FuncAnimation(fig, _update_anim, frames=ary_n
                                    , fargs=(fig.gca(), lc, label, num_centroids_to_show, use_relative_time, c)
                                    , interval=interval, blit=False)
