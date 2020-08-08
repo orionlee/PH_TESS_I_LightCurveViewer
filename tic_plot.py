@@ -6,7 +6,7 @@ LigthCurveFileCollection
 
 import matplotlib.pyplot as plt
 import matplotlib as matplotlib
-from matplotlib.ticker import FormatStrFormatter
+from matplotlib.ticker import (FormatStrFormatter, AutoMinorLocator)
 import numpy as np
 import pandas as pd
 
@@ -212,6 +212,12 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None, use
 
         # to avoid occasional formating in scentific notations
         ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        
+        # minor tick, 1 day interval in practice
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+        ax.tick_params(axis='x', which='minor', length=4)
+        # ax.xaxis.grid(True, which='minor') # too noisy to be there by default
+        
         if ax_tweak_fn is not None:
             ax_tweak_fn(ax)    
     return None
