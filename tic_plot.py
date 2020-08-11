@@ -16,6 +16,15 @@ def lcf_of_sector(lcf_coll, sectorNum):
             return lcf
     return None
 
+def lcfs_of_sectors(*args):
+    lcf_coll = args[0]
+    sectorNums = args[1:]    
+    res = []
+    for lcf in lcf_coll:
+        if lcf.header()['SECTOR'] in sectorNums:
+            res.append(lcf)
+    return res 
+
 # Plot the flux changes (not flux themselves) to get a sense of the rate of changes, not too helpful yet.
 def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='30min'):
     # default plot text properties
