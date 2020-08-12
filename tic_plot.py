@@ -249,6 +249,10 @@ def _update_anim(n, ax, lc, label, num_centroids_to_show, use_relative_time, c):
     ax.set_xlim(np.nanmin(lc.centroid_col), np.nanmax(lc.centroid_col))
     ax.set_ylim(np.nanmin(lc.centroid_row), np.nanmax(lc.centroid_row))
 
+    # avoid scientific notation for y-axis
+    # x-axis might need scentific notation so that the labels won't get too cramped with long decimals
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+
     if use_relative_time:
         time_label = f"{as_4decimal(lc.time_rel[n])} ({as_4decimal(lc.time[n])})"
     else: 
@@ -266,7 +270,7 @@ def _update_anim(n, ax, lc, label, num_centroids_to_show, use_relative_time, c):
     ax.set_title(f'TIC {lc.targetid} Centroids, {label}\nday: {time_label}')
     ax.scatter(col, row, c=c)
 
-def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interval=250, use_relative_time=False, accumulative=True, c=None, display=True):
+def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interval=250, use_relative_time=False, time_range=None, accumulative=True, c=None, display=True):
     '''
     Animate centroids to visualize changes over time.
 
@@ -274,6 +278,22 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
     lc = lcf.PDCSAP_FLUX
     label = f"sector {lcf.header()['SECTOR']}"
     
+    # Zoom to a particular time range if specified
+    if time_range is not None:
+        # use pandas to zoom to a particular time_range
+        df = lcf.PDCSAP_FLUX.normalize(unit='percent').to_pandas(columns=['time', 'flux', 'centroid_row', 'centroid_col'])
+        df = df[(df.time >= time_range[0]) & (df.time <= time_range[1])]
+        if (len(df) < 1):
+            raise Exception(f'Zoomed lightcurve has no observation. time_range={time_range}')
+
+        lc_z = lambda: None # zoomed-in lightcurve-like object for the purpose of animation
+        setattr(lc_z, 'time', df.time.values)
+        setattr(lc_z, 'flux', df.flux.values)
+        setattr(lc_z, 'centroid_row', df.centroid_row.values)
+        setattr(lc_z, 'centroid_col', df.centroid_col.values)
+        setattr(lc_z, 'targetid', lc.targetid)
+        lc = lc_z
+
     if fig is None:
         fig = plt.figure(figsize=(12,12))
     if frames is None:
