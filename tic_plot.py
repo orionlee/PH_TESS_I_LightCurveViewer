@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Helpers to plot the lightcurve of a TESS subject, given a
-LigthCurveFileCollection
+LightCurveFileCollection
 """
 
 import matplotlib.pyplot as plt
@@ -150,7 +150,7 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     ax.xaxis.label.set_size(18)
     ax.yaxis.label.set_size(18)
 
-    # to avoid occasional formating in scentific notations
+    # to avoid occasional formating in scientific notations
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
     if ax_tweak_fn is not None:
@@ -215,7 +215,7 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None, use
             # restore original time after plot is done
             lc.time = lc.time_orig
 
-        # to avoid occasional formating in scentific notations
+        # to avoid occasional formating in scientific notations
         ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
         # minor tick, 1 day interval in practice
@@ -275,7 +275,7 @@ def _update_anim(n, ax, lc, label, num_centroids_to_show, use_relative_time, c):
     ax.set_ylim(np.nanmin(lc.centroid_row), np.nanmax(lc.centroid_row))
 
     # avoid scientific notation for y-axis
-    # x-axis might need scentific notation so that the labels won't get too cramped with long decimals
+    # x-axis might need scientific notation so that the labels won't get too cramped with long decimals
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
     if use_relative_time:
@@ -346,6 +346,6 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
             from IPython.display import HTML
             return HTML(anim.to_jshtml(default_mode='once'))
         except ImportError:
-            print('WARNING: animate_centroids() - inline display not possible Not in IPython envrionment.')
+            print('WARNING: animate_centroids() - inline display not possible Not in IPython environment.')
             return anim
 

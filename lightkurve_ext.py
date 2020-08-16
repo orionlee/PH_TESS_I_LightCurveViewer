@@ -1,5 +1,5 @@
 """
-Convenicne helpers for `lightkurve` package.
+Convenience helpers for `lightkurve` package.
 """
 
 import os
@@ -13,8 +13,8 @@ log = logging.getLogger(__name__)
 def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
                              download_dir=None, use_cache='yes'):
     '''
-    Wraps `lightkurve.serach.search_lightcurvefile()` and the
-    subsequent `lightkurve.serach.SearchResult.download_all()` calls,
+    Wraps `lightkurve.search.search_lightcurvefile()` and the
+    subsequent `lightkurve.search.SearchResult.download_all()` calls,
     with the option of caching, so that for a given search,
     if the the result has been downloaded, the cache will be used.
 
@@ -85,7 +85,7 @@ def _get_search_result_cache_dir(download_dir):
     return cache_dir
 
 def _get_cache_key(target, mission):
-    #TODO: handle cases the gerneated key is not a valid filename
+    #TODO: handle cases the generated key is not a valid filename
     return f"{target}_{mission}_ids"
 
 
@@ -101,15 +101,15 @@ def _to_product_identifiers(search_res):
         search_res.table))
 
 def _save_search_result_product_identifiers(identifiers, download_dir, key):
-    resolved_cahce_dir = _get_search_result_cache_dir(download_dir)
-    filepath = f"{resolved_cahce_dir}/{key}.json"
+    resolved_cache_dir = _get_search_result_cache_dir(download_dir)
+    filepath = f"{resolved_cache_dir}/{key}.json"
     fp = open(filepath, 'w+')
     json.dump(identifiers, fp)
     return filepath
 
 def _load_search_result_product_identifiers(download_dir, key):
-    resolved_cahce_dir = _get_search_result_cache_dir(download_dir)
-    filepath = f"{resolved_cahce_dir}/{key}.json"
+    resolved_cache_dir = _get_search_result_cache_dir(download_dir)
+    filepath = f"{resolved_cache_dir}/{key}.json"
     try:
         fp = open(filepath, 'r')
         return json.load(fp)
