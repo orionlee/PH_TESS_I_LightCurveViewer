@@ -12,7 +12,7 @@ import pandas as pd
 
 def lcf_of_sector(lcf_coll, sectorNum):
     for lcf in lcf_coll:
-        if lcf.header()['SECTOR'] == sectorNum:
+        if lcf.get_header()['SECTOR'] == sectorNum:
             return lcf
     return None
 
@@ -21,7 +21,7 @@ def lcfs_of_sectors(*args):
     sectorNums = args[1:]
     res = []
     for lcf in lcf_coll:
-        if lcf.header()['SECTOR'] in sectorNums:
+        if lcf.get_header()['SECTOR'] in sectorNums:
             res.append(lcf)
     return res
 
@@ -88,7 +88,7 @@ def add_flux_moving_average(lc, moving_avg_window):
     return df
 
 def add_relative_time(lc, lcf):
-    t_start = lcf.header()['TSTART']
+    t_start = lcf.get_header()['TSTART']
     lc.time_rel = lc.time - t_start
     return lc.time_rel
 
@@ -124,7 +124,7 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
 
 
     # annotate the graph
-    lcfh = lcf.header()
+    lcfh = lcf.get_header()
     if xmin is None and t_start is not None:
         xmin = t_start - 0.5
     if xmax is None and t_end is not None:
@@ -173,7 +173,7 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None, use
 #     for i in range(0, len(lcf_coll)):
 #         lcf_coll[i].PDCSAP_FLUX.scatter(ax=ax_all)
 
-#     ax_all.set_title(f"TIC {lcf_coll[0].PDCSAP_FLUX.label}, sectors {list(map(lambda lcf: lcf.header()['SECTOR'], lcf_coll))}")
+#     ax_all.set_title(f"TIC {lcf_coll[0].PDCSAP_FLUX.label}, sectors {list(map(lambda lcf: lcf.get_header()['SECTOR'], lcf_coll))}")
 #     return ax_all
 
     # choice 4: plot the lightcurve sector by sector: each sector in its own graph
@@ -207,7 +207,7 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None, use
         if lc_tweak_fn is not None:
             title_extras = '\nLC tweaked, e.g., outliers removed'
 
-        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].header()['SECTOR']}{title_extras}", {'fontsize': 36})
+        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].get_header()['SECTOR']}{title_extras}", {'fontsize': 36})
 #        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors N/A - Kepler")
 #         ax.legend()
         if use_relative_time:
@@ -239,7 +239,7 @@ def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None)
         fig = plt.figure(figsize=(12,12))
 
     lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
-    sector = lcf.header()['SECTOR']
+    sector = lcf.get_header()['SECTOR']
 
     df = lc.to_pandas(columns=['time', 'flux', 'centroid_row', 'centroid_col'])
     if time_range is not None:
@@ -301,7 +301,7 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
 
     '''
     lc = lcf.PDCSAP_FLUX
-    label = f"sector {lcf.header()['SECTOR']}"
+    label = f"sector {lcf.get_header()['SECTOR']}"
 
     # Zoom to a particular time range if specified
     if time_range is not None:
