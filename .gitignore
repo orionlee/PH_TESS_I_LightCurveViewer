@@ -10,6 +10,9 @@ __pycache__/
 # Temp notebook
 Untitled.ipynb
 
+# Temp directory
+tmp/
+
 # data files downloaded
 data/*.fits
 data/*/*
