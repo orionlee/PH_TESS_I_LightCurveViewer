@@ -159,7 +159,8 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     return ax
 
 # Do the actual plots
-def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None, use_relative_time=False, ax_tweak_fn=None):
+def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
+             , use_relative_time=False, mark_quality_issues = True, ax_tweak_fn=None):
     # choice 1: use the built-in plot method
 #    ax_all = plt.figure(figsize=(30, 15)).gca()
 #     lcf_coll.PDCSAP_FLUX.plot(ax=ax_all) # Or lcf_coll.SAP_FLUX.plot()
@@ -227,6 +228,24 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None, use
         ax.yaxis.label.set_size(fontsize=18)
         if ax_tweak_fn is not None:
             ax_tweak_fn(ax)
+
+        # mark quality issue is applied after ax_tweak_fn, in case users use ax_tweak_fn and change the graph's ylim    
+        if mark_quality_issues:
+            # the time where flux might have potential issues, using the suggested starting quality flag mask
+            # See https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags 
+            time = lc.time if not use_relative_time else lc.time_rel
+            time_w_quality_issues = time[np.nonzero(np.logical_and(lc.quality & 0b0101001010111111
+                                                                  , np.isfinite(lc.flux)))] # filter out time where there is no valid flux as well
+            if len(time_w_quality_issues) > 0:
+                ybottom, ytop = ax.get_ylim()
+                ymin = ybottom
+                ymax = ybottom + (ytop - ybottom) * 0.1 # 10% of vertical
+                # OPEN: using vlines, the lines don't really start from the bottom, (there is still margin)
+                # ax.axvline() would truly start from the bottom, but it works for 1 line only, and is slow if there are many lines.
+                ax.vlines(time_w_quality_issues, ymin=ymin, ymax=ymax,
+                          color='red', linewidth=1, linestyle='--', label="potential quality issue")
+
+        ax.legend()
     return None
 
 
@@ -344,7 +363,8 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
         # for inline display in jupyter
         try:
             from IPython.display import HTML
-            return HTML(anim.to_jshtml(default_mode='once'))
+            from IPython.display import display as iDisplay
+            return iDisplay(HTML(anim.to_jshtml(default_mode='once')))
         except ImportError:
             print('WARNING: animate_centroids() - inline display not possible Not in IPython environment.')
             return anim
