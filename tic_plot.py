@@ -237,14 +237,14 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
             time_w_quality_issues = time[np.nonzero(np.logical_and(lc.quality & 0b0101001010111111
                                                                   , np.isfinite(lc.flux)))] # filter out time where there is no valid flux as well
             if len(time_w_quality_issues) > 0:
-                ybottom, ytop = ax.get_ylim()
-                ymin = ybottom
-                ymax = ybottom + (ytop - ybottom) * 0.1 # 10% of vertical
-                # OPEN: using vlines, the lines don't really start from the bottom, (there is still margin)
-                # ax.axvline() would truly start from the bottom, but it works for 1 line only, and is slow if there are many lines.
-                ax.vlines(time_w_quality_issues, ymin=ymin, ymax=ymax,
-                          color='red', linewidth=1, linestyle='--', label="potential quality issue")
-
+                # add marks as vertical lines at bottom 10% of the plot
+                # Note: ax.vlines's ymin/ymax refers to the data. To specify them relative to y-axis
+                # I have to 1) use transform, and
+                #           2) tell the plot not to auto-scale Y-axis 
+                #               (if auto-scaled is done, it will treat the line's coodrinate as data)
+                ax.set_autoscaley_on(False)
+                ax.vlines(time_w_quality_issues, ymin=0, ymax=0.1, transform=ax.get_xaxis_transform()
+                          , color='red', linewidth=1, linestyle='--', label="potential quality issue")
         ax.legend()
     return None
 
