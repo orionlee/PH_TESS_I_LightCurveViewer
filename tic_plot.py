@@ -12,6 +12,8 @@ import pandas as pd
 
 from lightkurve import LightCurveFileCollection
 
+from lightkurve_ext import of_sector
+
 # Plot the flux changes (not flux themselves) to get a sense of the rate of changes, not too helpful yet.
 def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='30min'):
 
@@ -87,7 +89,7 @@ def mask_gap(x, y, min_x_diff):
     x_diff = np.diff(x, prepend=-min_x_diff)
     return np.ma.masked_where(x_diff > min_x_diff, y)
 
-def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', t0mark_ymax = 0.3, set_title=True, lc_tweak_fn=None, ax_tweak_fn=None):
+def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', t0mark_ymax = 0.3, set_title=True, title_fontsize=18, lc_tweak_fn=None, ax_tweak_fn=None):
     if lcf == None:
         print("Warning: lcf is None. Plot skipped")
         return
@@ -133,22 +135,94 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
         flux_begin = max(flux_mavg_near(df, t_start), flux_mavg_near(df, t_end))
         flux_dip = flux_begin - flux_t0
     if set_title:
-        ax.set_title(f"{lc.label}, sector {lcfh['SECTOR']} \nflux@t0 ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{transit_duration_msg}", {'fontsize': 24})
+        ax.set_title(f"{lc.label}, sector {lcfh['SECTOR']} \nflux@t0 ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{transit_duration_msg}", {'fontsize': title_fontsize})
     ax.legend()
     ax.xaxis.label.set_size(18)
     ax.yaxis.label.set_size(18)
 
     # to avoid occasional formating in scientific notations
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+
+    ax.xaxis.set_minor_locator(AutoMinorLocator())
+    ax.tick_params(axis='x', which='minor', length=4)
+    ax.yaxis.set_minor_locator(AutoMinorLocator())
+    ax.tick_params(axis='y', which='minor', length=4)
 
     if ax_tweak_fn is not None:
         ax_tweak_fn(ax)
 
     return ax
 
+def plot_transits(lcf_coll, transit_specs, default_spec = None, ax_fn=lambda: lcf_fig().gca(), **kwargs):
+    """Helper to plot transits zoomed-in."""
+    defaults = default_spec
+    if defaults is None:
+        defaults = dict()
+    # now apply hardcoded defaults if not specified
+    defaults.setdefault('duration_hr', 0)
+    defaults.setdefault('period', 0)
+    defaults.setdefault('steps_to_show', [0])
+    defaults.setdefault('surround_time', 1.5)
+
+    axs = []
+    for spec in transit_specs:
+        lcf = of_sector(lcf_coll, spec['sector'])
+
+        #  process the supplied spec and apply defaults
+        t0 = spec.get('t0', None)
+        if t0 is None: # case t0 is specified in relative time
+            t0_relative = spec.get('t0_relative', None)
+            if t0_relative is None:
+                raise ValueError('plot_transits: in a transit spec, `t0` or `t0_relative` must be specified')
+            t_start = lcf.get_header()['TSTART']
+            t0 = t0_relative + t_start
+
+        duration = spec.get('duration_hr', defaults['duration_hr']) / 24
+        period = spec.get('period', defaults['period'])
+        steps_to_show = spec.get('steps_to_show', defaults['steps_to_show'])
+        surround_time = spec.get('surround_time', defaults['surround_time'])
+
+        # TODO: warn if period is 0, but steps to show is not [0]
+
+        for i in steps_to_show:
+            cur_t0 = t0 + period * i
+            ax = plot_n_annotate_lcf(lcf, ax = ax_fn()
+                                    , t0=cur_t0
+                                    , t_start=cur_t0 - duration / 2, t_end=cur_t0 + duration / 2
+                                    , xmin=cur_t0 - (duration + surround_time) / 2, xmax=cur_t0 + (duration + surround_time) / 2
+                                    , **kwargs
+                        )
+            axs.append(ax)
+    return axs
+
+
+
+def print_data_range(lcf_coll):
+    """Print the data range for the given LightCurveFileCollection
+
+    For each LightCurveFile:
+    * sector start/stop time
+    * first / last observation time
+    * camera used
+    """
+    print("Sectors: " + str(list(map(lambda lcf: lcf.get_header()['SECTOR'], lcf_coll))) + f' ({len(lcf_coll)})')
+    print("Observation period range / data range:")
+    for lcf in lcf_coll:
+        lc_cur = lcf.PDCSAP_FLUX
+        print(f"  Sector {lcf.get_header()['SECTOR']}: {lcf.get_header()['TSTART']} - {lcf.get_header()['TSTOP']}")
+        print(f"   (cam {lcf.get_header()['CAMERA']})   {min(lc_cur.time)} - {max(lc_cur.time)}")
+
+
 # Do the actual plots
 def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
              , use_relative_time=False, mark_quality_issues = True, ax_tweak_fn=None):
+    """Plot the given LightCurveFile collection, one graph for each LightCurve
+
+    Returns
+    -------
+    axs : the list of plots in `matplotlib.Axes`
+    """
     # choice 1: use the built-in plot method
 #    ax_all = plt.figure(figsize=(30, 15)).gca()
 #     lcf_coll.PDCSAP_FLUX.plot(ax=ax_all) # Or lcf_coll.SAP_FLUX.plot()
@@ -166,6 +240,7 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
 #     return ax_all
 
     # choice 4: plot the lightcurve sector by sector: each sector in its own graph
+    axs = []
     for i in range(0, len(lcf_coll)):
         if ax_fn is None:
             ax = lcf_fig().gca()
@@ -243,7 +318,8 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
                           , color='red', linewidth=1, linestyle='--', label="potential quality issue")
 
         ax.legend()
-    return None
+        axs.append(ax)
+    return axs
 
 
 def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None, c='blue', c_highlight='red'):
