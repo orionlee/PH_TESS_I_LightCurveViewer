@@ -10,6 +10,22 @@ import lightkurve as lk
 
 log = logging.getLogger(__name__)
 
+def of_sector(lcf_coll, sectorNum):
+    for lcf in lcf_coll:
+        if lcf.get_header()['SECTOR'] == sectorNum:
+            return lcf
+    return None
+
+def of_sectors(*args):
+    lcf_coll = args[0]
+    sectorNums = args[1:]
+    res = []
+    for lcf in lcf_coll:
+        if lcf.get_header()['SECTOR'] in sectorNums:
+            res.append(lcf)
+    return lk.LightCurveFileCollection(res)
+
+
 def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
                              download_dir=None, use_cache='yes'):
     '''
@@ -49,6 +65,7 @@ def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
     # else
     raise ValueError('invalid value for argument use_cache')
 
+# Private helpers for `download_lightcurvefiles`
 
 def _search_and_cache(target, mission, download_dir):
     search_res = lk.search.search_lightcurvefile(target=target, mission=mission)

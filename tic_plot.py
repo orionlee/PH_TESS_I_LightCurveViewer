@@ -12,21 +12,6 @@ import pandas as pd
 
 from lightkurve import LightCurveFileCollection
 
-def lcf_of_sector(lcf_coll, sectorNum):
-    for lcf in lcf_coll:
-        if lcf.get_header()['SECTOR'] == sectorNum:
-            return lcf
-    return None
-
-def lcfs_of_sectors(*args):
-    lcf_coll = args[0]
-    sectorNums = args[1:]
-    res = []
-    for lcf in lcf_coll:
-        if lcf.get_header()['SECTOR'] in sectorNums:
-            res.append(lcf)
-    return LightCurveFileCollection(res)
-
 # Plot the flux changes (not flux themselves) to get a sense of the rate of changes, not too helpful yet.
 def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='30min'):
 
@@ -261,7 +246,7 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
     return None
 
 
-def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None):
+def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None, c='blue', c_highlight='red'):
     '''
     Scatter centroids, and highlight the specific time range
     '''
@@ -279,13 +264,13 @@ def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None)
             raise Exception(f'Zoomed lightcurve has no observation. time_range={time_range}')
 
     fig.gca().yaxis.set_major_formatter(FormatStrFormatter('%.3f')) # avoid scientific notations
-    fig.gca().scatter(df.centroid_col.values, df.centroid_row.values, c='blue', label=f'TIC {lc.targetid}')
+    fig.gca().scatter(df.centroid_col.values, df.centroid_row.values, c=c, label=f'TIC {lc.targetid}')
 
     if highlight_time_range is not None:
         df_highlight = df[(df.time >= highlight_time_range[0]) & (df.time <= highlight_time_range[1])]
         if (len(df_highlight) < 1):
             print('WARNING: scatter_centroids() no observations in highlight_time_range')
-        fig.gca().scatter(df_highlight.centroid_col.values, df_highlight.centroid_row.values, c='red', label='highlights')
+        fig.gca().scatter(df_highlight.centroid_col.values, df_highlight.centroid_row.values, c=c_highlight, label='highlights')
 
     title = f'TIC {lc.targetid} Centroids, sector {sector}'
     if time_range is not None:
