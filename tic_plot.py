@@ -10,6 +10,8 @@ from matplotlib.ticker import (FormatStrFormatter, AutoMinorLocator)
 import numpy as np
 import pandas as pd
 
+from lightkurve import LightCurveFileCollection
+
 def lcf_of_sector(lcf_coll, sectorNum):
     for lcf in lcf_coll:
         if lcf.get_header()['SECTOR'] == sectorNum:
@@ -23,7 +25,7 @@ def lcfs_of_sectors(*args):
     for lcf in lcf_coll:
         if lcf.get_header()['SECTOR'] in sectorNums:
             res.append(lcf)
-    return res
+    return LightCurveFileCollection(res)
 
 # Plot the flux changes (not flux themselves) to get a sense of the rate of changes, not too helpful yet.
 def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='30min'):
@@ -100,7 +102,7 @@ def mask_gap(x, y, min_x_diff):
     x_diff = np.diff(x, prepend=-min_x_diff)
     return np.ma.masked_where(x_diff > min_x_diff, y)
 
-def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', t0mark_ymax = 0.3, lc_tweak_fn=None, ax_tweak_fn=None):
+def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', t0mark_ymax = 0.3, set_title=True, lc_tweak_fn=None, ax_tweak_fn=None):
     if lcf == None:
         print("Warning: lcf is None. Plot skipped")
         return
@@ -145,7 +147,8 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     if flux_t0 is not None:
         flux_begin = max(flux_mavg_near(df, t_start), flux_mavg_near(df, t_end))
         flux_dip = flux_begin - flux_t0
-    ax.set_title(f"{lc.label}, sector {lcfh['SECTOR']} \nflux@t0 ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{transit_duration_msg}", {'fontsize': 24})
+    if set_title:
+        ax.set_title(f"{lc.label}, sector {lcfh['SECTOR']} \nflux@t0 ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{transit_duration_msg}", {'fontsize': 24})
     ax.legend()
     ax.xaxis.label.set_size(18)
     ax.yaxis.label.set_size(18)
@@ -229,22 +232,31 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
         if ax_tweak_fn is not None:
             ax_tweak_fn(ax)
 
-        # mark quality issue is applied after ax_tweak_fn, in case users use ax_tweak_fn and change the graph's ylim    
+        # mark quality issue is applied after ax_tweak_fn, in case users use ax_tweak_fn and change the graph's ylim
         if mark_quality_issues:
             # the time where flux might have potential issues, using the suggested starting quality flag mask
-            # See https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags 
+            # See https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags
             time = lc.time if not use_relative_time else lc.time_rel
             time_w_quality_issues = time[np.nonzero(np.logical_and(lc.quality & 0b0101001010111111
                                                                   , np.isfinite(lc.flux)))] # filter out time where there is no valid flux as well
             if len(time_w_quality_issues) > 0:
                 # add marks as vertical lines at bottom 10% of the plot
                 # Note: ax.vlines's ymin/ymax refers to the data. To specify them relative to y-axis
+
                 # I have to 1) use transform, and
-                #           2) tell the plot not to auto-scale Y-axis 
+                #           2) tell the plot not to auto-scale Y-axis
                 #               (if auto-scaled is done, it will treat the line's coodrinate as data)
-                ax.set_autoscaley_on(False)
-                ax.vlines(time_w_quality_issues, ymin=0, ymax=0.1, transform=ax.get_xaxis_transform()
+                # somehow it doesn't work all the time. it could crop the y axis such that
+                # only the vlines are visible
+#                 ax.set_autoscaley_on(False)
+#                 ax.vlines(time_w_quality_issues, ymin=0, ymax=0.1, transform=ax.get_xaxis_transform()
+#                           , color='red', linewidth=1, linestyle='--', label="potential quality issue")
+
+                # back to visually less appealing one (that vline doesn't start from the bottom
+                ybottom, ytop = ax.get_ylim()
+                ax.vlines(time_w_quality_issues, ymin=ybottom, ymax=ybottom + 0.1 * (ytop - ybottom)
                           , color='red', linewidth=1, linestyle='--', label="potential quality issue")
+
         ax.legend()
     return None
 
@@ -297,19 +309,19 @@ def _update_anim(n, ax, lc, label, num_centroids_to_show, use_relative_time, c):
     # x-axis might need scientific notation so that the labels won't get too cramped with long decimals
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
 
-    if use_relative_time:
-        time_label = f"{as_4decimal(lc.time_rel[n])} ({as_4decimal(lc.time[n])})"
-    else:
-        time_label = f"{as_4decimal(lc.time[n])}"
-
-
     if num_centroids_to_show is None:
         col = lc.centroid_col[:n]
         row = lc.centroid_row[:n]
+        time_label = f"{as_4decimal(lc.time[n])}"
+        if use_relative_time:
+            time_label = time_label + f" ({as_4decimal(lc.time_rel[n])})"
     else:
         n_start = max(0, n - num_centroids_to_show)
         col = lc.centroid_col[n_start:n]
         row = lc.centroid_row[n_start:n]
+        time_label = f"{as_4decimal(lc.time[n_start])} - {as_4decimal(lc.time[n])}"
+        if use_relative_time:
+            time_label = time_label + f" ({as_4decimal(lc.time_rel[n_start])} - {as_4decimal(lc.time_rel[n])})"
 
     ax.set_title(f'TIC {lc.targetid} Centroids, {label}\nday: {time_label}')
     ax.scatter(col, row, c=c)
