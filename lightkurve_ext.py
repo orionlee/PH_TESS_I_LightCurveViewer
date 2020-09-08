@@ -4,10 +4,13 @@ Convenience helpers for `lightkurve` package.
 
 import os
 import logging
+import math
 import json
+import warnings
+
+import numpy as np
 
 import lightkurve as lk
-import numpy as np
 
 log = logging.getLogger(__name__)
 
@@ -152,4 +155,60 @@ def create_quality_issues_mask(lc, flags_included=0b0101001010111111):
 def list_times_w_quality_issues(lc):
     mask = create_quality_issues_mask(lc)
     return lc.time[mask], lc.quality[mask]
+
+
+def list_transit_times(t0, period, steps_or_num_transits=range(0, 10), return_string=False):
+    """List the transit times based on the supplied transit parameters"""
+    if isinstance(steps_or_num_transits, int):
+        steps = range(0, steps_or_num_transits)
+    else:
+        steps = steps_or_num_transits
+    times = [t0 + period * i for i in steps]
+    if return_string:
+        return ','.join(map(str, times))
+    else:
+        return times
+
+def get_segment_times_idx(times, break_tolerance=5):
+    """Segment the input array of times into segments due to data gaps. Return the indices of the segments.
+
+    The minimal gap size is determined by `break_tolerance`.
+
+    The logic is adapted from `LightCurve.flatten`
+    """
+    dt = times[1:] - times[0:-1]
+    with warnings.catch_warnings():  # Ignore warnings due to NaNs
+        warnings.simplefilter("ignore", RuntimeWarning)
+        cut = np.where(dt > break_tolerance * np.nanmedian(dt))[0] + 1
+    low = np.append([0], cut)
+    high = np.append(cut, len(times))
+    return (low, high)
+
+def get_segment_times(times, **kwargs):
+    low, high = get_segment_times_idx(times, **kwargs)
+    # add a small 1e-10 to end so that the end time is exclusive (follow convention in range)
+    return [(times[l], times[h-1] + 1e-10) for l, h in zip(low, high)]
+
+
+def get_transit_times_in_range(t0, period, start, end):
+    t_start = t0 + math.ceil((start - t0) / period) * period
+    num_t = math.ceil((end - t_start) / period)
+    return [t_start + period * i for i in range(num_t)]
+
+
+def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
+    """Get the transit times with observations of the given lightcurve, based on the supplied transit parameters.
+
+       The method will exclude the times where there is no observation due to data gaps.
+    """
+
+    # break up the times to exclude times in gap
+    times_list = get_segment_times(lc.time)
+    transit_times = []
+    for start, end in times_list:
+        transit_times.extend(get_transit_times_in_range(t0, period, start, end))
+    if return_string:
+        return ','.join(map(str, transit_times))
+    else:
+        return transit_times
 
