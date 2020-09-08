@@ -7,6 +7,7 @@ import logging
 import json
 
 import lightkurve as lk
+import numpy as np
 
 log = logging.getLogger(__name__)
 
@@ -136,3 +137,19 @@ def _load_search_result_product_identifiers(download_dir, key):
         if err.errno != 2:
             log.warning('Unexpected OSError in retrieving cached search result: {}'.format(err))
         return None
+
+
+# Other misc. extensions
+
+def create_quality_issues_mask(lc, flags_included=0b0101001010111111):
+    """Returns a boolean array which flags cadences with *issues*.
+
+    The default `flags_included` is a TESS default, based on https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags
+    """
+
+    return np.nonzero(np.logical_and(lc.quality & flags_included, np.isfinite(lc.flux)))
+
+def list_times_w_quality_issues(lc):
+    mask = create_quality_issues_mask(lc)
+    return lc.time[mask], lc.quality[mask]
+

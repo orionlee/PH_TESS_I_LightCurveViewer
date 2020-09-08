@@ -13,6 +13,7 @@ import pandas as pd
 from lightkurve import LightCurveFileCollection
 
 from lightkurve_ext import of_sector
+import lightkurve_ext as lke
 
 # Plot the flux changes (not flux themselves) to get a sense of the rate of changes, not too helpful yet.
 def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='30min'):
@@ -295,10 +296,8 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
         # mark quality issue is applied after ax_tweak_fn, in case users use ax_tweak_fn and change the graph's ylim
         if mark_quality_issues:
             # the time where flux might have potential issues, using the suggested starting quality flag mask
-            # See https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags
             time = lc.time if not use_relative_time else lc.time_rel
-            time_w_quality_issues = time[np.nonzero(np.logical_and(lc.quality & 0b0101001010111111
-                                                                  , np.isfinite(lc.flux)))] # filter out time where there is no valid flux as well
+            time_w_quality_issues = time[lke.create_quality_issues_mask(lc)]
             if len(time_w_quality_issues) > 0:
                 # add marks as vertical lines at bottom 10% of the plot
                 # Note: ax.vlines's ymin/ymax refers to the data. To specify them relative to y-axis
