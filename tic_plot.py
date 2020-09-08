@@ -441,3 +441,13 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
             print('WARNING: animate_centroids() - inline display not possible Not in IPython environment.')
             return anim
 
+
+def markTimes(ax, times, **kwargs):
+    """Helper to mark specifics time as vertical lines on a plot"""
+    axvline_kwargs = kwargs.copy()
+    # apply defaults
+    axvline_kwargs.setdefault('c', 'gray')
+    axvline_kwargs.setdefault('linewidth', 1)
+    axvline_kwargs.setdefault('linestyle', '--')
+    for t in times:
+        ax.axvline(t, **axvline_kwargs)
