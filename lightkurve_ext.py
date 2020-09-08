@@ -23,6 +23,12 @@ def of_sector(lcf_coll, sectorNum):
 
 def of_sectors(*args):
     lcf_coll = args[0]
+    if len(args) == 1:
+        # when no sectors are specified, return entire collection
+        # For convenience: when a notebooks is modified such that
+        # a user sometimes use a subset of sectors , and sometimes everything
+        # the user can can still use of_sectors() wrapper regardless
+        return lcf_coll
     sectorNums = args[1:]
     res = []
     for lcf in lcf_coll:
