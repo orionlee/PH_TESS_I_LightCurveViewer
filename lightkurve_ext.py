@@ -9,6 +9,7 @@ import json
 import warnings
 
 import numpy as np
+from scipy.interpolate import UnivariateSpline
 
 import lightkurve as lk
 
@@ -211,4 +212,32 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
         return ','.join(map(str, transit_times))
     else:
         return transit_times
+
+
+
+def to_window_length_for_2min_cadence(length_day):
+    """Helper for LightCurve.flatten(). Return a `window_length` for the given number of days, assuming the data has 2-minute cadence."""
+    res = math.floor(720 * length_day)
+    if res % 2 == 0:
+        res += 1 # savgol_filter window length must be odd number
+    return res
+
+
+# detrend using spline
+# Based on:  https://github.com/barentsen/kepler-athenaeum-tutorial/blob/master/how-to-find-a-planet-tutorial.ipynb
+def flatten_with_spline_normalized(lc, return_trend=False, **kwargs):
+    lc = lc.remove_nans()
+    spline = UnivariateSpline(lc.time, lc.flux, **kwargs)
+    trend = spline(lc.time)
+    detrended = lc.flux - trend
+    detrended_relative = 100 * ((lc.flux / trend) - 1) + 100 # in percentage
+    lc_flattened = lc.copy()
+    lc_flattened.flux = detrended_relative
+    lc_flattened.flux_unit = 'percent'
+    if not return_trend:
+        return lc_flattened
+    else:
+        lc_trend = lc.copy()
+        lc_trend.flux = trend
+        return (lc_flattened, lc_trend)
 
