@@ -329,7 +329,7 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
     return axs
 
 
-from ipywidgets import interactive, fixed
+from ipywidgets import interactive, interactive_output, fixed
 import ipywidgets as widgets
 from IPython.display import display
 
@@ -396,9 +396,12 @@ def _update_plot_transit_interactive(lcf, t0, duration_hr, period, step, surroun
     else:
         t0_to_use = t0 + step * period
         plot_transit(lcf, ax, t0_to_use, duration_hr / 24, surround_time, moving_avg_window= moving_avg_window)
-        codes_text += f"\nplot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_avg_window={moving_avg_window_for_codes})"
-        codes_text += "\n\n# transit_specs for calling plot_transits()"
         codes_text += (f"""
+#   transit parameters - t0: BTJD {t0}, duration: {duration_hr} hours, period: {period} days
+
+plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_avg_window={moving_avg_window_for_codes})
+
+# transit_specs for calling plot_transits()
 transit_specs = [
     dict(sector={lcf.get_header()['SECTOR']}
          , t0 = {t0}
@@ -411,7 +414,10 @@ transit_defaults = dict(duration_hr = {duration_hr}, period = {period})
     ymax_to_use = ymax if ymax >= 0 else None
     if (ymin_to_use is not None) or (ymax_to_use is not None):
         ax.set_ylim(ymin_to_use, ymax_to_use)
-        codes_text += f'\n\nax.set_ylim({ymin_to_use}, {ymax_to_use})'
+        codes_text += f"""
+# Zoom in on flux
+ax.set_ylim({ymin_to_use}, {ymax_to_use})
+"""
 
     widget_out2.clear_output()
     with widget_out2:
@@ -423,42 +429,54 @@ def plot_transit_interactive(lcf):
 
     # Add a second output for textual
     widget_out2 = widgets.Output()
-    w = interactive(_update_plot_transit_interactive
-                    , lcf = fixed(lcf)
-                    , t0 = widgets.FloatText(value=-1
-                                             , description = 't_epoch'
-                                             , style= desc_style)
-                    , duration_hr = widgets.FloatText(value=1
-                                             , description = 'duration (hours)'
-                                             , style= desc_style)
-                    , period = widgets.FloatText(value=1
-                                             , description = 'period (days)'
-                                             , style= desc_style)
-                    , step = widgets.IntText(value=0
-                                             , description = 'step (0 for transit at t_epoch)'
-                                             , style= desc_style)
-                    , surround_time = widgets.FloatText(value=1
-                                             , description = 'padding (days)'
-                                             , style= desc_style)
-                    , moving_avg_window = widgets.Dropdown(options = [('None', None), ('10 min', '20min'), ('20 min', '20min'), ('30 min', '30min'), ('1 hour', '1h'), ('2 hours', '2h'), ('4 hours', '4h')]
-                                                          , value = '30min'
-                                                          , description = 'Moving average window'
-                                                          , style = desc_style)
-                    , ymin = widgets.FloatText(value=-1
-                                               , description = 'Flux min, -1 for default'
-                                               , style= desc_style)
-                    , ymax = widgets.FloatText(value=-1
-                                               , description = 'Flux max, -1 for default'
-                                               , style= desc_style)
-                    , widget_out2 = fixed(widget_out2)
-                )
+
+    t0 = widgets.FloatText(value=-1
+                                , description = 't_epoch'
+                                , style= desc_style)
+    duration_hr = widgets.FloatText(value=1
+                                , description = 'duration (hours)'
+                                , style= desc_style)
+    period = widgets.FloatText(value=1
+                                , description = 'period (days)'
+                                , style= desc_style)
+    step = widgets.IntText(value=0
+                                , description = 'step (0 for transit at t_epoch)'
+                                , style= desc_style)
+    surround_time = widgets.FloatText(value=1
+                                , description = 'padding (days)'
+                                , style= desc_style)
+    moving_avg_window = widgets.Dropdown(options = [('None', None), ('10 min', '20min'), ('20 min', '20min'), ('30 min', '30min'), ('1 hour', '1h'), ('2 hours', '2h'), ('4 hours', '4h')]
+                                            , value = '30min'
+                                            , description = 'Moving average window'
+                                            , style = desc_style)
+    ymin = widgets.FloatText(value=-1
+                                , description = 'Flux min, -1 for default'
+                                , style= desc_style)
+    ymax = widgets.FloatText(value=-1
+                                , description = 'Flux max, -1 for default'
+                                , style= desc_style)
+    VB = widgets.VBox
+    HB = widgets.HBox
+    ui = VB([HB([t0, duration_hr, period])
+             , HB([step, surround_time , moving_avg_window])
+             , HB([ymin, ymax])
+    ])
+    w = interactive_output(_update_plot_transit_interactive,
+                           dict(lcf=fixed(lcf)
+                                , t0=t0, duration_hr=duration_hr, period=period
+                                , step=step, surround_time=surround_time
+                                , moving_avg_window=moving_avg_window
+                                , ymin=ymin, ymax=ymax
+                                , widget_out2=fixed(widget_out2)
+                           )
+    )
+
     w.layout.border = '1px solid lightgray'
     w.layout.padding = '1em 0px'
 
     widget_out2.layout.padding = '1em'
-    w.children = w.children + (widget_out2,)
 
-    display(w)
+    display(ui, w, widget_out2)
     return w
 
 
