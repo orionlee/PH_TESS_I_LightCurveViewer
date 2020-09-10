@@ -439,31 +439,37 @@ def plot_transit_interactive(lcf):
     # Add a second output for textual
     widget_out2 = widgets.Output()
 
-    t0 = widgets.FloatText(value=-1
-                                , description = 't_epoch'
-                                , style= desc_style)
+    t0 = widgets.FloatText(value = -1
+                           , step = 0.1
+                           , description = r'$t_{epoch}$, -1 for unspecified'
+                           , style= desc_style)
     duration_hr = widgets.FloatText(value=1
-                                , description = 'duration (hours)'
-                                , style= desc_style)
+                                   , step = 0.1
+                                  , description = 'duration (hours)'
+                                  , style= desc_style)
     period = widgets.FloatText(value=1
-                                , description = 'period (days)'
-                                , style= desc_style)
+                              , step = 0.1
+                              , description = 'period (days)'
+                              , style= desc_style)
     step = widgets.IntText(value=0
-                                , description = 'step (0 for transit at t_epoch)'
+                                , description = 'cycle (0 for transit at t_epoch)'
                                 , style= desc_style)
     surround_time = widgets.FloatText(value=1
-                                , description = 'padding (days)'
-                                , style= desc_style)
+                                      , step = 0.5
+                                      , description = 'padding (days)'
+                                      , style= desc_style)
     moving_avg_window = widgets.Dropdown(options = [('None', None), ('10 min', '20min'), ('20 min', '20min'), ('30 min', '30min'), ('1 hour', '1h'), ('2 hours', '2h'), ('4 hours', '4h')]
-                                            , value = '30min'
-                                            , description = 'Moving average window'
-                                            , style = desc_style)
+                                         , value = '30min'
+                                         , description = 'moving average window'
+                                         , style = desc_style)
     ymin = widgets.FloatText(value=-1
-                                , description = 'Flux min, -1 for default'
-                                , style= desc_style)
+                             , step = 0.1
+                             , description = 'flux min, -1 for default'
+                             , style= desc_style)
     ymax = widgets.FloatText(value=-1
-                                , description = 'Flux max, -1 for default'
-                                , style= desc_style)
+                              , step = 0.1
+                              , description = 'flux max, -1 for default'
+                             , style= desc_style)
     VB = widgets.VBox
     HB = widgets.HBox
     ui = VB([HB([t0, duration_hr, period])
