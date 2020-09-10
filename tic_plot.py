@@ -155,6 +155,14 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
 
     return ax
 
+def plot_transit(lcf, ax, t0, duration, surround_time, **kwargs):
+    return plot_n_annotate_lcf(lcf, ax = ax
+                               , t0=t0
+                               , t_start=t0 - duration / 2, t_end=t0 + duration / 2
+                               , xmin=t0 - (duration + surround_time) / 2, xmax=t0 + (duration + surround_time) / 2
+                               , **kwargs
+                               )
+
 def plot_transits(lcf_coll, transit_specs, default_spec = None, ax_fn=lambda: lcf_fig().gca(), **kwargs):
     """Helper to plot transits zoomed-in."""
     defaults = default_spec
@@ -320,12 +328,12 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
         axs.append(ax)
     return axs
 
+
 from ipywidgets import interactive, fixed
 import ipywidgets as widgets
 from IPython.display import display
 
-
-def _update_plot_interactive(lcf, xrange, moving_avg_window, ymin, ymax, widget_out2):
+def _update_plot_lcf_interactive(lcf, xrange, moving_avg_window, ymin, ymax, widget_out2):
     ax = lcf_fig().gca()
     plot_n_annotate_lcf(lcf, ax, xmin=xrange[0], xmax=xrange[1], moving_avg_window=moving_avg_window)
     codes_text = f'ax.set_xlim({xrange[0]}, {xrange[1]})'
@@ -333,7 +341,7 @@ def _update_plot_interactive(lcf, xrange, moving_avg_window, ymin, ymax, widget_
     ymax_to_use = ymax if ymax >= 0 else None
     if (ymin_to_use is not None) or (ymax_to_use is not None):
         ax.set_ylim(ymin_to_use, ymax_to_use)
-        codes_text += f'\nax.set_xlim({ymin_to_use}, {ymax_to_use})'
+        codes_text += f'\n\nax.set_ylim({ymin_to_use}, {ymax_to_use})'
 
     widget_out2.clear_output()
     with widget_out2:
@@ -349,13 +357,89 @@ def plot_lcf_interactive(lcf):
     t_stop = lcf.get_header()['TSTOP']
     # Add a second output for textual
     widget_out2 = widgets.Output()
-    w = interactive(_update_plot_interactive
+    w = interactive(_update_plot_lcf_interactive
                     , lcf = fixed(lcf)
                     , xrange = widgets.FloatRangeSlider(min=t_start, max=t_stop, step=0.1, value=(t_start, t_stop)
                                                 , description = 'Time'
                                                 , continuous_update = False
                                                 , readout_format=".1f"
                                                 , layout = slider_layout, style = slider_style)
+                    , moving_avg_window = widgets.Dropdown(options = [('None', None), ('10 min', '20min'), ('20 min', '20min'), ('30 min', '30min'), ('1 hour', '1h'), ('2 hours', '2h'), ('4 hours', '4h')]
+                                                          , value = '30min'
+                                                          , description = 'Moving average window'
+                                                          , style = desc_style)
+                    , ymin = widgets.FloatText(value=-1
+                                               , description = 'Flux min, -1 for default'
+                                               , style= desc_style)
+                    , ymax = widgets.FloatText(value=-1
+                                               , description = 'Flux max, -1 for default'
+                                               , style= desc_style)
+                    , widget_out2 = fixed(widget_out2)
+                )
+    w.layout.border = '1px solid lightgray'
+    w.layout.padding = '1em 0px'
+
+    widget_out2.layout.padding = '1em'
+    w.children = w.children + (widget_out2,)
+
+    display(w)
+    return w
+
+
+def _update_plot_transit_interactive(lcf, t0, duration_hr, period, step, surround_time, moving_avg_window, ymin, ymax, widget_out2):
+    ax = lcf_fig().gca()
+    codes_text = "# Snippets to generate the plot"
+    moving_avg_window_for_codes = 'None' if moving_avg_window is None else f"'{moving_avg_window}'"
+    if t0 < 0:
+        plot_n_annotate_lcf(lcf, ax, moving_avg_window=moving_avg_window)
+        codes_text += f"\nplot_n_annotate_lcf(lcf, ax, moving_avg_window={moving_avg_window_for_codes})"
+    else:
+        t0_to_use = t0 + step * period
+        plot_transit(lcf, ax, t0_to_use, duration_hr / 24, surround_time, moving_avg_window= moving_avg_window)
+        codes_text += f"\nplot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_avg_window={moving_avg_window_for_codes})"
+        codes_text += "\n\n# transit_specs for calling plot_transits()"
+        codes_text += (f"""
+transit_specs = [
+    dict(sector={lcf.get_header()['SECTOR']}
+         , t0 = {t0}
+         , steps_to_show = [{step}])
+]
+transit_defaults = dict(duration_hr = {duration_hr}, period = {period})
+""")
+
+    ymin_to_use = ymin if ymin >= 0 else None
+    ymax_to_use = ymax if ymax >= 0 else None
+    if (ymin_to_use is not None) or (ymax_to_use is not None):
+        ax.set_ylim(ymin_to_use, ymax_to_use)
+        codes_text += f'\n\nax.set_ylim({ymin_to_use}, {ymax_to_use})'
+
+    widget_out2.clear_output()
+    with widget_out2:
+        print(codes_text)
+    return None
+
+def plot_transit_interactive(lcf):
+    desc_style = {'description_width': '25ch'}
+
+    # Add a second output for textual
+    widget_out2 = widgets.Output()
+    w = interactive(_update_plot_transit_interactive
+                    , lcf = fixed(lcf)
+                    , t0 = widgets.FloatText(value=-1
+                                             , description = 't_epoch'
+                                             , style= desc_style)
+                    , duration_hr = widgets.FloatText(value=1
+                                             , description = 'duration (hours)'
+                                             , style= desc_style)
+                    , period = widgets.FloatText(value=1
+                                             , description = 'period (days)'
+                                             , style= desc_style)
+                    , step = widgets.IntText(value=0
+                                             , description = 'step (0 for transit at t_epoch)'
+                                             , style= desc_style)
+                    , surround_time = widgets.FloatText(value=1
+                                             , description = 'padding (days)'
+                                             , style= desc_style)
                     , moving_avg_window = widgets.Dropdown(options = [('None', None), ('10 min', '20min'), ('20 min', '20min'), ('30 min', '30min'), ('1 hour', '1h'), ('2 hours', '2h'), ('4 hours', '4h')]
                                                           , value = '30min'
                                                           , description = 'Moving average window'
