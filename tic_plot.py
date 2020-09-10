@@ -90,14 +90,23 @@ def mask_gap(x, y, min_x_diff):
     x_diff = np.diff(x, prepend=-min_x_diff)
     return np.ma.masked_where(x_diff > min_x_diff, y)
 
+_cache_plot_n_annotate_lcf = dict(
+    lcf = None,
+    lc = None
+)
 def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', t0mark_ymax = 0.3, set_title=True, title_fontsize=18, lc_tweak_fn=None, ax_tweak_fn=None):
     if lcf == None:
         print("Warning: lcf is None. Plot skipped")
         return
 
-    # possible input arguments
-
-    lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
+    # cache lc to speed up plots repeatedly over the same lcf
+    global _cache_plot_n_annotate_lcf
+    if lcf != _cache_plot_n_annotate_lcf['lcf']:
+        lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
+        _cache_plot_n_annotate_lcf['lcf'] = lcf
+        _cache_plot_n_annotate_lcf['lc'] = lc
+    else:
+        lc = _cache_plot_n_annotate_lcf['lc']
 
     if lc_tweak_fn is not None:
         lc = lc_tweak_fn(lc)
