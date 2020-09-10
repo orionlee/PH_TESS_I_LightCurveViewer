@@ -119,7 +119,7 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
         df = add_flux_moving_average(lc, moving_avg_window)
         ax.plot(lc.time, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
     else:
-        df = add_flux_moving_average(lc, '2min') # still needed for some subsequent calc, but don't plot it
+        df = add_flux_moving_average(lc, '10min') # still needed for some subsequent calc, but don't plot it
 
 
     # annotate the graph
@@ -136,16 +136,18 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     if t0 is not None:
         ax.axvline(t0, ymin=0, ymax=t0mark_ymax, color='black', linewidth=3, linestyle='--', label=f"t0 ~= {t0}")
 
-    transit_duration_msg = ''
-    if t_start is not None and t_end is not None:
-        transit_duration_msg = f'\ntransit duration ~= {as_4decimal(24 * (t_end - t_start))}h'
-    flux_t0 = flux_mavg_near(df, t0)
-    flux_dip = None
-    if flux_t0 is not None:
-        flux_begin = max(flux_mavg_near(df, t_start), flux_mavg_near(df, t_end))
-        flux_dip = flux_begin - flux_t0
     if set_title:
-        ax.set_title(f"{lc.label}, sector {lcfh['SECTOR']} \nflux@t0 ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{transit_duration_msg}", {'fontsize': title_fontsize})
+        title_text = f"{lc.label}, sector {lcfh['SECTOR']}"
+        if t0 is not None:
+            transit_duration_msg = ''
+            if t_start is not None and t_end is not None:
+                transit_duration_msg = f'\ntransit duration ~= {as_4decimal(24 * (t_end - t_start))}h'
+            flux_t0 = flux_mavg_near(df, t0)
+            if flux_t0 is not None:
+                flux_begin = max(flux_mavg_near(df, t_start), flux_mavg_near(df, t_end))
+                flux_dip = flux_begin - flux_t0
+                title_text += f" \nflux@$t_0$ ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{transit_duration_msg}"
+        ax.set_title(title_text, {'fontsize': title_fontsize})
     ax.legend()
     ax.xaxis.label.set_size(18)
     ax.yaxis.label.set_size(18)
@@ -452,7 +454,7 @@ def plot_transit_interactive(lcf):
                               , description = 'period (days)'
                               , style= desc_style)
     step = widgets.IntText(value=0
-                                , description = 'cycle (0 for transit at t_epoch)'
+                                , description = r'cycle (0 for transit at $t_{epoch}$)'
                                 , style= desc_style)
     surround_time = widgets.FloatText(value=1
                                       , step = 0.5
