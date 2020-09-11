@@ -442,15 +442,15 @@ def plot_transit_interactive(lcf):
     widget_out2 = widgets.Output()
 
     t0 = widgets.FloatText(value = -1
-                           , step = 0.1
+                           , step = 0.001
                            , description = r'$t_{epoch}$, -1 for unspecified'
                            , style= desc_style)
     duration_hr = widgets.FloatText(value=1
-                                   , step = 0.1
+                                   , step = 0.001
                                   , description = 'duration (hours)'
                                   , style= desc_style)
     period = widgets.FloatText(value=1
-                              , step = 0.1
+                              , step = 0.001
                               , description = 'period (days)'
                               , style= desc_style)
     step = widgets.IntText(value=0
