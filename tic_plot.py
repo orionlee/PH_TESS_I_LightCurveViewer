@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Helpers to plot the lightcurve of a TESS subject, given a
-LightCurveFileCollection
+LightCurveCollection
 """
 
 import matplotlib.pyplot as plt
@@ -10,7 +10,7 @@ from matplotlib.ticker import (FormatStrFormatter, AutoMinorLocator)
 import numpy as np
 import pandas as pd
 
-from lightkurve import LightCurveFileCollection
+from lightkurve import LightCurveCollection
 
 from lightkurve_ext import of_sector
 import lightkurve_ext as lke
@@ -25,16 +25,16 @@ def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='30min'
 #    ax = lc.scatter(ax=ax)
 
     # convert to dataframe to add moving average
-    df = lc.to_pandas(columns=['time', 'flux'])
+    df = lc.to_pandas() # lkv1: columns=['time', 'flux']
     df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(x, unit='D'))
     # the timestamp above is good for relative time.
     # if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
     # df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s'))
     df['flux_mavg'] = df.rolling(moving_avg_window, on='time_ts')['flux'].mean()
-#    ax.plot(lc.time, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
+#    ax.plot(lc.time.value, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
 
     df['flux_delta'] = df.rolling(moving_avg_window, on='time_ts')['flux_mavg'].apply(lambda vary: vary[-1] - vary[0], raw=True)
-    ax.plot(lc.time, df['flux_delta'], c='blue', label=f"Flux delta ({moving_avg_window})")
+    ax.plot(lc.time.value, df['flux_delta'], c='blue', label=f"Flux delta ({moving_avg_window})")
 
     ax.set_xlim(xmin, xmax)
 
@@ -47,14 +47,15 @@ def flux_near(lc, time):
     if time is None or lc is None:
         return None
     else:
-        idx = (np.abs(lc.time - time)).argmin()
+        idx = (np.abs(lc.time.value - time)).argmin()
         return lc.flux[idx]
 
-def flux_mavg_near(df, time):
+def flux_mavg_near(lc, df, time):
+    # OPEN: make flux_mavg part of lc
     if time is None or df is None:
         return None
     else:
-        idx = (np.abs(df['time'].values - time)).argmin()
+        idx = (np.abs(lc.time.value - time)).argmin()
         # must use df.iloc[idx]['flux_mavg'], rather than df['flux_mavg'][idx]
         # because dataframe from lightkurve is indexed by time (rather than regular 0-based index)
         # df.iloc[] ensures we can still access the value by 0-based index
@@ -69,16 +70,19 @@ def as_4decimal(float_num):
         return float('{0:.4f}'.format(float_num))
 
 def add_flux_moving_average(lc, moving_avg_window):
-    df = lc.to_pandas(columns=['time', 'flux'])
-    df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(x, unit='D'))
+    df = lc.to_pandas() # lkv1: columns=['time', 'flux']
+    df['time_ts'] = df.index # lkv2: time is no longer a column, but the df's index. It's also in pd's Timestamp format without any conversion.
     # the timestamp above is good for relative time.
     # if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
     # df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s'))
     df['flux_mavg'] = df.rolling(moving_avg_window, on='time_ts')['flux'].mean()
+    # OPEN: add flux_mavg to base LC so we can minimize the use of df
     return df
 
 def add_relative_time(lc, lcf):
-    t_start = lcf.get_header()['TSTART']
+    t_start = lcf.meta['TSTART'.lower()]
+    # the format of the resulting time_rel is not exactly correct given the relative time
+    # OPEN: consider to use TimeDelta
     lc.time_rel = lc.time - t_start
     return lc.time_rel
 
@@ -95,13 +99,13 @@ _cache_plot_n_annotate_lcf = dict(
     lc = None
 )
 def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', t0mark_ymax = 0.3, set_title=True, title_fontsize=18, lc_tweak_fn=None, ax_tweak_fn=None):
-    if lcf == None:
+    if lcf is None:
         print("Warning: lcf is None. Plot skipped")
         return
 
     # cache lc to speed up plots repeatedly over the same lcf
     global _cache_plot_n_annotate_lcf
-    if lcf != _cache_plot_n_annotate_lcf['lcf']:
+    if lcf is not _cache_plot_n_annotate_lcf['lcf']:
         lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
         _cache_plot_n_annotate_lcf['lcf'] = lcf
         _cache_plot_n_annotate_lcf['lc'] = lc
@@ -117,13 +121,11 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     # convert to dataframe to add moving average
     if moving_avg_window is not None:
         df = add_flux_moving_average(lc, moving_avg_window)
-        ax.plot(lc.time, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
+        ax.plot(lc.time.value, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
     else:
         df = add_flux_moving_average(lc, '10min') # still needed for some subsequent calc, but don't plot it
 
-
     # annotate the graph
-    lcfh = lcf.get_header()
     if xmin is None and t_start is not None:
         xmin = t_start - 0.5
     if xmax is None and t_end is not None:
@@ -137,14 +139,14 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
         ax.axvline(t0, ymin=0, ymax=t0mark_ymax, color='black', linewidth=3, linestyle='--', label=f"t0 ~= {t0}")
 
     if set_title:
-        title_text = f"{lc.label}, sector {lcfh['SECTOR']}"
+        title_text = f"{lc.label}, sector {lcf.meta['sector']}"
         if t0 is not None:
             transit_duration_msg = ''
             if t_start is not None and t_end is not None:
                 transit_duration_msg = f'\ntransit duration ~= {as_4decimal(24 * (t_end - t_start))}h'
-            flux_t0 = flux_mavg_near(df, t0)
+            flux_t0 = flux_mavg_near(lc, df, t0)
             if flux_t0 is not None:
-                flux_begin = max(flux_mavg_near(df, t_start), flux_mavg_near(df, t_end))
+                flux_begin = max(flux_mavg_near(lc, df, t_start), flux_mavg_near(lc, df, t_end))
                 flux_dip = flux_begin - flux_t0
                 title_text += f" \nflux@$t_0$ ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{transit_duration_msg}"
         ax.set_title(title_text, {'fontsize': title_fontsize})
@@ -195,7 +197,7 @@ def plot_transits(lcf_coll, transit_specs, default_spec = None, ax_fn=lambda: lc
             t0_relative = spec.get('t0_relative', None)
             if t0_relative is None:
                 raise ValueError('plot_transits: in a transit spec, `t0` or `t0_relative` must be specified')
-            t_start = lcf.get_header()['TSTART']
+            t_start = lcf.meta['TSTART'.lower()]
             t0 = t0_relative + t_start
 
         duration = spec.get('duration_hr', defaults['duration_hr']) / 24
@@ -219,19 +221,19 @@ def plot_transits(lcf_coll, transit_specs, default_spec = None, ax_fn=lambda: lc
 
 
 def print_data_range(lcf_coll):
-    """Print the data range for the given LightCurveFileCollection
+    """Print the data range for the given LightCurveCollection
 
     For each LightCurveFile:
     * sector start/stop time
     * first / last observation time
     * camera used
     """
-    print("Sectors: " + str(list(map(lambda lcf: lcf.get_header()['SECTOR'], lcf_coll))) + f' ({len(lcf_coll)})')
+    print("Sectors: " + str(list(map(lambda lcf: lcf.meta['SECTOR'.lower()], lcf_coll))) + f' ({len(lcf_coll)})')
     print("Observation period range / data range:")
     for lcf in lcf_coll:
         lc_cur = lcf.PDCSAP_FLUX
-        print(f"  Sector {lcf.get_header()['SECTOR']}: {lcf.get_header()['TSTART']} - {lcf.get_header()['TSTOP']}")
-        print(f"   (cam {lcf.get_header()['CAMERA']})   {min(lc_cur.time)} - {max(lc_cur.time)}")
+        print(f"  Sector {lcf.meta['SECTOR'.lower()]}: {lcf.meta['TSTART'.lower()]} - {lcf.meta['TSTOP'.lower()]}")
+        print(f"   (cam {lcf.meta['CAMERA'.lower()]})   {lc_cur.time.min()} - {lc_cur.time.max()}")
 
 
 # Do the actual plots
@@ -256,7 +258,7 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
 #     for i in range(0, len(lcf_coll)):
 #         lcf_coll[i].PDCSAP_FLUX.scatter(ax=ax_all)
 
-#     ax_all.set_title(f"TIC {lcf_coll[0].PDCSAP_FLUX.label}, sectors {list(map(lambda lcf: lcf.get_header()['SECTOR'], lcf_coll))}")
+#     ax_all.set_title(f"TIC {lcf_coll[0].PDCSAP_FLUX.label}, sectors {list(map(lambda lcf: lcf.meta['SECTOR'.lower()], lcf_coll))}")
 #     return ax_all
 
     # choice 4: plot the lightcurve sector by sector: each sector in its own graph
@@ -285,19 +287,19 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
             df = add_flux_moving_average(lc, moving_avg_window)
             # mask_gap: if there is a gap larger than 2 hours,
             # show the gap rather than trying to fill the gap with a straight line.
-            ax.plot(lc.time, mask_gap(lc.time, df['flux_mavg'], 2/24), c='black', label=f"Moving average ({moving_avg_window})")
+            ax.plot(lc.time.value, mask_gap(lc.time.value, df['flux_mavg'], 2/24), c='black', label=f"Moving average ({moving_avg_window})")
 
         title_extras = ''
         if lc_tweak_fn is not None:
             title_extras = '\nLC tweaked, e.g., outliers removed'
 
-        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].get_header()['SECTOR']}{title_extras}", {'fontsize': 36})
+        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].meta['SECTOR'.lower()]}{title_extras}", {'fontsize': 36})
 #        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors N/A - Kepler")
 #         ax.legend()
         if use_relative_time:
             ax.xaxis.set_label_text('Time - relative')
             # restore original time after plot is done
-            lc.time = lc.time_orig
+            lc.time.value = lc.time_orig
 
         # to avoid occasional formating in scientific notations
         ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
@@ -315,7 +317,7 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
         # mark quality issue is applied after ax_tweak_fn, in case users use ax_tweak_fn and change the graph's ylim
         if mark_quality_issues:
             # the time where flux might have potential issues, using the suggested starting quality flag mask
-            time = lc.time if not use_relative_time else lc.time_rel
+            time = lc.time.value if not use_relative_time else lc.time_rel
             time_w_quality_issues = time[lke.create_quality_issues_mask(lc)]
             if len(time_w_quality_issues) > 0:
                 # add marks as vertical lines at bottom 10% of the plot
@@ -364,8 +366,8 @@ def plot_lcf_interactive(lcf):
     desc_style = {'description_width': '25ch'}
     slider_style = {'description_width': '25ch'}
     slider_layout = { 'width': '100ch' }
-    t_start = lcf.get_header()['TSTART']
-    t_stop = lcf.get_header()['TSTOP']
+    t_start = lcf.meta['TSTART'.lower()]
+    t_stop = lcf.meta['TSTOP'.lower()]
     # Add a second output for textual
     widget_out2 = widgets.Output()
     w = interactive(_update_plot_lcf_interactive
@@ -396,8 +398,18 @@ def plot_lcf_interactive(lcf):
     display(w)
     return w
 
-
-def _update_plot_transit_interactive(lcf, t0, duration_hr, period, step, surround_time, moving_avg_window, ymin, ymax, widget_out2):
+# the lc / lcf to be used for _update_plot_transit_interactive
+# it is a global rather than an function argument because:
+# 1. it's typically fixed for a given plot_transit_interactive() call
+# 2. to passed a fixed argument, one could use `lcf=fixed(lcf)`, but it's terribly slow in lightkurve2.
+#    Apparently. ipywidget's `fixed()` implementation does some equality check, which is slow with lightkurve2
+#    due to the use of Astropy.Table, which also gives off a future warning:
+#    table.py:3184: FutureWarning: elementwise == comparison failed and returning scalar instead; this will raise an error or perform elementwise comparison in the future.
+#      result = self.as_array() == other
+#
+_globals_update_plot_transit_interactive_lcf = None
+def _update_plot_transit_interactive(t0, duration_hr, period, step, surround_time, moving_avg_window, ymin, ymax, widget_out2):
+    lcf = _globals_update_plot_transit_interactive_lcf
     ax = lcf_fig().gca()
     codes_text = "# Snippets to generate the plot"
     moving_avg_window_for_codes = 'None' if moving_avg_window is None else f"'{moving_avg_window}'"
@@ -414,7 +426,7 @@ plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_a
 
 # transit_specs for calling plot_transits()
 transit_specs = [
-    dict(sector={lcf.get_header()['SECTOR']}
+    dict(sector={lcf.meta['SECTOR'.lower()]}
          , t0 = {t0}
          , steps_to_show = [{step}])
 ]
@@ -478,9 +490,10 @@ def plot_transit_interactive(lcf):
              , HB([step, surround_time , moving_avg_window])
              , HB([ymin, ymax])
     ])
+    global _globals_update_plot_transit_interactive_lcf
+    _globals_update_plot_transit_interactive_lcf = lcf
     w = interactive_output(_update_plot_transit_interactive,
-                           dict(lcf=fixed(lcf)
-                                , t0=t0, duration_hr=duration_hr, period=period
+                           dict(t0=t0, duration_hr=duration_hr, period=period
                                 , step=step, surround_time=surround_time
                                 , moving_avg_window=moving_avg_window
                                 , ymin=ymin, ymax=ymax
@@ -506,9 +519,9 @@ def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None,
         fig = plt.figure(figsize=(12,12))
 
     lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
-    sector = lcf.get_header()['SECTOR']
+    sector = lcf.meta['SECTOR'.lower()]
 
-    df = lc.to_pandas(columns=['time', 'flux', 'centroid_row', 'centroid_col'])
+    df = lc.to_pandas() # lkv1: columns=['time', 'flux', 'centroid_row', 'centroid_col']
     if time_range is not None:
         df = df[(df.time >= time_range[0]) & (df.time <= time_range[1])]
         if (len(df) < 1):
@@ -548,14 +561,14 @@ def _update_anim(n, ax, lc, label, num_centroids_to_show, use_relative_time, c):
     if num_centroids_to_show is None:
         col = lc.centroid_col[:n]
         row = lc.centroid_row[:n]
-        time_label = f"{as_4decimal(lc.time[n])}"
+        time_label = f"{as_4decimal(lc.time.value[n])}"
         if use_relative_time:
             time_label = time_label + f" ({as_4decimal(lc.time_rel[n])})"
     else:
         n_start = max(0, n - num_centroids_to_show)
         col = lc.centroid_col[n_start:n]
         row = lc.centroid_row[n_start:n]
-        time_label = f"{as_4decimal(lc.time[n_start])} - {as_4decimal(lc.time[n])}"
+        time_label = f"{as_4decimal(lc.time.value[n_start])} - {as_4decimal(lc.time.value[n])}"
         if use_relative_time:
             time_label = time_label + f" ({as_4decimal(lc.time_rel[n_start])} - {as_4decimal(lc.time_rel[n])})"
 
@@ -568,12 +581,12 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
 
     '''
     lc = lcf.PDCSAP_FLUX
-    label = f"sector {lcf.get_header()['SECTOR']}"
+    label = f"sector {lcf.meta['SECTOR'.lower()]}"
 
     # Zoom to a particular time range if specified
     if time_range is not None:
         # use pandas to zoom to a particular time_range
-        df = lcf.PDCSAP_FLUX.normalize(unit='percent').to_pandas(columns=['time', 'flux', 'centroid_row', 'centroid_col'])
+        df = lcf.PDCSAP_FLUX.normalize(unit='percent').to_pandas() # lkv1: columns=['time', 'flux', 'centroid_row', 'centroid_col']
         df = df[(df.time >= time_range[0]) & (df.time <= time_range[1])]
         if (len(df) < 1):
             raise Exception(f'Zoomed lightcurve has no observation. time_range={time_range}')

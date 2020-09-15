@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 def of_sector(lcf_coll, sectorNum):
     for lcf in lcf_coll:
-        if lcf.get_header()['SECTOR'] == sectorNum:
+        if lcf.meta['SECTOR'.lower()] == sectorNum:
             return lcf
     return None
 
@@ -32,9 +32,9 @@ def of_sectors(*args):
     sectorNums = args[1:]
     res = []
     for lcf in lcf_coll:
-        if lcf.get_header()['SECTOR'] in sectorNums:
+        if lcf.meta['SECTOR'.lower()] in sectorNums:
             res.append(lcf)
-    return lk.LightCurveFileCollection(res)
+    return lk.LightCurveCollection(res)
 
 
 def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
@@ -58,7 +58,7 @@ def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
     Returns
     -------
     collection : `~lightkurve.collections.Collection` object
-        Returns a `~lightkurve.collections.LightCurveFileCollection`
+        Returns a `~lightkurve.collections.LightCurveCollection`
         containing all lightcurve files that match the criteria
     '''
 
@@ -69,7 +69,7 @@ def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
         if result_file_ids is not None:
             result_files = list(map(lambda e: f"{download_dir}/mastDownload/{e}",
                                     result_file_ids))
-            return lk.collections.LightCurveFileCollection(
+            return lk.collections.LightCurveCollection(
                 list(map(lambda f: lk.open(f), result_files)))
         # else
         return _search_and_cache(target, mission, download_dir)
@@ -157,11 +157,11 @@ def create_quality_issues_mask(lc, flags_included=0b0101001010111111):
     The default `flags_included` is a TESS default, based on https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags
     """
 
-    return np.nonzero(np.logical_and(lc.quality & flags_included, np.isfinite(lc.flux)))
+    return np.nonzero(np.logical_and(lc.quality.value & flags_included, np.isfinite(lc.flux)))
 
 def list_times_w_quality_issues(lc):
     mask = create_quality_issues_mask(lc)
-    return lc.time[mask], lc.quality[mask]
+    return lc.time.value[mask], lc.quality[mask]
 
 
 def list_transit_times(t0, period, steps_or_num_transits=range(0, 10), return_string=False):
@@ -210,7 +210,7 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
     """
 
     # break up the times to exclude times in gap
-    times_list = get_segment_times(lc.time)
+    times_list = get_segment_times(lc.time.value)
     transit_times = []
     for start, end in times_list:
         transit_times.extend(get_transit_times_in_range(t0, period, start, end))
@@ -233,10 +233,10 @@ def to_window_length_for_2min_cadence(length_day):
 # Based on:  https://github.com/barentsen/kepler-athenaeum-tutorial/blob/master/how-to-find-a-planet-tutorial.ipynb
 def flatten_with_spline_normalized(lc, return_trend=False, **kwargs):
     lc = lc.remove_nans()
-    spline = UnivariateSpline(lc.time, lc.flux, **kwargs)
-    trend = spline(lc.time)
-    detrended = lc.flux - trend
-    detrended_relative = 100 * ((lc.flux / trend) - 1) + 100 # in percentage
+    spline = UnivariateSpline(lc.time.value, lc.flux.value, **kwargs)
+    trend = spline(lc.time.value)
+    detrended = lc.flux.value - trend
+    detrended_relative = 100 * ((lc.flux.value / trend) - 1) + 100 # in percentage
     lc_flattened = lc.copy()
     lc_flattened.flux = detrended_relative
     lc_flattened.flux_unit = 'percent'
