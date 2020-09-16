@@ -10,7 +10,7 @@ from matplotlib.ticker import (FormatStrFormatter, AutoMinorLocator)
 import numpy as np
 import pandas as pd
 
-from lightkurve import LightCurveCollection
+from lightkurve import LightCurveCollection, MPLSTYLE
 
 from lightkurve_ext import of_sector
 import lightkurve_ext as lke
@@ -274,20 +274,26 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
         if lc_tweak_fn is not None:
             lc = lc_tweak_fn(lc)
 
-        # temporarily change time to a relative one if specified
+        time_for_plot = lc.time
         if use_relative_time:
             add_relative_time(lc, lcf)
-            lc.time_orig = lc.time
-            lc.time = lc.time_rel
+            time_for_plot = lc.time_rel
+            with plt.style.context(MPLSTYLE):
+                # simulate lc.scatter() using relative time as x-axis
+                ax.scatter(time_for_plot.value, lc.flux, label=lc.label)
+                ax.xaxis.set_label_text(f'Time - relative to [BTJD {as_4decimal(lcf.meta["tstart"])}]')
+                ax.yaxis.set_label_text('Normalized Flux')
+        else:
+            lc.scatter(ax=ax)
 
-        lc.scatter(ax=ax)
 
         # convert to dataframe to add moving average
         if moving_avg_window is not None:
             df = add_flux_moving_average(lc, moving_avg_window)
             # mask_gap: if there is a gap larger than 2 hours,
             # show the gap rather than trying to fill the gap with a straight line.
-            ax.plot(lc.time.value, mask_gap(lc.time.value, df['flux_mavg'], 2/24), c='black', label=f"Moving average ({moving_avg_window})")
+
+            ax.plot(time_for_plot.value, mask_gap(time_for_plot.value, df['flux_mavg'], 2/24), c='black', label=f"Moving average ({moving_avg_window})")
 
         title_extras = ''
         if lc_tweak_fn is not None:
@@ -296,10 +302,6 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
         ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].meta['SECTOR'.lower()]}{title_extras}", {'fontsize': 36})
 #        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors N/A - Kepler")
 #         ax.legend()
-        if use_relative_time:
-            ax.xaxis.set_label_text('Time - relative')
-            # restore original time after plot is done
-            lc.time.value = lc.time_orig
 
         # to avoid occasional formating in scientific notations
         ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
@@ -317,8 +319,7 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
         # mark quality issue is applied after ax_tweak_fn, in case users use ax_tweak_fn and change the graph's ylim
         if mark_quality_issues:
             # the time where flux might have potential issues, using the suggested starting quality flag mask
-            time = lc.time.value if not use_relative_time else lc.time_rel
-            time_w_quality_issues = time[lke.create_quality_issues_mask(lc)]
+            time_w_quality_issues = time_for_plot[lke.create_quality_issues_mask(lc)]
             if len(time_w_quality_issues) > 0:
                 # add marks as vertical lines at bottom 10% of the plot
                 # Note: ax.vlines's ymin/ymax refers to the data. To specify them relative to y-axis
@@ -334,7 +335,7 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
 
                 # back to visually less appealing one (that vline doesn't start from the bottom
                 ybottom, ytop = ax.get_ylim()
-                ax.vlines(time_w_quality_issues, ymin=ybottom, ymax=ybottom + 0.1 * (ytop - ybottom)
+                ax.vlines(time_w_quality_issues.value, ymin=ybottom, ymax=ybottom + 0.1 * (ytop - ybottom)
                           , color='red', linewidth=1, linestyle='--', label="potential quality issue")
 
         ax.legend()
