@@ -291,8 +291,8 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
         if lc_tweak_fn is not None:
             title_extras = '\nLC tweaked, e.g., outliers removed'
 
-        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors {lcf_coll[i].get_header()['SECTOR']}{title_extras}", {'fontsize': 36})
-#        ax.set_title(f"{lcf_coll[0].PDCSAP_FLUX.label}, sectors N/A - Kepler")
+        ax.set_title(f"{lc.label}, sectors {lcf_coll[i].get_header()['SECTOR']}{title_extras}", {'fontsize': 36})
+#        ax.set_title(f"{lc.label}, sectors N/A - Kepler")
 #         ax.legend()
         if use_relative_time:
             ax.xaxis.set_label_text('Time - relative')
