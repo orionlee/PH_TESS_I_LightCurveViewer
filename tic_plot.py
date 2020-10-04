@@ -134,7 +134,12 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     if t_end is not None:
         ax.axvline(t_end)
     if t0 is not None:
-        ax.axvline(t0, ymin=0, ymax=t0mark_ymax, color='black', linewidth=3, linestyle='--', label=f"t0 ~= {t0}")
+        t_start = lcf.get_header().get('TSTART', None)
+        t0_rel_text = ''
+        if t_start is not None:
+            t0_rel = t0 - t_start
+            t0_rel_text = f' ({as_4decimal(t0_rel)})'
+        ax.axvline(t0, ymin=0, ymax=t0mark_ymax, color='black', linewidth=3, linestyle='--', label=f"t0 ~= {t0}{t0_rel_text}")
 
     if set_title:
         title_text = f"{lc.label}, sector {lcfh['SECTOR']}"
@@ -345,7 +350,7 @@ import ipywidgets as widgets
 from IPython.display import display
 
 def _update_plot_lcf_interactive(lcf, xrange, moving_avg_window, ymin, ymax, widget_out2):
-    ax = lcf_fig().gca()
+    ax = plt.figure(figsize=(15, 8)).gca()   # lcf_fig().gca()
     plot_n_annotate_lcf(lcf, ax, xmin=xrange[0], xmax=xrange[1], moving_avg_window=moving_avg_window)
     codes_text = f'ax.set_xlim({xrange[0]}, {xrange[1]})'
     ymin_to_use = ymin if ymin >= 0 else None
@@ -398,7 +403,7 @@ def plot_lcf_interactive(lcf):
 
 
 def _update_plot_transit_interactive(lcf, t0, duration_hr, period, step, surround_time, moving_avg_window, ymin, ymax, widget_out2):
-    ax = lcf_fig().gca()
+    ax = plt.figure(figsize=(15, 8)).gca()   # lcf_fig().gca()
     codes_text = "# Snippets to generate the plot"
     moving_avg_window_for_codes = 'None' if moving_avg_window is None else f"'{moving_avg_window}'"
     if t0 < 0:
