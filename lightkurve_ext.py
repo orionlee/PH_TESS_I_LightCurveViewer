@@ -81,6 +81,7 @@ def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
 def _search_and_cache(target, mission, download_dir):
     search_res = lk.search.search_lightcurvefile(target=target, mission=mission)
     _cache_search_result_product_identifiers(search_res, download_dir, target, mission)
+    # TODO: return search_res as well, we'll see what to do for cache case.
     return search_res.download_all(quality_bitmask='default', download_dir=download_dir)
 
 def _load_from_cache_if_any(target, mission, download_dir):
@@ -150,6 +151,17 @@ def _load_search_result_product_identifiers(download_dir, key):
 
 
 # Other misc. extensions
+
+def get_bkg_lightcurve(lcf):
+    """Returns the background flux, i.e., ``SAP_BKG`` in the file"""
+    bkg_flux = lcf.hdu[1].data['SAP_BKG'][lcf.quality_mask]
+    bkg_flux_err = lcf.hdu[1].data['SAP_BKG_ERR'][lcf.quality_mask]
+    lc = lcf.SAP_FLUX
+    lc.flux = bkg_flux
+    lc.flux_err = bkg_flux_err
+    lc.label = lc.label + ' BKG'
+    return lc
+
 
 def create_quality_issues_mask(lc, flags_included=0b0101001010111111):
     """Returns a boolean array which flags cadences with *issues*.
