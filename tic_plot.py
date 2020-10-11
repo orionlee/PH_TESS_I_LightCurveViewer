@@ -12,7 +12,7 @@ import pandas as pd
 
 from lightkurve import LightCurveFileCollection
 
-from lightkurve_ext import of_sector
+from lightkurve_ext import of_sector, of_sectors
 import lightkurve_ext as lke
 
 # Plot the flux changes (not flux themselves) to get a sense of the rate of changes, not too helpful yet.
@@ -192,33 +192,32 @@ def plot_transits(lcf_coll, transit_specs, default_spec = None, ax_fn=lambda: lc
 
     axs = []
     for spec in transit_specs:
-        lcf = of_sector(lcf_coll, spec['sector'])
+        for lcf in of_sectors(lcf_coll, spec['sector']): # in case we have multiple lcf per sector
+            #  process the supplied spec and apply defaults
+            t0 = spec.get('t0', None)
+            if t0 is None: # case t0 is specified in relative time
+                t0_relative = spec.get('t0_relative', None)
+                if t0_relative is None:
+                    raise ValueError('plot_transits: in a transit spec, `t0` or `t0_relative` must be specified')
+                t_start = lcf.get_header()['TSTART']
+                t0 = t0_relative + t_start
 
-        #  process the supplied spec and apply defaults
-        t0 = spec.get('t0', None)
-        if t0 is None: # case t0 is specified in relative time
-            t0_relative = spec.get('t0_relative', None)
-            if t0_relative is None:
-                raise ValueError('plot_transits: in a transit spec, `t0` or `t0_relative` must be specified')
-            t_start = lcf.get_header()['TSTART']
-            t0 = t0_relative + t_start
+            duration = spec.get('duration_hr', defaults['duration_hr']) / 24
+            period = spec.get('period', defaults['period'])
+            steps_to_show = spec.get('steps_to_show', defaults['steps_to_show'])
+            surround_time = spec.get('surround_time', defaults['surround_time'])
 
-        duration = spec.get('duration_hr', defaults['duration_hr']) / 24
-        period = spec.get('period', defaults['period'])
-        steps_to_show = spec.get('steps_to_show', defaults['steps_to_show'])
-        surround_time = spec.get('surround_time', defaults['surround_time'])
+            # TODO: warn if period is 0, but steps to show is not [0]
 
-        # TODO: warn if period is 0, but steps to show is not [0]
-
-        for i in steps_to_show:
-            cur_t0 = t0 + period * i
-            ax = plot_n_annotate_lcf(lcf, ax = ax_fn()
-                                    , t0=cur_t0
-                                    , t_start=cur_t0 - duration / 2, t_end=cur_t0 + duration / 2
-                                    , xmin=cur_t0 - (duration + surround_time) / 2, xmax=cur_t0 + (duration + surround_time) / 2
-                                    , **kwargs
-                        )
-            axs.append(ax)
+            for i in steps_to_show:
+                cur_t0 = t0 + period * i
+                ax = plot_n_annotate_lcf(lcf, ax = ax_fn()
+                                        , t0=cur_t0
+                                        , t_start=cur_t0 - duration / 2, t_end=cur_t0 + duration / 2
+                                        , xmin=cur_t0 - (duration + surround_time) / 2, xmax=cur_t0 + (duration + surround_time) / 2
+                                        , **kwargs
+                            )
+                axs.append(ax)
     return axs
 
 
