@@ -169,7 +169,7 @@ def create_quality_issues_mask(lc, flags_included=0b0101001010111111):
     The default `flags_included` is a TESS default, based on https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags
     """
 
-    return np.nonzero(np.logical_and(lc.quality & flags_included, np.isfinite(lc.flux)))
+    return np.logical_and(lc.quality & flags_included, np.isfinite(lc.flux))
 
 def list_times_w_quality_issues(lc):
     mask = create_quality_issues_mask(lc)
