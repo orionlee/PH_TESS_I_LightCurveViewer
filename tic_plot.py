@@ -134,10 +134,10 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     if t_end is not None:
         ax.axvline(t_end)
     if t0 is not None:
-        t_start = lcf.get_header().get('TSTART', None)
+        t_lc_start = lcf.get_header().get('TSTART', None)
         t0_rel_text = ''
-        if t_start is not None:
-            t0_rel = t0 - t_start
+        if t_lc_start is not None:
+            t0_rel = t0 - t_lc_start
             t0_rel_text = f' ({as_4decimal(t0_rel)})'
         ax.axvline(t0, ymin=0, ymax=t0mark_ymax, color='black', linewidth=3, linestyle='--', label=f"t0 ~= {t0}{t0_rel_text}")
 
