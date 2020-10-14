@@ -37,6 +37,15 @@ def of_sectors(*args):
     return lk.LightCurveFileCollection(res)
 
 
+def of_2min_cadences(lcf_coll):
+    """Return LightCurveFiles of 2-minute cadence only.
+
+       Primary use case is to filter out 20-second files.
+    """
+    # accept those in the range of 1.5 - 2.5 minutes
+    filtered = [lcf for lcf in lcf_coll if 150 / 86400 >= np.median(np.diff(lcf.time[:100])) >= 90 / 86400]
+    return lk.LightCurveFileCollection(filtered)
+
 def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
                              download_dir=None, use_cache='yes'):
     '''
