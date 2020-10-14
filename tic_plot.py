@@ -240,7 +240,7 @@ def print_data_range(lcf_coll):
 
 # Do the actual plots
 def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
-             , use_relative_time=False, mark_quality_issues = True, ax_tweak_fn=None):
+             , use_relative_time=False, mark_quality_issues = True, set_title=True, ax_tweak_fn=None):
     """Plot the given LightCurveFile collection, one graph for each LightCurve
 
     Returns
@@ -282,6 +282,13 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
             lc.time_orig = lc.time
             lc.time = lc.time_rel
 
+        # tweak label to include sector if any
+        sector = lcf_coll[i].get_header().get('SECTOR', None)
+        label_long = lc.label
+        if sector is not None:
+            lc.label += f', s.{sector}'
+            label_long += f', sector {sector}'
+
         lc.scatter(ax=ax)
 
         # convert to dataframe to add moving average
@@ -295,9 +302,8 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
         if lc_tweak_fn is not None:
             title_extras = '\nLC tweaked, e.g., outliers removed'
 
-        ax.set_title(f"{lc.label}, sectors {lcf_coll[i].get_header()['SECTOR']}{title_extras}", {'fontsize': 36})
-#        ax.set_title(f"{lc.label}, sectors N/A - Kepler")
-#         ax.legend()
+        if set_title:
+            ax.set_title(f"{label_long} {title_extras}", {'fontsize': 36})
         if use_relative_time:
             ax.xaxis.set_label_text('Time - relative')
             # restore original time after plot is done
