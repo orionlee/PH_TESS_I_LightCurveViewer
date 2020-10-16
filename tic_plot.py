@@ -239,7 +239,7 @@ def print_data_range(lcf_coll):
 
 
 # Do the actual plots
-def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
+def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
              , use_relative_time=False, mark_quality_issues = True, set_title=True, ax_tweak_fn=None):
     """Plot the given LightCurveFile collection, one graph for each LightCurve
 
@@ -271,7 +271,7 @@ def plot_all(lcf_coll, moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
         else:
             ax = ax_fn()
         lcf = lcf_coll[i]
-        lc = lcf.PDCSAP_FLUX
+        lc = getattr(lcf, flux_col)
         lc = lc.normalize(unit='percent')
         if lc_tweak_fn is not None:
             lc = lc_tweak_fn(lc)
