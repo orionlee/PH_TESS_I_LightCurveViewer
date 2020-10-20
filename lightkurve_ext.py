@@ -46,6 +46,16 @@ def of_2min_cadences(lcf_coll):
     filtered = [lcf for lcf in lcf_coll if 150 / 86400 >= np.median(np.diff(lcf.time[:100])) >= 90 / 86400]
     return lk.LightCurveFileCollection(filtered)
 
+
+def of_tic(lcf_coll, tic):
+    """Return LightCurveFiles of the given TIC.
+
+    Useful in case the default MAST result returned nearby targets.
+    """
+    filtered = [lcf for lcf in lcf_coll if lcf.get_header().get('TICID', None) == tic]
+    return lk.LightCurveFileCollection(filtered)
+
+
 def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
                              download_dir=None, use_cache='yes'):
     '''
