@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from lightkurve import LightCurveFileCollection
-
+from lightkurve.utils import TessQualityFlags
 from lightkurve_ext import of_sector, of_sectors
 import lightkurve_ext as lke
 
@@ -240,7 +240,7 @@ def print_data_range(lcf_coll):
 
 # Do the actual plots
 def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
-             , use_relative_time=False, mark_quality_issues = True, set_title=True, ax_tweak_fn=None):
+             , use_relative_time=False, mark_quality_issues = True, mark_momentum_dumps = True, set_title=True, ax_tweak_fn=None):
     """Plot the given LightCurveFile collection, one graph for each LightCurve
 
     Returns
@@ -344,6 +344,20 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
                 ybottom, ytop = ax.get_ylim()
                 ax.vlines(time_w_quality_issues, ymin=ybottom, ymax=ybottom + 0.1 * (ytop - ybottom)
                           , color='red', linewidth=1, linestyle='--', label="potential quality issue")
+
+        if mark_momentum_dumps:
+            # Note: momentum_dump signals are by default masked out in LightCurve objects.
+            # To access times marked as such, I need to access the raw LightCurveFile directly.
+            time = lcf.hdu[1].data['TIME']
+            if use_relative_time:
+                t_start = lcf.get_header()['TSTART']
+                time = time - t_start
+            mom_dumps_mask = np.bitwise_and(lcf.hdu[1].data['QUALITY'], TessQualityFlags.Desat) >= 1
+            time_mom_dumps = time[mom_dumps_mask]
+            if len(time_mom_dumps) > 0:
+                ybottom, ytop = ax.get_ylim()
+                ax.vlines(time_mom_dumps, ymin=ybottom, ymax=ybottom + 0.15 * (ytop - ybottom)
+                        , color='red', linewidth=1, linestyle='-.', label="Momentum dumps")
 
         ax.legend()
         axs.append(ax)
