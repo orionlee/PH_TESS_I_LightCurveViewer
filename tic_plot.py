@@ -354,8 +354,8 @@ from ipywidgets import interactive, interactive_output, fixed
 import ipywidgets as widgets
 from IPython.display import display
 
-def _update_plot_lcf_interactive(lcf, xrange, moving_avg_window, ymin, ymax, widget_out2):
-    ax = plt.figure(figsize=(15, 8)).gca()   # lcf_fig().gca()
+def _update_plot_lcf_interactive(figsize, lcf, xrange, moving_avg_window, ymin, ymax, widget_out2):
+    ax = plt.figure(figsize=figsize).gca()
     plot_n_annotate_lcf(lcf, ax, xmin=xrange[0], xmax=xrange[1], moving_avg_window=moving_avg_window)
     codes_text = f'ax.set_xlim({xrange[0]}, {xrange[1]})'
     ymin_to_use = ymin if ymin >= 0 else None
@@ -370,7 +370,7 @@ def _update_plot_lcf_interactive(lcf, xrange, moving_avg_window, ymin, ymax, wid
 
     return None
 
-def plot_lcf_interactive(lcf):
+def plot_lcf_interactive(lcf, figsize=(15, 8)):
     desc_style = {'description_width': '25ch'}
     slider_style = {'description_width': '25ch'}
     slider_layout = { 'width': '100ch' }
@@ -379,6 +379,7 @@ def plot_lcf_interactive(lcf):
     # Add a second output for textual
     widget_out2 = widgets.Output()
     w = interactive(_update_plot_lcf_interactive
+                    , figsize = fixed(figsize)
                     , lcf = fixed(lcf)
                     , xrange = widgets.FloatRangeSlider(min=t_start, max=t_stop, step=0.1, value=(t_start, t_stop)
                                                 , description = 'Time'
@@ -407,8 +408,8 @@ def plot_lcf_interactive(lcf):
     return w
 
 
-def _update_plot_transit_interactive(lcf, t0, duration_hr, period, step, surround_time, moving_avg_window, t0mark_ymax, ymin, ymax, widget_out2):
-    ax = plt.figure(figsize=(15, 8)).gca()   # lcf_fig().gca()
+def _update_plot_transit_interactive(figsize, lcf, t0, duration_hr, period, step, surround_time, moving_avg_window, t0mark_ymax, ymin, ymax, widget_out2):
+    ax = plt.figure(figsize=figsize).gca()
     codes_text = "# Snippets to generate the plot"
     moving_avg_window_for_codes = 'None' if moving_avg_window is None else f"'{moving_avg_window}'"
     if t0 < 0:
@@ -443,7 +444,7 @@ ax.set_ylim({ymin_to_use}, {ymax_to_use})
         print(codes_text)
     return None
 
-def plot_transit_interactive(lcf):
+def plot_transit_interactive(lcf, figsize=(15, 8)):
     desc_style = {'description_width': '25ch'}
 
     # Add a second output for textual
@@ -492,7 +493,8 @@ def plot_transit_interactive(lcf):
              , HB([ymin, ymax, t0mark_ymax])
     ])
     w = interactive_output(_update_plot_transit_interactive,
-                           dict(lcf=fixed(lcf)
+                           dict(figsize=fixed(figsize)
+                                , lcf=fixed(lcf)
                                 , t0=t0, duration_hr=duration_hr, period=period
                                 , step=step, surround_time=surround_time
                                 , moving_avg_window=moving_avg_window
