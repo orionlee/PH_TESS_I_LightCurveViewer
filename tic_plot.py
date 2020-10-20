@@ -407,7 +407,7 @@ def plot_lcf_interactive(lcf):
     return w
 
 
-def _update_plot_transit_interactive(lcf, t0, duration_hr, period, step, surround_time, moving_avg_window, ymin, ymax, widget_out2):
+def _update_plot_transit_interactive(lcf, t0, duration_hr, period, step, surround_time, moving_avg_window, t0mark_ymax, ymin, ymax, widget_out2):
     ax = plt.figure(figsize=(15, 8)).gca()   # lcf_fig().gca()
     codes_text = "# Snippets to generate the plot"
     moving_avg_window_for_codes = 'None' if moving_avg_window is None else f"'{moving_avg_window}'"
@@ -416,11 +416,10 @@ def _update_plot_transit_interactive(lcf, t0, duration_hr, period, step, surroun
         codes_text += f"\nplot_n_annotate_lcf(lcf, ax, moving_avg_window={moving_avg_window_for_codes})"
     else:
         t0_to_use = t0 + step * period
-        plot_transit(lcf, ax, t0_to_use, duration_hr / 24, surround_time, moving_avg_window= moving_avg_window)
+        plot_transit(lcf, ax, t0_to_use, duration_hr / 24, surround_time, moving_avg_window=moving_avg_window, t0mark_ymax=t0mark_ymax)
         codes_text += (f"""
 #   transit parameters - t0: BTJD {t0}, duration: {duration_hr} hours, period: {period} days
-
-plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_avg_window={moving_avg_window_for_codes})
+plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
 
 # transit_specs for calling plot_transits()
 transit_specs = [
@@ -481,17 +480,23 @@ def plot_transit_interactive(lcf):
                               , step = 0.1
                               , description = 'flux max, -1 for default'
                              , style= desc_style)
+    t0mark_ymax = widgets.BoundedFloatText(value=0.3
+                                           , step=0.05
+                                           , min=0.0, max=1.0
+                                           , description=r'$t_{epoch}$ mark height'
+                                           , style=desc_style)
     VB = widgets.VBox
     HB = widgets.HBox
     ui = VB([HB([t0, duration_hr, period])
              , HB([step, surround_time , moving_avg_window])
-             , HB([ymin, ymax])
+             , HB([ymin, ymax, t0mark_ymax])
     ])
     w = interactive_output(_update_plot_transit_interactive,
                            dict(lcf=fixed(lcf)
                                 , t0=t0, duration_hr=duration_hr, period=period
                                 , step=step, surround_time=surround_time
                                 , moving_avg_window=moving_avg_window
+                                , t0mark_ymax=t0mark_ymax
                                 , ymin=ymin, ymax=ymax
                                 , widget_out2=fixed(widget_out2)
                            )
