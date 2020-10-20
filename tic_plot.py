@@ -428,7 +428,7 @@ transit_specs = [
          , t0 = {t0}
          , steps_to_show = [{step}])
 ]
-transit_defaults = dict(duration_hr = {duration_hr}, period = {period})
+transit_defaults = dict(duration_hr = {duration_hr}, period = {period}, surround_time = {surround_time})
 """)
 
     ymin_to_use = ymin if ymin >= 0 else None
@@ -439,7 +439,6 @@ transit_defaults = dict(duration_hr = {duration_hr}, period = {period})
 # Zoom in on flux
 ax.set_ylim({ymin_to_use}, {ymax_to_use})
 """
-
     widget_out2.clear_output()
     with widget_out2:
         print(codes_text)
