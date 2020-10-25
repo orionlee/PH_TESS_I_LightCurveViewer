@@ -94,7 +94,7 @@ _cache_plot_n_annotate_lcf = dict(
     lcf = None,
     lc = None
 )
-def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', t0mark_ymax = 0.3, set_title=True, title_fontsize=18, lc_tweak_fn=None, ax_tweak_fn=None):
+def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', t0mark_ymax = 0.3, set_title=True, title_fontsize=18, lc_tweak_fn=None, ax_tweak_fn=None):
     if lcf == None:
         print("Warning: lcf is None. Plot skipped")
         return
@@ -102,7 +102,7 @@ def plot_n_annotate_lcf(lcf, ax, xmin=None, xmax=None, t0=None, t_start=None, t_
     # cache lc to speed up plots repeatedly over the same lcf
     global _cache_plot_n_annotate_lcf
     if lcf != _cache_plot_n_annotate_lcf['lcf']:
-        lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
+        lc = getattr(lcf, flux_col).normalize(unit='percent')
         _cache_plot_n_annotate_lcf['lcf'] = lcf
         _cache_plot_n_annotate_lcf['lc'] = lc
     else:
