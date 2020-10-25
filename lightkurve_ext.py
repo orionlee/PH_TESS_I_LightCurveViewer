@@ -413,3 +413,25 @@ if PATCH_LK:
 
     lk.KeplerTargetPixelFile.plot_pixels = _plot_pixels
     lk.TessTargetPixelFile.plot_pixels = _plot_pixels
+
+
+def plot_pixels(tpf, pixel_size_inch=1, **kwargs):
+    """A thin wrapper over ``plot_pixels()`` that provides preferred UI tweak: time range in title, figure size, etc."""
+    ax = tpf.plot_pixels(**kwargs)
+
+    sector_label = ''
+    time_format = ''
+    if tpf.mission == 'K2':
+        time_format = 'BKJD'
+        sector_label = f'campaign {tpf.campaign}'
+    elif tpf.mission == 'Kepler':
+        time_format = 'BKJD'
+        sector_label = f'quarter {tpf.quarter}'
+    elif tpf.mission == 'TESS':
+        time_format = 'BTJD'
+        sector_label = f'sector {tpf.sector}'
+    ax.set_title(ax.title.get_text() +
+                 ' {0}, time {1} {2:.2f} - {3:.2f}'.format(sector_label, time_format, tpf.time[0], tpf.time[-1]))
+    y, x = tpf.shape[1], tpf.shape[2]
+    ax.get_figure().set_size_inches((x * pixel_size_inch, y * pixel_size_inch))
+    return ax
