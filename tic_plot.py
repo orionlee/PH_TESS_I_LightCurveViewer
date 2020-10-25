@@ -194,9 +194,9 @@ def plot_transits(lcf_coll, transit_specs, default_spec = None, ax_fn=lambda: lc
     for spec in transit_specs:
         for lcf in of_sectors(lcf_coll, spec['sector']): # in case we have multiple lcf per sector
             #  process the supplied spec and apply defaults
-            t0 = spec.get('t0', None)
+            t0 = spec.get('t0', defaults.get('t0', None))
             if t0 is None: # case t0 is specified in relative time
-                t0_relative = spec.get('t0_relative', None)
+                t0_relative = spec.get('t0_relative', defaults.get('t0_relative', None))
                 if t0_relative is None:
                     raise ValueError('plot_transits: in a transit spec, `t0` or `t0_relative` must be specified')
                 t_start = lcf.get_header()['TSTART']
