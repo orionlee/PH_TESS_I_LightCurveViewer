@@ -498,7 +498,7 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
                               , step = 0.1
                               , description = 'flux max, -1 for default'
                              , style= desc_style)
-    t0mark_ymax = widgets.BoundedFloatText(value=0.3
+    t0mark_ymax = widgets.BoundedFloatText(value=0.05
                                            , step=0.05
                                            , min=0.0, max=1.0
                                            , description=r'$t_{epoch}$ mark height'
