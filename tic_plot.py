@@ -368,9 +368,9 @@ from ipywidgets import interactive, interactive_output, fixed
 import ipywidgets as widgets
 from IPython.display import display
 
-def _update_plot_lcf_interactive(figsize, lcf, xrange, moving_avg_window, ymin, ymax, widget_out2):
+def _update_plot_lcf_interactive(figsize, lcf, flux_col, xrange, moving_avg_window, ymin, ymax, widget_out2):
     ax = plt.figure(figsize=figsize).gca()
-    plot_n_annotate_lcf(lcf, ax, xmin=xrange[0], xmax=xrange[1], moving_avg_window=moving_avg_window)
+    plot_n_annotate_lcf(lcf, ax, flux_col=flux_col, xmin=xrange[0], xmax=xrange[1], moving_avg_window=moving_avg_window)
     codes_text = f'ax.set_xlim({xrange[0]}, {xrange[1]})'
     ymin_to_use = ymin if ymin >= 0 else None
     ymax_to_use = ymax if ymax >= 0 else None
@@ -384,7 +384,7 @@ def _update_plot_lcf_interactive(figsize, lcf, xrange, moving_avg_window, ymin, 
 
     return None
 
-def plot_lcf_interactive(lcf, figsize=(15, 8)):
+def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
     desc_style = {'description_width': '25ch'}
     slider_style = {'description_width': '25ch'}
     slider_layout = { 'width': '100ch' }
@@ -395,6 +395,7 @@ def plot_lcf_interactive(lcf, figsize=(15, 8)):
     w = interactive(_update_plot_lcf_interactive
                     , figsize = fixed(figsize)
                     , lcf = fixed(lcf)
+                    , flux_col = fixed(flux_col)
                     , xrange = widgets.FloatRangeSlider(min=t_start, max=t_stop, step=0.1, value=(t_start, t_stop)
                                                 , description = 'Time'
                                                 , continuous_update = False
@@ -422,16 +423,16 @@ def plot_lcf_interactive(lcf, figsize=(15, 8)):
     return w
 
 
-def _update_plot_transit_interactive(figsize, lcf, t0, duration_hr, period, step, surround_time, moving_avg_window, t0mark_ymax, ymin, ymax, widget_out2):
+def _update_plot_transit_interactive(figsize, lcf, flux_col, t0, duration_hr, period, step, surround_time, moving_avg_window, t0mark_ymax, ymin, ymax, widget_out2):
     ax = plt.figure(figsize=figsize).gca()
     codes_text = "# Snippets to generate the plot"
     moving_avg_window_for_codes = 'None' if moving_avg_window is None else f"'{moving_avg_window}'"
     if t0 < 0:
-        plot_n_annotate_lcf(lcf, ax, moving_avg_window=moving_avg_window)
+        plot_n_annotate_lcf(lcf, ax, flux_col=flux_col, moving_avg_window=moving_avg_window)
         codes_text += f"\nplot_n_annotate_lcf(lcf, ax, moving_avg_window={moving_avg_window_for_codes})"
     else:
         t0_to_use = t0 + step * period
-        plot_transit(lcf, ax, t0_to_use, duration_hr / 24, surround_time, moving_avg_window=moving_avg_window, t0mark_ymax=t0mark_ymax)
+        plot_transit(lcf, ax, t0_to_use, duration_hr / 24, surround_time, flux_col=flux_col, moving_avg_window=moving_avg_window, t0mark_ymax=t0mark_ymax)
         codes_text += (f"""
 #   transit parameters - t0: BTJD {t0}, duration: {duration_hr} hours, period: {period} days
 plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
@@ -458,7 +459,7 @@ ax.set_ylim({ymin_to_use}, {ymax_to_use})
         print(codes_text)
     return None
 
-def plot_transit_interactive(lcf, figsize=(15, 8)):
+def plot_transit_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
     desc_style = {'description_width': '25ch'}
 
     # Add a second output for textual
@@ -509,6 +510,7 @@ def plot_transit_interactive(lcf, figsize=(15, 8)):
     w = interactive_output(_update_plot_transit_interactive,
                            dict(figsize=fixed(figsize)
                                 , lcf=fixed(lcf)
+                                , flux_col=fixed(flux_col)
                                 , t0=t0, duration_hr=duration_hr, period=period
                                 , step=step, surround_time=surround_time
                                 , moving_avg_window=moving_avg_window
