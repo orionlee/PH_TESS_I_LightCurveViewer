@@ -96,7 +96,7 @@ _cache_plot_n_annotate_lcf = dict(
     lc = None
 )
 def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', t0mark_ymax = 0.3, set_title=True, title_fontsize=18, lc_tweak_fn=None, ax_tweak_fn=None):
-    if lcf == None:
+    if lcf is None:
         print("Warning: lcf is None. Plot skipped")
         return
 
@@ -113,8 +113,27 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t
     if lc_tweak_fn is not None:
         lc = lc_tweak_fn(lc)
 
+    if xmin is None and t_start is not None:
+        xmin = t_start - 0.5
+    if xmax is None and t_end is not None:
+        xmax = t_end + 0.5
+
+    # implement xmin / xmax by limiting the LC itself, rather than using ax.set_xlim after the plot
+    # - the Y-scale will then automatically scaled to the specified time range, rather than over entire lightcurve
+    # - make plotting faster (fewer data points)
+    if xmin is not None:
+        lc = lc[lc.time >= xmin]
+    if xmax is not None:
+        lc = lc[lc.time <= xmax]
+
+    lcfh = lcf.get_header()
+
     # Basic scatter of the observation
     ax = lc.scatter(ax=ax)
+
+    if len(lc) < 1:
+        print(f"Warning: specified (xmin, xmax) is out of the range of the lightcurve {lc.label} sector {lcfh['SECTOR']}. Nothing to plot")
+        return ax
 
     # convert to dataframe to add moving average
     if moving_avg_window is not None:
@@ -123,14 +142,7 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t
     else:
         df = add_flux_moving_average(lc, '10min') # still needed for some subsequent calc, but don't plot it
 
-
     # annotate the graph
-    lcfh = lcf.get_header()
-    if xmin is None and t_start is not None:
-        xmin = t_start - 0.5
-    if xmax is None and t_end is not None:
-        xmax = t_end + 0.5
-    ax.set_xlim(xmin, xmax)
     if t_start is not None:
         ax.axvline(t_start)
     if t_end is not None:
