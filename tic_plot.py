@@ -15,6 +15,13 @@ from lightkurve.utils import TessQualityFlags
 from lightkurve_ext import of_sector, of_sectors
 import lightkurve_ext as lke
 
+def beep():
+    """Emits a beep sound. It works only in IPython / Jupyter environment only"""
+    # a beep to remind the users that the data has been downloaded
+    from IPython.display import display, Audio
+    display(Audio(url='https://upload.wikimedia.org/wikipedia/commons/f/fb/NEC_PC-9801VX_ITF_beep_sound.ogg', autoplay=True, embed=True))
+
+
 # Plot the flux changes (not flux themselves) to get a sense of the rate of changes, not too helpful yet.
 def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='30min'):
 
@@ -187,8 +194,9 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t
 
 def plot_transit(lcf, ax, t0, duration, surround_time, **kwargs):
     return plot_n_annotate_lcf(lcf, ax = ax
-                               , t0=t0
-                               , t_start=t0 - duration / 2, t_end=t0 + duration / 2
+                               , t0=t0 if duration > 0 else None
+                               , t_start=t0 - duration / 2 if duration > 0 else None
+                               , t_end=t0 + duration / 2 if duration > 0 else None
                                , xmin=t0 - (duration + surround_time) / 2, xmax=t0 + (duration + surround_time) / 2
                                , **kwargs
                                )
