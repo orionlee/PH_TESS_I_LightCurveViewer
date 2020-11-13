@@ -57,7 +57,8 @@ def of_tic(lcf_coll, tic):
 
 
 def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
-                             download_dir=None, use_cache='yes'):
+                             download_dir=None, use_cache='yes',
+                             display_search_result=True):
     '''
     Wraps `lightkurve.search.search_lightcurvefile()` and the
     subsequent `lightkurve.search.SearchResult.download_all()` calls,
@@ -82,7 +83,7 @@ def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
     '''
 
     if use_cache == 'no':
-        return _search_and_cache(target, mission, download_dir)
+        return _search_and_cache(target, mission, download_dir, display_search_result)
     if use_cache == 'yes':
         result_file_ids = _load_from_cache_if_any(target, mission, download_dir)
         if result_file_ids is not None:
@@ -91,17 +92,29 @@ def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
             return lk.collections.LightCurveFileCollection(
                 list(map(lambda f: lk.open(f), result_files)))
         # else
-        return _search_and_cache(target, mission, download_dir)
+        return _search_and_cache(target, mission, download_dir, display_search_result)
     # else
     raise ValueError('invalid value for argument use_cache')
 
 # Private helpers for `download_lightcurvefiles`
 
-def _search_and_cache(target, mission, download_dir):
+
+def _search_and_cache(target, mission, download_dir, display_search_result):
     search_res = lk.search.search_lightcurvefile(target=target, mission=mission)
+    if display_search_result:
+        _display_search_result(search_res)
     _cache_search_result_product_identifiers(search_res, download_dir, target, mission)
-    # TODO: return search_res as well, we'll see what to do for cache case.
     return search_res.download_all(quality_bitmask='default', download_dir=download_dir)
+
+
+def _display_search_result(search_res):
+    from IPython.core.display import display
+    tab = search_res.table
+    # move useful columns to the front
+    preferred_cols = ['proposal_id', 'obsID', 'sequence_number', 't_exptime']
+    colnames_reordered = preferred_cols + [c for c in tab.colnames if c not in preferred_cols]
+    display(tab[colnames_reordered])
+
 
 def _load_from_cache_if_any(target, mission, download_dir):
     key = _get_cache_key(target, mission)
