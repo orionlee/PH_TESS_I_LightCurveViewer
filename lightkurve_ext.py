@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 def of_sector(lcf_coll, sectorNum):
     for lcf in lcf_coll:
-        if lcf.get_header()['SECTOR'] == sectorNum:
+        if lcf.meta['SECTOR'] == sectorNum:
             return lcf
     return None
 
@@ -32,9 +32,9 @@ def of_sectors(*args):
     sectorNums = args[1:]
     res = []
     for lcf in lcf_coll:
-        if lcf.get_header()['SECTOR'] in sectorNums:
+        if lcf.meta['SECTOR'] in sectorNums:
             res.append(lcf)
-    return lk.LightCurveFileCollection(res)
+    return lk.LightCurveCollection(res)
 
 
 def of_2min_cadences(lcf_coll):
@@ -44,7 +44,7 @@ def of_2min_cadences(lcf_coll):
     """
     # accept those in the range of 1.5 - 2.5 minutes
     filtered = [lcf for lcf in lcf_coll if 150 / 86400 >= np.median(np.diff(lcf.time[:100])) >= 90 / 86400]
-    return lk.LightCurveFileCollection(filtered)
+    return lk.LightCurveCollection(filtered)
 
 
 def of_tic(lcf_coll, tic):
@@ -52,15 +52,16 @@ def of_tic(lcf_coll, tic):
 
     Useful in case the default MAST result returned nearby targets.
     """
-    filtered = [lcf for lcf in lcf_coll if lcf.get_header().get('TICID', None) == tic]
-    return lk.LightCurveFileCollection(filtered)
+    filtered = [lcf for lcf in lcf_coll if lcf.meta.get('TICID', None) == tic]
+    return lk.LightCurveCollection(filtered)
 
 
-def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
+def download_lightcurve(target, mission=('Kepler', 'K2', 'TESS'),
+                             exptime='short',
                              download_dir=None, use_cache='yes',
                              display_search_result=True):
     '''
-    Wraps `lightkurve.search.search_lightcurvefile()` and the
+    Wraps `lightkurve.search_lightcurve()` and the
     subsequent `lightkurve.search.SearchResult.download_all()` calls,
     with the option of caching, so that for a given search,
     if the the result has been downloaded, the cache will be used.
@@ -78,19 +79,19 @@ def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
     Returns
     -------
     collection : `~lightkurve.collections.Collection` object
-        Returns a `~lightkurve.collections.LightCurveFileCollection`
+        Returns a `~lightkurve.collections.LightCurveCollection`
         containing all lightcurve files that match the criteria
     '''
 
     if use_cache == 'no':
-        return _search_and_cache(target, mission, download_dir, display_search_result)
+        return _search_and_cache(target, mission, exptime, download_dir, display_search_result)
     if use_cache == 'yes':
         result_file_ids = _load_from_cache_if_any(target, mission, download_dir)
         if result_file_ids is not None:
             result_files = list(map(lambda e: f"{download_dir}/mastDownload/{e}",
                                     result_file_ids))
-            return lk.collections.LightCurveFileCollection(
-                list(map(lambda f: lk.open(f), result_files)))
+            return lk.collections.LightCurveCollection(
+                list(map(lambda f: lk.read(f), result_files)))
         # else
         return _search_and_cache(target, mission, download_dir, display_search_result)
     # else
@@ -99,8 +100,8 @@ def download_lightcurvefiles(target, mission=('Kepler', 'K2', 'TESS'),
 # Private helpers for `download_lightcurvefiles`
 
 
-def _search_and_cache(target, mission, download_dir, display_search_result):
-    search_res = lk.search.search_lightcurvefile(target=target, mission=mission)
+def _search_and_cache(target, mission, exptime, download_dir, display_search_result):
+    search_res = lk.search_lightcurve(target=target, mission=mission, exptime=exptime)
     if display_search_result:
         _display_search_result(search_res)
     _cache_search_result_product_identifiers(search_res, download_dir, target, mission)
@@ -111,7 +112,7 @@ def _display_search_result(search_res):
     from IPython.core.display import display
     tab = search_res.table
     # move useful columns to the front
-    preferred_cols = ['proposal_id', 'obsID', 'sequence_number', 't_exptime']
+    preferred_cols = ['proposal_id', 'target_name', 'sequence_number', 't_exptime']
     colnames_reordered = preferred_cols + [c for c in tab.colnames if c not in preferred_cols]
     display(tab[colnames_reordered])
 

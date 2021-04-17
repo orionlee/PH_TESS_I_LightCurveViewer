@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Helpers to plot the lightcurve of a TESS subject, given a
-LightCurveFileCollection
+LightCurveCollection
 """
 
 import matplotlib.pyplot as plt
@@ -10,7 +10,7 @@ from matplotlib.ticker import (FormatStrFormatter, AutoMinorLocator)
 import numpy as np
 import pandas as pd
 
-from lightkurve import LightCurveFileCollection
+from lightkurve import LightCurveCollection
 from lightkurve.utils import TessQualityFlags
 from lightkurve_ext import of_sector, of_sectors
 import lightkurve_ext as lke
@@ -85,7 +85,7 @@ def add_flux_moving_average(lc, moving_avg_window):
     return df
 
 def add_relative_time(lc, lcf):
-    t_start = lcf.get_header()['TSTART']
+    t_start = lcf.meta['TSTART']
     lc.time_rel = lc.time - t_start
     return lc.time_rel
 
@@ -133,7 +133,7 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t
     if xmax is not None:
         lc = lc[lc.time <= xmax]
 
-    lcfh = lcf.get_header()
+    lcfh = lcf.meta
 
     # Basic scatter of the observation
     ax = lc.scatter(ax=ax)
@@ -155,7 +155,7 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t
     if t_end is not None:
         ax.axvline(t_end)
     if t0 is not None:
-        t_lc_start = lcf.get_header().get('TSTART', None)
+        t_lc_start = lcf.meta.get('TSTART', None)
         t0_rel_text = ''
         if t_lc_start is not None:
             t0_rel = t0 - t_lc_start
@@ -221,7 +221,7 @@ def plot_transits(lcf_coll, transit_specs, default_spec = None, ax_fn=lambda: lc
                 t0_relative = spec.get('t0_relative', defaults.get('t0_relative', None))
                 if t0_relative is None:
                     raise ValueError('plot_transits: in a transit spec, `t0` or `t0_relative` must be specified')
-                t_start = lcf.get_header()['TSTART']
+                t_start = lcf.meta['TSTART']
                 t0 = t0_relative + t_start
 
             duration = spec.get('duration_hr', defaults['duration_hr']) / 24
@@ -245,19 +245,19 @@ def plot_transits(lcf_coll, transit_specs, default_spec = None, ax_fn=lambda: lc
 
 
 def print_data_range(lcf_coll):
-    """Print the data range for the given LightCurveFileCollection
+    """Print the data range for the given LightCurveCollection
 
     For each LightCurveFile:
     * sector start/stop time
     * first / last observation time
     * camera used
     """
-    print("Sectors: " + str(list(map(lambda lcf: lcf.get_header()['SECTOR'], lcf_coll))) + f' ({len(lcf_coll)})')
+    print("Sectors: " + str(list(map(lambda lcf: lcf.meta['SECTOR'], lcf_coll))) + f' ({len(lcf_coll)})')
     print("Observation period range / data range:")
     for lcf in lcf_coll:
         lc_cur = lcf.PDCSAP_FLUX
-        print(f"  Sector {lcf.get_header()['SECTOR']}: {lcf.get_header()['TSTART']} - {lcf.get_header()['TSTOP']}")
-        print(f"   (cam {lcf.get_header()['CAMERA']})   {min(lc_cur.time)} - {max(lc_cur.time)}")
+        print(f"  Sector {lcf.meta['SECTOR']}: {lcf.meta['TSTART']} - {lcf.meta['TSTOP']}")
+        print(f"   (cam {lcf.meta['CAMERA']})   {min(lc_cur.time)} - {max(lc_cur.time)}")
 
 
 # Do the actual plots
@@ -282,7 +282,7 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
 #     for i in range(0, len(lcf_coll)):
 #         lcf_coll[i].PDCSAP_FLUX.scatter(ax=ax_all)
 
-#     ax_all.set_title(f"TIC {lcf_coll[0].PDCSAP_FLUX.label}, sectors {list(map(lambda lcf: lcf.get_header()['SECTOR'], lcf_coll))}")
+#     ax_all.set_title(f"TIC {lcf_coll[0].PDCSAP_FLUX.label}, sectors {list(map(lambda lcf: lcf.meta['SECTOR'], lcf_coll))}")
 #     return ax_all
 
     # choice 4: plot the lightcurve sector by sector: each sector in its own graph
@@ -305,7 +305,7 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
             lc.time = lc.time_rel
 
         # tweak label to include sector if any
-        sector = lcf_coll[i].get_header().get('SECTOR', None)
+        sector = lcf_coll[i].meta.get('SECTOR', None)
         label_long = lc.label
         if sector is not None:
             lc.label += f', s.{sector}'
@@ -372,7 +372,7 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
             # To access times marked as such, I need to access the raw LightCurveFile directly.
             time = lcf.hdu[1].data['TIME']
             if use_relative_time:
-                t_start = lcf.get_header()['TSTART']
+                t_start = lcf.meta['TSTART']
                 time = time - t_start
             mom_dumps_mask = np.bitwise_and(lcf.hdu[1].data['QUALITY'], TessQualityFlags.Desat) >= 1
             time_mom_dumps = time[mom_dumps_mask]
@@ -410,8 +410,8 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
     desc_style = {'description_width': '25ch'}
     slider_style = {'description_width': '25ch'}
     slider_layout = { 'width': '100ch' }
-    t_start = lcf.get_header()['TSTART']
-    t_stop = lcf.get_header()['TSTOP']
+    t_start = lcf.meta['TSTART']
+    t_stop = lcf.meta['TSTOP']
     # Add a second output for textual
     widget_out2 = widgets.Output()
     w = interactive(_update_plot_lcf_interactive
@@ -461,7 +461,7 @@ plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_a
 
 # transit_specs for calling plot_transits()
 transit_specs = [
-    dict(sector={lcf.get_header()['SECTOR']}
+    dict(sector={lcf.meta['SECTOR']}
          , t0 = {t0}
          , steps_to_show = [{step}])
 ]
@@ -560,7 +560,7 @@ def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None,
         fig = plt.figure(figsize=(12,12))
 
     lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
-    sector = lcf.get_header()['SECTOR']
+    sector = lcf.meta['SECTOR']
 
     df = lc.to_pandas(columns=['time', 'flux', 'centroid_row', 'centroid_col'])
     if time_range is not None:
@@ -622,7 +622,7 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
 
     '''
     lc = lcf.PDCSAP_FLUX
-    label = f"sector {lcf.get_header()['SECTOR']}"
+    label = f"sector {lcf.meta['SECTOR']}"
 
     # Zoom to a particular time range if specified
     if time_range is not None:
