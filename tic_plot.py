@@ -32,16 +32,16 @@ def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='30min'
 #    ax = lc.scatter(ax=ax)
 
     # convert to dataframe to add moving average
-    df = lc.to_pandas(columns=['time', 'flux'])
-    df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(x, unit='D'))
+    df = lc.to_pandas()
+    df['time_ts'] = [pd.Timestamp(x, unit='D') for x in df.index]
     # the timestamp above is good for relative time.
     # if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
     # df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s'))
     df['flux_mavg'] = df.rolling(moving_avg_window, on='time_ts')['flux'].mean()
-#    ax.plot(lc.time, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
+#    ax.plot(lc.time.value, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
 
     df['flux_delta'] = df.rolling(moving_avg_window, on='time_ts')['flux_mavg'].apply(lambda vary: vary[-1] - vary[0], raw=True)
-    ax.plot(lc.time, df['flux_delta'], c='blue', label=f"Flux delta ({moving_avg_window})")
+    ax.plot(lc.time.value, df['flux_delta'], c='blue', label=f"Flux delta ({moving_avg_window})")
 
     ax.set_xlim(xmin, xmax)
 
@@ -76,8 +76,8 @@ def as_4decimal(float_num):
         return float('{0:.4f}'.format(float_num))
 
 def add_flux_moving_average(lc, moving_avg_window):
-    df = lc.to_pandas(columns=['time', 'flux'])
-    df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(x, unit='D'))
+    df = lc.to_pandas()
+    df['time_ts'] = [pd.Timestamp(x, unit='D') for x in df.index]
     # the timestamp above is good for relative time.
     # if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
     # df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s'))
@@ -94,6 +94,9 @@ def mask_gap(x, y, min_x_diff):
     Help to plot graphs with gaps in the data, so that straight line won't be draw to fill the gap.
     Return a masked y that can be passed to pyplot.plot() that can show the gap.
     """
+    # handle case that x is a astropy Time object, rather than simple float array
+    if (hasattr(x, 'value')):
+        x = x.value
     x_diff = np.diff(x, prepend=-min_x_diff)
     return np.ma.masked_where(x_diff > min_x_diff, y)
 
@@ -145,7 +148,7 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t
     # convert to dataframe to add moving average
     if moving_avg_window is not None:
         df = add_flux_moving_average(lc, moving_avg_window)
-        ax.plot(lc.time, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
+        ax.plot(lc.time.value, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
     else:
         df = add_flux_moving_average(lc, '10min') # still needed for some subsequent calc, but don't plot it
 
@@ -292,7 +295,7 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
         else:
             ax = ax_fn()
         lcf = lcf_coll[i]
-        lc = getattr(lcf, flux_col)
+        lc = getattr(lcf, flux_col)  # TODO lkv2: better way to use specific column as flux without attribute access?
         lc = lc.normalize(unit='percent')
         if lc_tweak_fn is not None:
             lc = lc_tweak_fn(lc)
@@ -317,7 +320,7 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
             df = add_flux_moving_average(lc, moving_avg_window)
             # mask_gap: if there is a gap larger than 2 hours,
             # show the gap rather than trying to fill the gap with a straight line.
-            ax.plot(lc.time, mask_gap(lc.time, df['flux_mavg'], 2/24), c='black', label=f"Moving average ({moving_avg_window})")
+            ax.plot(lc.time.value, mask_gap(lc.time, df['flux_mavg'], 2/24), c='black', label=f"Moving average ({moving_avg_window})")
 
         title_extras = ''
         if lc_tweak_fn is not None:
@@ -561,7 +564,7 @@ def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None,
     lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
     sector = lcf.meta['SECTOR']
 
-    df = lc.to_pandas(columns=['time', 'flux', 'centroid_row', 'centroid_col'])
+    df = lc.to_pandas()
     if time_range is not None:
         df = df[(df.time >= time_range[0]) & (df.time <= time_range[1])]
         if (len(df) < 1):
