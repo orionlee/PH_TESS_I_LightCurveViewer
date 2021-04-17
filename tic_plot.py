@@ -36,7 +36,7 @@ def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='30min'
     df['time_ts'] = [pd.Timestamp(x, unit='D') for x in df.index]
     # the timestamp above is good for relative time.
     # if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
-    # df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s'))
+    # pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s')
     df['flux_mavg'] = df.rolling(moving_avg_window, on='time_ts')['flux'].mean()
 #    ax.plot(lc.time.value, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
 
@@ -61,7 +61,7 @@ def flux_mavg_near(df, time):
     if time is None or df is None:
         return None
     else:
-        idx = (np.abs(df['time'].values - time)).argmin()
+        idx = (np.abs(df.index.values - time)).argmin()
         # must use df.iloc[idx]['flux_mavg'], rather than df['flux_mavg'][idx]
         # because dataframe from lightkurve is indexed by time (rather than regular 0-based index)
         # df.iloc[] ensures we can still access the value by 0-based index
@@ -80,7 +80,7 @@ def add_flux_moving_average(lc, moving_avg_window):
     df['time_ts'] = [pd.Timestamp(x, unit='D') for x in df.index]
     # the timestamp above is good for relative time.
     # if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
-    # df['time_ts'] = df['time'].apply(lambda x: pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s'))
+    # pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s')
     df['flux_mavg'] = df.rolling(moving_avg_window, on='time_ts')['flux'].mean()
     return df
 
@@ -132,9 +132,9 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t
     # - the Y-scale will then automatically scaled to the specified time range, rather than over entire lightcurve
     # - make plotting faster (fewer data points)
     if xmin is not None:
-        lc = lc[lc.time >= xmin]
+        lc = lc[lc.time.value >= xmin]
     if xmax is not None:
-        lc = lc[lc.time <= xmax]
+        lc = lc[lc.time.value <= xmax]
 
     lcfh = lcf.meta
 
