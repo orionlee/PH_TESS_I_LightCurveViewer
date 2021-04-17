@@ -29,12 +29,8 @@ def of_sectors(*args):
         # a user sometimes use a subset of sectors , and sometimes everything
         # the user can can still use of_sectors() wrapper regardless
         return lcf_coll
-    sectorNums = args[1:]
-    res = []
-    for lcf in lcf_coll:
-        if lcf.meta['SECTOR'] in sectorNums:
-            res.append(lcf)
-    return lk.LightCurveCollection(res)
+    sector_nums = args[1:]
+    return lcf_coll[np.in1d(lcf_coll.sector, sector_nums)]
 
 
 def of_2min_cadences(lcf_coll):
