@@ -67,13 +67,22 @@ def flux_mavg_near(df, time):
         # df.iloc[] ensures we can still access the value by 0-based index
         return df.iloc[idx]['flux_mavg']
 
+
+def _to_unitless(n):
+    if hasattr(n, 'value'):
+        return n.value
+    else:
+        return n
+
+
 def as_4decimal(float_num):
     if (float_num is None):
         return None
     elif (isinstance(float_num, tuple) or isinstance(float_num, list)):
-        return [float('{0:.4f}'.format(n)) for n in float_num]
+        return [float('{0:.4f}'.format(_to_unitless(n))) for n in float_num]
     else:
-        return float('{0:.4f}'.format(float_num))
+        return float('{0:.4f}'.format(_to_unitless(float_num)))
+
 
 def add_flux_moving_average(lc, moving_avg_window):
     df = lc.to_pandas()
@@ -95,8 +104,8 @@ def mask_gap(x, y, min_x_diff):
     Return a masked y that can be passed to pyplot.plot() that can show the gap.
     """
     # handle case that x is a astropy Time object, rather than simple float array
-    if (hasattr(x, 'value')):
-        x = x.value
+    x = _to_unitless(x)
+
     x_diff = np.diff(x, prepend=-min_x_diff)
     return np.ma.masked_where(x_diff > min_x_diff, y)
 
