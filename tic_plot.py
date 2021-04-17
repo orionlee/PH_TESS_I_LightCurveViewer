@@ -252,12 +252,11 @@ def print_data_range(lcf_coll):
     * first / last observation time
     * camera used
     """
-    print("Sectors: " + str(list(map(lambda lcf: lcf.meta['SECTOR'], lcf_coll))) + f' ({len(lcf_coll)})')
+    print("Sectors: " + str(list(map(lambda lc: lc.meta['SECTOR'], lcf_coll))) + f' ({len(lcf_coll)})')
     print("Observation period range / data range:")
-    for lcf in lcf_coll:
-        lc_cur = lcf.PDCSAP_FLUX
-        print(f"  Sector {lcf.meta['SECTOR']}: {lcf.meta['TSTART']} - {lcf.meta['TSTOP']}")
-        print(f"   (cam {lcf.meta['CAMERA']})   {min(lc_cur.time)} - {max(lc_cur.time)}")
+    for lc in lcf_coll:
+        print(f"  Sector {lc.meta['SECTOR']}: {lc.meta['TSTART']} - {lc.meta['TSTOP']}")
+        print(f"   (cam {lc.meta['CAMERA']})   {lc.time.min()} - {lc.time.max()}")
 
 
 # Do the actual plots
