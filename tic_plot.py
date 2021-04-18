@@ -109,6 +109,16 @@ def mask_gap(x, y, min_x_diff):
     x_diff = np.diff(x, prepend=-min_x_diff)
     return np.ma.masked_where(x_diff > min_x_diff, y)
 
+
+def _to_lc_with_flux(lc, flux_col):
+    """Return a Lightcurve object with the named column as the flux column"""
+
+    # analogous lkv1's way: lc = getattr(lcf, flux_col)
+    res = lc.copy()
+    res['flux'] = lc[flux_col.lower()]  # e.g., PDCSAP_FLUX (how we do in lkv1) will be lowerecased
+    return res
+
+
 _cache_plot_n_annotate_lcf = dict(
     lcf = None,
     flux_col = None,
@@ -124,7 +134,7 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t
     if lcf is _cache_plot_n_annotate_lcf['lcf'] and flux_col == _cache_plot_n_annotate_lcf['flux_col']:
         lc = _cache_plot_n_annotate_lcf['lc']
     else:
-        lc = getattr(lcf, flux_col).normalize(unit='percent')
+        lc = _to_lc_with_flux(lcf, flux_col).normalize(unit='percent')
         _cache_plot_n_annotate_lcf['lcf'] = lcf
         _cache_plot_n_annotate_lcf['flux_col'] = flux_col
         _cache_plot_n_annotate_lcf['lc'] = lc
@@ -304,7 +314,8 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
         else:
             ax = ax_fn()
         lcf = lcf_coll[i]
-        lc = getattr(lcf, flux_col)  # TODO lkv2: better way to use specific column as flux without attribute access?
+        lc = _to_lc_with_flux(lcf, flux_col)
+
         lc = lc.normalize(unit='percent')
         if lc_tweak_fn is not None:
             lc = lc_tweak_fn(lc)
