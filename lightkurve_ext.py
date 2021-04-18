@@ -89,7 +89,7 @@ def download_lightcurve(target, mission=('Kepler', 'K2', 'TESS'),
             return lk.collections.LightCurveCollection(
                 list(map(lambda f: lk.read(f), result_files)))
         # else
-        return _search_and_cache(target, mission, download_dir, display_search_result)
+        return _search_and_cache(target, mission, exptime, download_dir, display_search_result)
     # else
     raise ValueError('invalid value for argument use_cache')
 
