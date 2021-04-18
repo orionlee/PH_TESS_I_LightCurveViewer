@@ -183,11 +183,9 @@ def _load_search_result_product_identifiers(download_dir, key):
 
 def get_bkg_lightcurve(lcf):
     """Returns the background flux, i.e., ``SAP_BKG`` in the file"""
-    bkg_flux = lcf.hdu[1].data['SAP_BKG'][lcf.quality_mask]
-    bkg_flux_err = lcf.hdu[1].data['SAP_BKG_ERR'][lcf.quality_mask]
-    lc = lcf.SAP_FLUX
-    lc.flux = bkg_flux
-    lc.flux_err = bkg_flux_err
+    lc = lcf.copy()
+    lc['flux'] = lc['sap_bkg']
+    lc['flux_err'] = lc['sap_bkg_err']
     lc.label = lc.label + ' BKG'
     return lc
 
