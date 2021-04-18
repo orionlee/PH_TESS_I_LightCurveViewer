@@ -121,7 +121,7 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t
 
     # cache lc to speed up plots repeatedly over the same lcf
     global _cache_plot_n_annotate_lcf
-    if lcf == _cache_plot_n_annotate_lcf['lcf'] and flux_col == _cache_plot_n_annotate_lcf['flux_col']:
+    if lcf is _cache_plot_n_annotate_lcf['lcf'] and flux_col == _cache_plot_n_annotate_lcf['flux_col']:
         lc = _cache_plot_n_annotate_lcf['lc']
     else:
         lc = getattr(lcf, flux_col).normalize(unit='percent')
@@ -425,9 +425,16 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
     t_stop = lcf.meta['TSTOP']
     # Add a second output for textual
     widget_out2 = widgets.Output()
+
+    import warnings
+    with warnings.catch_warnings():
+        # lkv2 workaround: to suppress astropy table warning, stating that the semantics of == will be changed in the future.
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        fixed_lcf = fixed(lcf)
+
     w = interactive(_update_plot_lcf_interactive
                     , figsize = fixed(figsize)
-                    , lcf = fixed(lcf)
+                    , lcf = fixed_lcf
                     , flux_col = fixed(flux_col)
                     , xrange = widgets.FloatRangeSlider(min=t_start, max=t_stop, step=0.1, value=(t_start, t_stop)
                                                 , description = 'Time'
@@ -540,9 +547,16 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
              , HB([step, surround_time , moving_avg_window])
              , HB([ymin, ymax, t0mark_ymax])
     ])
+
+    import warnings
+    with warnings.catch_warnings():
+        # lkv2 workaround: to suppress astropy table warning, stating that the semantics of == will be changed in the future.
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        fixed_lcf = fixed(lcf)
+
     w = interactive_output(_update_plot_transit_interactive,
                            dict(figsize=fixed(figsize)
-                                , lcf=fixed(lcf)
+                                , lcf=fixed_lcf
                                 , flux_col=fixed(flux_col)
                                 , t0=t0, duration_hr=duration_hr, period=period
                                 , step=step, surround_time=surround_time
