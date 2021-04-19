@@ -98,6 +98,8 @@ def download_lightcurve(target, mission=('Kepler', 'K2', 'TESS'),
 
 def _search_and_cache(target, mission, exptime, download_dir, display_search_result):
     search_res = lk.search_lightcurve(target=target, mission=mission, exptime=exptime)
+    if len(search_res) < 1:
+        return None
     if display_search_result:
         _display_search_result(search_res)
     _cache_search_result_product_identifiers(search_res, download_dir, target, mission)
