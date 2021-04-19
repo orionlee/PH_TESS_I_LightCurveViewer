@@ -97,7 +97,7 @@ def add_flux_moving_average(lc, moving_avg_window):
 
 def add_relative_time(lc, lcf):
     t_start = lcf.meta['TSTART']
-    lc.time_rel = lc.time - t_start
+    lc['time_rel'] = lc.time - t_start
     return lc.time_rel
 
 def mask_gap(x, y, min_x_diff):
@@ -325,7 +325,7 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
         # temporarily change time to a relative one if specified
         if use_relative_time:
             add_relative_time(lc, lcf)
-            lc.time_orig = lc.time
+            lc['time_orig'] = lc.time
             lc.time = lc.time_rel
 
         # tweak label to include sector if any
