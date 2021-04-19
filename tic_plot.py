@@ -394,17 +394,17 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
         if mark_momentum_dumps:
             # Note: momentum_dump signals are by default masked out in LightCurve objects.
             # To access times marked as such, I need to access the raw LightCurveFile directly.
-            hdu = fits.open(lcf.filename)
-            time = hdu[1].data['TIME']
-            if use_relative_time:
-                t_start = lcf.meta['TSTART']
-                time = time - t_start
-            mom_dumps_mask = np.bitwise_and(hdu[1].data['QUALITY'], TessQualityFlags.Desat) >= 1
-            time_mom_dumps = time[mom_dumps_mask]
-            if len(time_mom_dumps) > 0:
-                ybottom, ytop = ax.get_ylim()
-                ax.vlines(time_mom_dumps, ymin=ybottom, ymax=ybottom + 0.15 * (ytop - ybottom)
-                        , color='red', linewidth=1, linestyle='-.', label="Momentum dumps")
+            with fits.open(lcf.filename) as hdu:
+                time = hdu[1].data['TIME']
+                if use_relative_time:
+                    t_start = lcf.meta['TSTART']
+                    time = time - t_start
+                mom_dumps_mask = np.bitwise_and(hdu[1].data['QUALITY'], TessQualityFlags.Desat) >= 1
+                time_mom_dumps = time[mom_dumps_mask]
+                if len(time_mom_dumps) > 0:
+                    ybottom, ytop = ax.get_ylim()
+                    ax.vlines(time_mom_dumps, ymin=ybottom, ymax=ybottom + 0.15 * (ytop - ybottom)
+                            , color='red', linewidth=1, linestyle='-.', label="Momentum dumps")
 
         ax.legend()
         axs.append(ax)
