@@ -54,6 +54,7 @@ def of_tic(lcf_coll, tic):
 
 def download_lightcurve(target, mission=('Kepler', 'K2', 'TESS'),
                              exptime='short',
+                             author='SPOC',
                              download_dir=None, use_cache='yes',
                              display_search_result=True):
     '''
@@ -80,7 +81,7 @@ def download_lightcurve(target, mission=('Kepler', 'K2', 'TESS'),
     '''
 
     if use_cache == 'no':
-        return _search_and_cache(target, mission, exptime, download_dir, display_search_result)
+        return _search_and_cache(target, mission, exptime, author, download_dir, display_search_result)
     if use_cache == 'yes':
         result_file_ids = _load_from_cache_if_any(target, mission, download_dir)
         if result_file_ids is not None:
@@ -89,15 +90,15 @@ def download_lightcurve(target, mission=('Kepler', 'K2', 'TESS'),
             return lk.collections.LightCurveCollection(
                 list(map(lambda f: lk.read(f), result_files)))
         # else
-        return _search_and_cache(target, mission, exptime, download_dir, display_search_result)
+        return _search_and_cache(target, mission, exptime, author, download_dir, display_search_result)
     # else
     raise ValueError('invalid value for argument use_cache')
 
 # Private helpers for `download_lightcurvefiles`
 
 
-def _search_and_cache(target, mission, exptime, download_dir, display_search_result):
-    search_res = lk.search_lightcurve(target=target, mission=mission, exptime=exptime)
+def _search_and_cache(target, mission, exptime, author, download_dir, display_search_result):
+    search_res = lk.search_lightcurve(target=target, mission=mission, exptime=exptime, author=author)
     if len(search_res) < 1:
         return None
     if display_search_result:
