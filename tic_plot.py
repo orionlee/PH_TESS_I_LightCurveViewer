@@ -10,6 +10,8 @@ from matplotlib.ticker import (FormatStrFormatter, AutoMinorLocator)
 import numpy as np
 import pandas as pd
 
+from astropy.io import fits
+
 from lightkurve import LightCurveCollection
 from lightkurve.utils import TessQualityFlags
 from lightkurve_ext import of_sector, of_sectors
@@ -392,11 +394,12 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
         if mark_momentum_dumps:
             # Note: momentum_dump signals are by default masked out in LightCurve objects.
             # To access times marked as such, I need to access the raw LightCurveFile directly.
-            time = lcf.hdu[1].data['TIME']
+            hdu = fits.open(lcf.filename)
+            time = hdu[1].data['TIME']
             if use_relative_time:
                 t_start = lcf.meta['TSTART']
                 time = time - t_start
-            mom_dumps_mask = np.bitwise_and(lcf.hdu[1].data['QUALITY'], TessQualityFlags.Desat) >= 1
+            mom_dumps_mask = np.bitwise_and(hdu[1].data['QUALITY'], TessQualityFlags.Desat) >= 1
             time_mom_dumps = time[mom_dumps_mask]
             if len(time_mom_dumps) > 0:
                 ybottom, ytop = ax.get_ylim()
