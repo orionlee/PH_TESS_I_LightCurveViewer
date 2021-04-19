@@ -388,7 +388,7 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
 
                 # back to visually less appealing one (that vline doesn't start from the bottom
                 ybottom, ytop = ax.get_ylim()
-                ax.vlines(time_w_quality_issues, ymin=ybottom, ymax=ybottom + 0.1 * (ytop - ybottom)
+                ax.vlines(time_w_quality_issues.value, ymin=ybottom, ymax=ybottom + 0.1 * (ytop - ybottom)
                           , color='red', linewidth=1, linestyle='--', label="potential quality issue")
 
         if mark_momentum_dumps:
