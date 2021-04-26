@@ -415,7 +415,12 @@ from ipywidgets import interactive, interactive_output, fixed
 import ipywidgets as widgets
 from IPython.display import display
 
-def _update_plot_lcf_interactive(figsize, lcf, flux_col, xrange, moving_avg_window, ymin, ymax, widget_out2):
+_lcf_4_plot_interactive = None
+def _update_plot_lcf_interactive(figsize, flux_col, xrange, moving_avg_window, ymin, ymax, widget_out2):
+    # use global to accept lct
+    global _lcf_4_plot_interactive
+    lcf = _lcf_4_plot_interactive
+
     ax = plt.figure(figsize=figsize).gca()
     plot_n_annotate_lcf(lcf, ax, flux_col=flux_col, xmin=xrange[0], xmax=xrange[1], moving_avg_window=moving_avg_window)
     codes_text = f'ax.set_xlim({xrange[0]}, {xrange[1]})'
@@ -440,15 +445,19 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
     # Add a second output for textual
     widget_out2 = widgets.Output()
 
-    import warnings
-    with warnings.catch_warnings():
-        # lkv2 workaround: to suppress astropy table warning, stating that the semantics of == will be changed in the future.
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        fixed_lcf = fixed(lcf)
+    # pass lcf with a global rather than the slow fixed(lcf) with lkv2
+    #
+    # import warnings
+    # with warnings.catch_warnings():
+    #     # lkv2 workaround: to suppress astropy table warning, stating that the semantics of == will be changed in the future.
+    #     warnings.filterwarnings("ignore", category=FutureWarning)
+    #     fixed_lcf = fixed(lcf)
+    global _lcf_4_plot_interactive
+    _lcf_4_plot_interactive = lcf
 
     w = interactive(_update_plot_lcf_interactive
                     , figsize = fixed(figsize)
-                    , lcf = fixed_lcf
+                    # , lcf = fixed_lcf
                     , flux_col = fixed(flux_col)
                     , xrange = widgets.FloatRangeSlider(min=t_start, max=t_stop, step=0.1, value=(t_start, t_stop)
                                                 , description = 'Time'
@@ -476,8 +485,12 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
     display(w)
     return w
 
+_lcf_4_plot_transit_interactive = None
+def _update_plot_transit_interactive(figsize, flux_col, t0, duration_hr, period, step, surround_time, moving_avg_window, t0mark_ymax, ymin, ymax, widget_out2):
+    # a clumsy way to pass lcf, without using fixed(lcf), which is very slow in lkv2
+    global _cache_plot_n_annotate_lcf
+    lcf = _lcf_4_plot_transit_interactive
 
-def _update_plot_transit_interactive(figsize, lcf, flux_col, t0, duration_hr, period, step, surround_time, moving_avg_window, t0mark_ymax, ymin, ymax, widget_out2):
     ax = plt.figure(figsize=figsize).gca()
     codes_text = "# Snippets to generate the plot"
     moving_avg_window_for_codes = 'None' if moving_avg_window is None else f"'{moving_avg_window}'"
@@ -562,15 +575,19 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
              , HB([ymin, ymax, t0mark_ymax])
     ])
 
-    import warnings
-    with warnings.catch_warnings():
-        # lkv2 workaround: to suppress astropy table warning, stating that the semantics of == will be changed in the future.
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        fixed_lcf = fixed(lcf)
+    # pass lcf via a global, as fixed(lcf) is very slow with lkv2
+    #
+    # import warnings
+    # with warnings.catch_warnings():
+    #     # lkv2 workaround: to suppress astropy table warning, stating that the semantics of == will be changed in the future.
+    #     warnings.filterwarnings("ignore", category=FutureWarning)
+    #     fixed_lcf = fixed(lcf)
+    global _lcf_4_plot_transit_interactive
+    _lcf_4_plot_transit_interactive = lcf
 
     w = interactive_output(_update_plot_transit_interactive,
                            dict(figsize=fixed(figsize)
-                                , lcf=fixed_lcf
+                                # , lcf=fixed_lcf
                                 , flux_col=fixed(flux_col)
                                 , t0=t0, duration_hr=duration_hr, period=period
                                 , step=step, surround_time=surround_time
