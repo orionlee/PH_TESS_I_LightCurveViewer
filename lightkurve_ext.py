@@ -2,6 +2,7 @@
 Convenience helpers for `lightkurve` package.
 """
 
+import asyncio
 import os
 import logging
 import math
@@ -182,8 +183,31 @@ def _load_search_result_product_identifiers(download_dir, key):
         return None
 
 
-# Other misc. extensions
+# Download TPF asynchronously
 
+async def download_tpf_async(*args, **kwargs):
+    """Search and Download a TPFs asynchronously.
+
+       All parameters are passed on ``search_targetpixelfile()``,
+       with the exception of ``download_dir`` and ``quality_bitmask``,
+       which are passed to ``download_all()`
+       """
+
+    # extract download_all() parameters
+    download_dir = kwargs.pop("download_dir", None)
+    quality_bitmask = kwargs.pop("quality_bitmask", None)
+    sr = lk.search_targetpixelfile(*args, **kwargs)  # pass the rest of the argument to search_targetpixelfile
+    tpf_coll = sr.download_all(download_dir=download_dir, quality_bitmask=quality_bitmask)
+    return tpf_coll, sr
+
+
+def create_download_tpf_task(*args, **kwargs):
+    # use ensure_future rather than create_task for python 3.6 compatibility
+    return asyncio.ensure_future(download_tpf_async(*args, **kwargs))
+
+#
+# Other misc. extensions
+#
 def get_bkg_lightcurve(lcf):
     """Returns the background flux, i.e., ``SAP_BKG`` in the file"""
     lc = lcf.copy()
