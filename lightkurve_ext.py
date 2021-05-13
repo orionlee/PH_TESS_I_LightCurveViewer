@@ -2,7 +2,6 @@
 Convenience helpers for `lightkurve` package.
 """
 
-import asyncio
 import os
 import logging
 import math
@@ -13,6 +12,8 @@ import numpy as np
 from scipy.interpolate import UnivariateSpline
 
 import lightkurve as lk
+
+import asyncio_compat
 
 log = logging.getLogger(__name__)
 
@@ -185,8 +186,8 @@ def _load_search_result_product_identifiers(download_dir, key):
 
 # Download TPF asynchronously
 
-async def download_tpf_async(*args, **kwargs):
-    """Search and Download a TPFs asynchronously.
+def search_and_download_tpf(*args, **kwargs):
+    """Search and Download a TPFs.
 
        All parameters are passed on ``search_targetpixelfile()``,
        with the exception of ``download_dir`` and ``quality_bitmask``,
@@ -202,8 +203,11 @@ async def download_tpf_async(*args, **kwargs):
 
 
 def create_download_tpf_task(*args, **kwargs):
-    # use ensure_future rather than create_task for python 3.6 compatibility
-    return asyncio.ensure_future(download_tpf_async(*args, **kwargs))
+    # - still somewhat blocking in jupyter: the cell completes, but running in subsequent cells are stalled)
+    # - try to use specific event loop to see if it helps, so far not promising.
+    #    https://stackoverflow.com/questions/47518874/how-do-i-run-python-asyncio-code-in-a-jupyter-notebook
+    return asyncio_compat.create_task(asyncio_compat.to_thread(search_and_download_tpf, *args, **kwargs))
+
 
 #
 # Other misc. extensions
