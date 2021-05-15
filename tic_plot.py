@@ -160,7 +160,13 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t
     lcfh = lcf.meta
 
     # Basic scatter of the observation
-    ax = lc.scatter(ax=ax)
+    if "long" == lke.estimate_cadence_type(lc):
+        # long cadence has more spare data, use a larger "x" to represent them
+        # "x" is also useful to distinguish it from moving average,
+        # which will likely overlap with the points given the sparse data
+        ax = lc.scatter(ax=ax, s=36, marker="x")
+    else:
+        ax = lc.scatter(ax=ax)
 
     if len(lc) < 1:
         print(f"Warning: specified (xmin, xmax) is out of the range of the lightcurve {lc.label} sector {lcfh['SECTOR']}. Nothing to plot")
@@ -339,7 +345,13 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
         if lc.author is not None and lc.author != "SPOC":
             label_long += f", by {lc.author}"
 
-        lc.scatter(ax=ax)
+        if "long" == lke.estimate_cadence_type(lc):
+            # long cadence has more spare data, use a larger "x" to represent them
+            # "x" is also useful to distinguish it from moving average,
+            # which will likely overlap with the points given the sparse data
+            ax = lc.scatter(ax=ax, s=16, marker="x")
+        else:
+            ax = lc.scatter(ax=ax)
 
         # convert to dataframe to add moving average
         if moving_avg_window is not None:

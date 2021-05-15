@@ -36,13 +36,32 @@ def of_sectors(*args):
 
 
 def of_2min_cadences(lcf_coll):
-    """Return LightCurveFiles of 2-minute cadence only.
-
+    """Return LightCurveFiles of short, typically 2-minute cadence, only.
        Primary use case is to filter out 20-second files.
     """
-    # accept those in the range of 1.5 - 2.5 minutes
-    filtered = [lcf for lcf in lcf_coll if 150 / 86400 >= np.median(np.diff(lcf.time[:100])) >= 90 / 86400]
+    filtered = [lcf for lcf in lcf_coll if "short" == estimate_cadence_type(lcf)]
     return lk.LightCurveCollection(filtered)
+
+
+def estimate_cadence(lc):
+    """Estimate the cadence of a lightcurve by returning the median of a sample"""
+    return np.nanmedian(np.diff(lc.time[:100].value))
+
+
+def estimate_cadence_type(lc):
+    """Estimate the type of cadence to be one of long, short, or fast.
+       The definition is the same as ``exptime`` in `lightkurve.search_lightcurve()`.
+    """
+    long_minimum = 9.9 / 60 / 24  # 10 minutes in days, with some margin of error
+    short_minimum = 0.9 / 60 / 24  # 1 minute in days, with some margin of error
+    cadence = estimate_cadence(lc)
+    if cadence is None:
+        return None
+    if cadence >= long_minimum:
+        return "long"
+    if cadence >= short_minimum:
+        return "short"
+    return "fast"
 
 
 def of_tic(lcf_coll, tic):
