@@ -624,6 +624,34 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
     return w
 
 
+def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, tt_specs_defaults=None, ax=None):
+    """Plot the given LC, and mark the transit times based on `tt_specs`."""
+    if ax is None:
+#         ax = plt.figure(figsize=(30, 10)).gca()
+        ax = plt.figure(figsize=(15, 5)).gca()
+    ax = lc.scatter(ax=ax, color='black', label=f"{lc.label} s.{getattr(lc, 'sector', 'N/A')}")
+
+    if axvline_kwargs_specs is None:
+        axvline_kwargs_specs = [dict(label="dip", linestyle='--', color="red")]
+
+    tt_list = [lke.get_transit_times_in_lc(lc, a_spec['t0'], a_spec.get('period', tt_specs_defaults['period'])) for a_spec in tt_specs]
+
+    # a hack: mark the first line for each tt set, then set legend
+    # so that each tt set will have 1 legend
+    # if we simply set legend at the end, each dip will have its own legend!
+    for (transit_times, axvline_kwargs) in zip(tt_list, axvline_kwargs_specs):
+        if axvline_kwargs is not None:
+            ax.axvline(transit_times[0], 0, 0.1, **axvline_kwargs)
+    ax.legend()
+
+    for (transit_times, axvline_kwargs) in zip(tt_list, axvline_kwargs_specs):
+        if axvline_kwargs is not None:
+            for tt in transit_times:
+                ax.axvline(tt, 0, 0.1, **axvline_kwargs)
+
+    return ax, tt_list
+
+
 def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None, c='blue', c_highlight='red'):
     '''
     Scatter centroids, and highlight the specific time range
