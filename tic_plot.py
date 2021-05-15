@@ -524,9 +524,10 @@ plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_a
 transit_specs = [
     dict(sector={lcf.meta['SECTOR']}
          , t0 = {t0}
-         , steps_to_show = [{step}])
+         , duration_hr = {duration_hr}, period = {period}
+         , steps_to_show = [{step}]),
 ]
-transit_defaults = dict(duration_hr = {duration_hr}, period = {period}, surround_time = {surround_time})
+transit_defaults = dict(surround_time = {surround_time})
 """)
 
     ymin_to_use = ymin if ymin >= 0 else None
