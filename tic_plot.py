@@ -188,6 +188,8 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t
 
     if set_title:
         title_text = f"{lc.label}, sector {lcfh['SECTOR']}"
+        if lc.author is not None and lc.author != "SPOC":
+            title_text += f", by {lc.author}"
         if t0 is not None:
             transit_duration_msg = ''
             if t_start is not None and t_end is not None:
@@ -334,6 +336,8 @@ def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_twea
         if sector is not None:
             lc.label += f', s.{sector}'
             label_long += f', sector {sector}'
+        if lc.author is not None and lc.author != "SPOC":
+            label_long += f", by {lc.author}"
 
         lc.scatter(ax=ax)
 
