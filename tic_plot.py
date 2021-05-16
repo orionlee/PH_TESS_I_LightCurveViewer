@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 
 from astropy.io import fits
+from astropy import units as u
+from IPython.core.display import display, HTML
 
 from lightkurve import LightCurveCollection
 from lightkurve.utils import TessQualityFlags
@@ -782,3 +784,26 @@ def markTimes(ax, times, **kwargs):
     axvline_kwargs.setdefault('linestyle', '--')
     for t in times:
         ax.axvline(t, **axvline_kwargs)
+
+
+#
+# TargetPixelFile helpers
+#
+
+def show_tpf_orientation(tpf):
+    """"Helper to visualize the TPF's orientation in the sky. Requires IPython.
+        Long arm is north, short arm with arrow is east.
+    """
+    coord_bottom_left = tpf.wcs.pixel_to_world(0, 0)
+    coord_upper_right = tpf.wcs.pixel_to_world(tpf.shape[2] - 1, tpf.shape[1] - 1)
+    coord_upper_left = tpf.wcs.pixel_to_world(0, tpf.shape[2] - 1)
+    deg_from_north = coord_bottom_left.position_angle(coord_upper_left).to(u.deg).value
+
+    display(HTML(f"""<div style="position: relative; margin-left: 16px;height: 64px;">
+    <div style="float: left; max-width: 64px;font-size: 32px;margin: 16px;transform: rotate({-deg_from_north}deg);transform-origin: left;">↳</div>
+        <div style="font-family: monospace;">Upper right offset from bottom left - <br>
+        RA: {(coord_upper_right.ra - coord_bottom_left.ra).to(u.arcmin):0.6},
+        Dec: {(coord_upper_right.dec - coord_bottom_left.dec).to(u.arcmin):0.6}
+        </div>
+    </div>"""))
+
