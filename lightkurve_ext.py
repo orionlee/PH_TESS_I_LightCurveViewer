@@ -7,6 +7,7 @@ import logging
 import math
 import json
 import warnings
+from collections import OrderedDict
 
 import numpy as np
 from scipy.interpolate import UnivariateSpline
@@ -16,6 +17,7 @@ import lightkurve as lk
 import asyncio_compat
 
 log = logging.getLogger(__name__)
+
 
 def of_sector(lcf_coll, sectorNum):
     for lcf in lcf_coll:
@@ -48,20 +50,23 @@ def estimate_cadence(lc):
     return np.nanmedian(np.diff(lc.time[:100].value))
 
 
+def map_cadence_type(cadence_in_days):
+    long_minimum = 9.9 / 60 / 24  # 10 minutes in days, with some margin of error
+    short_minimum = 0.9 / 60 / 24  # 1 minute in days, with some margin of error
+    if cadence_in_days is None:
+        return None
+    if cadence_in_days >= long_minimum:
+        return "long"
+    if cadence_in_days >= short_minimum:
+        return "short"
+    return "fast"
+
+
 def estimate_cadence_type(lc):
     """Estimate the type of cadence to be one of long, short, or fast.
        The definition is the same as ``exptime`` in `lightkurve.search_lightcurve()`.
     """
-    long_minimum = 9.9 / 60 / 24  # 10 minutes in days, with some margin of error
-    short_minimum = 0.9 / 60 / 24  # 1 minute in days, with some margin of error
-    cadence = estimate_cadence(lc)
-    if cadence is None:
-        return None
-    if cadence >= long_minimum:
-        return "long"
-    if cadence >= short_minimum:
-        return "short"
-    return "fast"
+    return map_cadence_type(estimate_cadence(lc))
 
 
 def of_tic(lcf_coll, tic):
@@ -201,6 +206,49 @@ def _load_search_result_product_identifiers(download_dir, key):
         if err.errno != 2:
             log.warning('Unexpected OSError in retrieving cached search result: {}'.format(err))
         return None
+
+
+def filter_by_priority(sr, author_priority=['SPOC', 'TESS-SPOC', 'QLP'], exptime_priority=['short', 'long', 'fast']):
+    author_sort_keys = {}
+    for idx, author in enumerate(author_priority):
+        author_sort_keys[author] = idx + 1
+
+    exptime_sort_keys = {}
+    for idx, exptime in enumerate(exptime_priority):
+        exptime_sort_keys[exptime] = idx + 1
+
+    def calc_filter_priority(row):
+        # Overall priority key is in the form of <author_key><exptime_key>, e.g., 101
+        # - "01" is the exptime_key
+        # - the leading "1" is the author_key, given it is the primary one
+        author_default = max(dict(author_sort_keys).values()) + 1
+        author_key = author_sort_keys.get(row["author"], author_default) * 100
+
+        # secondary priority
+        exptime_default = max(dict(exptime_sort_keys).values()) + 1
+        exptime_key = exptime_sort_keys.get(map_cadence_type(row["exptime"] / 60 / 60 / 24), exptime_default)
+        return author_key + exptime_key
+
+    sr.table["_filter_priority"] = [calc_filter_priority(r) for r in sr.table]
+
+    # A temporary table that sorts the table by the priority
+    sorted_t = sr.table.copy()
+    sorted_t.sort(["mission", "_filter_priority"])
+
+    # create an empty table for results, with the same set of columns
+    res_t = sr.table[np.zeros(len(sr), dtype=bool)].copy()
+
+    # for each mission (e.g., TESS Sector 01), select a row based on specified priority
+    # - select the first row given the table has been sorted by priority
+    uniq_missions = list(OrderedDict.fromkeys(sorted_t["mission"]))
+    for m in uniq_missions:
+        mission_t = sorted_t[sorted_t["mission"] == m]
+        # OPEN: if for a given mission, the only row available is not listed in the priorities,
+        # the logic still add a row to the result.
+        # We might want it to be an option specified by the user.
+        res_t.add_row(mission_t[0])
+
+    return lk.SearchResult(table=res_t)
 
 
 # Download TPF asynchronously
