@@ -128,7 +128,7 @@ _cache_plot_n_annotate_lcf = dict(
     flux_col = None,
     lc = None
 )
-def plot_n_annotate_lcf(lcf, ax, flux_col='PDCSAP_FLUX', xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', t0mark_ymax = 0.3, set_title=True, title_fontsize=18, lc_tweak_fn=None, ax_tweak_fn=None):
+def plot_n_annotate_lcf(lcf, ax, flux_col='flux', xmin=None, xmax=None, t0=None, t_start=None, t_end=None, moving_avg_window='30min', t0mark_ymax = 0.3, set_title=True, title_fontsize=18, lc_tweak_fn=None, ax_tweak_fn=None):
     if lcf is None:
         print("Warning: lcf is None. Plot skipped")
         return
@@ -294,7 +294,7 @@ def print_data_range(lcf_coll):
 
 
 # Do the actual plots
-def plot_all(lcf_coll, flux_col = 'PDCSAP_FLUX', moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
+def plot_all(lcf_coll, flux_col = 'flux', moving_avg_window=None, lc_tweak_fn=None, ax_fn=None
              , use_relative_time=False, mark_quality_issues = True, mark_momentum_dumps = True, set_title=True, ax_tweak_fn=None):
     """Plot the given LightCurveFile collection, one graph for each LightCurve
 
