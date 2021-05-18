@@ -182,9 +182,11 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='flux', xmin=None, xmax=None, t0=None,
     # convert to dataframe to add moving average
     if moving_avg_window is not None:
         df = add_flux_moving_average(lc, moving_avg_window)
-        ax.plot(lc.time.value, df['flux_mavg'], c='black', label=f"Moving average ({moving_avg_window})")
+        # mask_gap: if there is a gap larger than 2 hours,
+        # show the gap rather than trying to fill the gap with a straight line.
+        ax.plot(lc.time.value, mask_gap(lc.time, df['flux_mavg'], 2/24), c='black', label=f"Moving average ({moving_avg_window})")
     else:
-        df = add_flux_moving_average(lc, '10min') # still needed for some subsequent calc, but don't plot it
+        df = add_flux_moving_average(lc, '10min')  # still needed for some subsequent calc, but don't plot it
 
     # annotate the graph
     if t_start is not None:
