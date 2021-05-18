@@ -98,7 +98,7 @@ def add_flux_moving_average(lc, moving_avg_window):
     return df
 
 def add_relative_time(lc, lcf):
-    t_start = lcf.meta['TSTART']
+    t_start = lcf.meta.get('TSTART')
     lc['time_rel'] = lc.time - t_start
     return lc.time_rel
 
@@ -255,7 +255,7 @@ def plot_transits(lcf_coll, transit_specs, default_spec = None, ax_fn=lambda: lc
                 t0_relative = spec.get('t0_relative', defaults.get('t0_relative', None))
                 if t0_relative is None:
                     raise ValueError('plot_transits: in a transit spec, `t0` or `t0_relative` must be specified')
-                t_start = lcf.meta['TSTART']
+                t_start = lcf.meta.get('TSTART')
                 t0 = t0_relative + t_start
 
             duration = spec.get('duration_hr', defaults['duration_hr']) / 24
@@ -286,11 +286,11 @@ def print_data_range(lcf_coll):
     * first / last observation time
     * camera used
     """
-    print("Sectors: " + str(list(map(lambda lc: lc.meta['SECTOR'], lcf_coll))) + f' ({len(lcf_coll)})')
+    print("Sectors: " + str(list(map(lambda lc: lc.meta.get('SECTOR'), lcf_coll))) + f' ({len(lcf_coll)})')
     print("Observation period range / data range:")
     for lc in lcf_coll:
-        print(f"  Sector {lc.meta['SECTOR']}: {lc.meta['TSTART']} - {lc.meta['TSTOP']}")
-        print(f"   (cam {lc.meta['CAMERA']})   {lc.time.min()} - {lc.time.max()}")
+        print(f"  Sector {lc.meta.get('SECTOR')}: {lc.meta.get('TSTART')} - {lc.meta.get('TSTOP')}")
+        print(f"   (cam {lc.meta.get('CAMERA')})   {lc.time.min()} - {lc.time.max()}")
 
 
 # Do the actual plots
@@ -315,7 +315,7 @@ def plot_all(lcf_coll, flux_col = 'flux', moving_avg_window=None, lc_tweak_fn=No
 #     for i in range(0, len(lcf_coll)):
 #         lcf_coll[i].PDCSAP_FLUX.scatter(ax=ax_all)
 
-#     ax_all.set_title(f"TIC {lcf_coll[0].PDCSAP_FLUX.label}, sectors {list(map(lambda lcf: lcf.meta['SECTOR'], lcf_coll))}")
+#     ax_all.set_title(f"TIC {lcf_coll[0].PDCSAP_FLUX.label}, sectors {list(map(lambda lcf: lcf.meta.get('SECTOR'), lcf_coll))}")
 #     return ax_all
 
     # choice 4: plot the lightcurve sector by sector: each sector in its own graph
@@ -415,7 +415,7 @@ def plot_all(lcf_coll, flux_col = 'flux', moving_avg_window=None, lc_tweak_fn=No
             with fits.open(lcf.filename) as hdu:
                 time = hdu[1].data['TIME']
                 if use_relative_time:
-                    t_start = lcf.meta['TSTART']
+                    t_start = lcf.meta.get('TSTART')
                     time = time - t_start
                 mom_dumps_mask = np.bitwise_and(hdu[1].data['QUALITY'], TessQualityFlags.Desat) >= 1
                 time_mom_dumps = time[mom_dumps_mask]
@@ -458,8 +458,8 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
     desc_style = {'description_width': '25ch'}
     slider_style = {'description_width': '25ch'}
     slider_layout = { 'width': '100ch' }
-    t_start = lcf.meta['TSTART']
-    t_stop = lcf.meta['TSTOP']
+    t_start = lcf.meta.get('TSTART')
+    t_stop = lcf.meta.get('TSTOP')
     # Add a second output for textual
     widget_out2 = widgets.Output()
 
@@ -524,7 +524,7 @@ plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_a
 
 # transit_specs for calling plot_transits()
 transit_specs = [
-    dict(sector={lcf.meta['SECTOR']}
+    dict(sector={lcf.meta.get('SECTOR')}
          , t0 = {t0}
          , duration_hr = {duration_hr}, period = {period}
          , steps_to_show = [{step}]),
@@ -663,7 +663,7 @@ def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None,
         fig = plt.figure(figsize=(12,12))
 
     lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
-    sector = lcf.meta['SECTOR']
+    sector = lcf.meta.get('SECTOR')
 
     df = lc.to_pandas()
     if time_range is not None:
@@ -725,7 +725,7 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
 
     '''
     lc = lcf.PDCSAP_FLUX
-    label = f"sector {lcf.meta['SECTOR']}"
+    label = f"sector {lcf.meta.get('SECTOR')}"
 
     # Zoom to a particular time range if specified
     if time_range is not None:
