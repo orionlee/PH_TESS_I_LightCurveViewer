@@ -90,17 +90,22 @@ def as_4decimal(float_num):
 
 def add_flux_moving_average(lc, moving_avg_window):
     df = lc.to_pandas()
-    df['time_ts'] = [pd.Timestamp(x, unit='D') for x in df.index]
+    begin_t = df.index[0]
+    df['time_ts'] = [pd.Timestamp(t - begin_t, unit='D') for t in df.index]
     # the timestamp above is good for relative time.
-    # if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
-    # pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s')
+    # 1. we subtract the time with the timestamp because for some products, e.g., CDIPS, the time value itself
+    #    is so large that creating pd.Timestamp with it causes Overflow error
+    # 2. if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
+    #      pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s')
     df['flux_mavg'] = df.rolling(moving_avg_window, on='time_ts')['flux'].mean()
     return df
 
 def add_relative_time(lc, lcf):
     t_start = lcf.meta.get('TSTART')
+    if t_start is None:
+        return False
     lc['time_rel'] = lc.time - t_start
-    return lc.time_rel
+    return True
 
 def mask_gap(x, y, min_x_diff):
     """
@@ -334,9 +339,13 @@ def plot_all(lcf_coll, flux_col = 'flux', moving_avg_window=None, lc_tweak_fn=No
 
         # temporarily change time to a relative one if specified
         if use_relative_time:
-            add_relative_time(lc, lcf)
-            lc['time_orig'] = lc.time
-            lc.time = lc.time_rel
+            rel_time_added = add_relative_time(lc, lcf)
+            if rel_time_added:
+                lc['time_orig'] = lc.time
+                lc.time = lc.time_rel
+            else:
+                # the file has no observation start time, so we cannot add it
+                use_relative_time = False
 
         # tweak label to include sector if any
         sector = lcf_coll[i].meta.get('SECTOR', None)
@@ -413,16 +422,21 @@ def plot_all(lcf_coll, flux_col = 'flux', moving_avg_window=None, lc_tweak_fn=No
             # Note: momentum_dump signals are by default masked out in LightCurve objects.
             # To access times marked as such, I need to access the raw LightCurveFile directly.
             with fits.open(lcf.filename) as hdu:
-                time = hdu[1].data['TIME']
-                if use_relative_time:
-                    t_start = lcf.meta.get('TSTART')
-                    time = time - t_start
-                mom_dumps_mask = np.bitwise_and(hdu[1].data['QUALITY'], TessQualityFlags.Desat) >= 1
-                time_mom_dumps = time[mom_dumps_mask]
-                if len(time_mom_dumps) > 0:
-                    ybottom, ytop = ax.get_ylim()
-                    ax.vlines(time_mom_dumps, ymin=ybottom, ymax=ybottom + 0.15 * (ytop - ybottom)
-                            , color='red', linewidth=1, linestyle='-.', label="Momentum dumps")
+                if 'TIME' in hdu[1].columns.names:
+                    time = hdu[1].data['TIME']
+                    if use_relative_time:
+                        t_start = lcf.meta.get('TSTART')
+                        time = time - t_start
+                    mom_dumps_mask = np.bitwise_and(hdu[1].data['QUALITY'], TessQualityFlags.Desat) >= 1
+                    time_mom_dumps = time[mom_dumps_mask]
+                    if len(time_mom_dumps) > 0:
+                        ybottom, ytop = ax.get_ylim()
+                        ax.vlines(time_mom_dumps, ymin=ybottom, ymax=ybottom + 0.15 * (ytop - ybottom)
+                                , color='red', linewidth=1, linestyle='-.', label="Momentum dumps")
+                else:
+                    # case the file has no TIME column, typically non SPOC-produced ones, e.g., CDIPS,
+                    # the logic of finding momentum dump would not apply to such files anyway.
+                    pass
 
         ax.legend()
         axs.append(ax)
@@ -454,7 +468,7 @@ def _update_plot_lcf_interactive(figsize, flux_col, xrange, moving_avg_window, y
 
     return None
 
-def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
+def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col='flux'):
     desc_style = {'description_width': '25ch'}
     slider_style = {'description_width': '25ch'}
     slider_layout = { 'width': '100ch' }
@@ -545,7 +559,7 @@ ax.set_ylim({ymin_to_use}, {ymax_to_use})
         print(codes_text)
     return None
 
-def plot_transit_interactive(lcf, figsize=(15, 8), flux_col='PDCSAP_FLUX'):
+def plot_transit_interactive(lcf, figsize=(15, 8), flux_col='flux'):
     desc_style = {'description_width': '25ch'}
 
     # Add a second output for textual
@@ -760,7 +774,9 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
         num_centroids_to_show = None
 #     print(f'Steps: {ary_n}')
     if use_relative_time:
-        add_relative_time(lc, lcf)
+        rel_time_added = add_relative_time(lc, lcf)
+        if not rel_time_added:
+            use_relative_time = False
     anim = animation.FuncAnimation(fig, _update_anim, frames=ary_n
                                    , fargs=(fig.gca(), lc, label, num_centroids_to_show, use_relative_time, c)
                                    , interval=interval, blit=False)
