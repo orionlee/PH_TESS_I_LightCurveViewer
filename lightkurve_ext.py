@@ -37,6 +37,18 @@ def of_sectors(*args):
     return lcf_coll[np.in1d(lcf_coll.sector, sector_nums)]
 
 
+def of_sector_n_around(lcf_coll, sector_num, num_additions=8):
+    if sector_num not in lcf_coll.sector:
+        return lk.LightCurveCollection([])
+
+    idx = np.where(lcf_coll.sector == sector_num)[0][0]
+    start = max(idx - math.ceil(num_additions / 2), 0)
+    end = min(idx + math.ceil(num_additions / 2) + 1, len(lcf_coll))
+
+    # workaround bug that lcf_coll[start:end] returns a list only
+    return lk.LightCurveCollection(lcf_coll[start:end])
+
+
 def of_2min_cadences(lcf_coll):
     """Return LightCurveFiles of short, typically 2-minute cadence, only.
        Primary use case is to filter out 20-second files.
