@@ -658,7 +658,7 @@ def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, tt_specs_default
     # so that each tt set will have 1 legend
     # if we simply set legend at the end, each dip will have its own legend!
     for (transit_times, axvline_kwargs) in zip(tt_list, axvline_kwargs_specs):
-        if axvline_kwargs is not None:
+        if len(transit_times) > 0 and axvline_kwargs is not None:
             ax.axvline(transit_times[0], 0, 0.1, **axvline_kwargs)
     ax.legend()
 
