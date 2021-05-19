@@ -642,6 +642,24 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col='flux'):
     return w
 
 
+def plot_flux_sap_flux_comparison(lc, sap_col='sap_flux', ax=None, offset=0, **kwargs):
+    """Plot flux (typically PDCSAP_FLUX) and sap_flux together,
+       to spot any anomaly in processed lightcurve."""
+    lc_sap = lc.copy()
+    lc_sap['flux'] = lc[sap_col]
+    if sap_col + '_err' in lc.colnames:
+        lc_sap['flux_err'] = lc[sap_col + '_err']
+    else:  # some products, e.g., QLP, does not give err
+        # Hit a bug - ValueError: TessLightCurve object is invalid - expected 'time' as the first columns but found 'time'
+        # lc_sap.remove_column('flux_err')
+        # zero out the column as a workaround
+        lc_sap['flux_err'] = np.zeros_like(lc_sap['flux_err'])
+    lc_sap.label += f' {sap_col}'
+    ax = LightCurveCollection([lc, lc_sap]).plot(ax=ax, offset=offset, **kwargs)
+    ax.set_title(f"{lc.label}, sector {lc.sector} - flux vs {sap_col}")
+    return ax
+
+
 def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, tt_specs_defaults=None, ax=None):
     """Plot the given LC, and mark the transit times based on `tt_specs`."""
     if ax is None:
