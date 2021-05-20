@@ -5,8 +5,6 @@ LightCurveCollection
 """
 
 import warnings
-import urllib
-import json
 import re
 from memoization import cached
 
@@ -26,24 +24,6 @@ from lightkurve import LightCurveCollection
 from lightkurve.utils import TessQualityFlags
 from lightkurve_ext import of_sector, of_sectors
 import lightkurve_ext as lke
-
-
-@cached
-def get_tces_of_tic(tic_id):
-    url = f'https://exo.mast.stsci.edu/api/v0.1/dvdata/tess/{tic_id}/tces/'
-    response = urllib.request.urlopen(url)
-    data = response.read()      # a `bytes` object
-    text = data.decode('utf-8') # a `str`; this step can't be used if data is binary
-    resp_obj = json.loads(text)
-    return resp_obj['TCE']
-
-
-def get_tce_urls_of_tic(tic_id):
-    tces = get_tces_of_tic(tic_id)
-    tces.sort()
-    urlPrefix = 'https://exo.mast.stsci.edu/exomast_planet.html'
-    return list(map(lambda x: (x, f"{urlPrefix}?planet=TIC{tic_id}" + re.sub(r"[-:_]", "", x.upper()))
-                    , tces))
 
 
 def parse_dvs_filename(filename):
