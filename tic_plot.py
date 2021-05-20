@@ -5,8 +5,10 @@ LightCurveCollection
 """
 
 import warnings
+from pathlib import Path
 import re
 from memoization import cached
+import xmltodict
 
 import matplotlib.pyplot as plt
 import matplotlib as matplotlib
@@ -43,6 +45,16 @@ def parse_dvs_filename(filename):
     return dict(tce_id=tce_id, tce_id_short=tce_id_short, sector_range=sector_range, tic_id=tic_id, tce_num=tce_num)
 
 
+def parse_dvr_filename(filename):
+    match = re.match(r"^tess\d+-(s\d+-s\d+)-(\d+)-.+_dvr[.](pdf|xml)", filename)
+    if not match:
+        return {}
+    sector_range, tic_id_padded, file_type = match.group(1), match.group(2), match.group(3)
+    tic_id = re.sub(r"^0+", "", tic_id_padded)
+
+    return dict(sector_range=sector_range, tic_id=tic_id, file_type=file_type)
+
+
 @cached
 def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None):
     # Based on:
@@ -62,15 +74,71 @@ def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None
     return Observations.filter_products(data_products, productSubGroupDescription=productSubGroupDescription)
 
 
+@cached
+def parse_dvr_xml(file_path):
+    def as_list(data):
+        """Wrap an item as a list, if it's not one.
+        Useful for handling dict from XML where elements might be one or multiple elements"""
+        if type(data) is list:
+            return data
+        else:
+            return [data]
+
+    def param_value(model_params_dict, param_name):
+        param_dict = model_params_dict.get(param_name)
+        if param_dict is None:
+            return None
+        val_str = param_dict.get("@value")
+        if val_str is None:
+            return None
+        return float(val_str)
+
+    # the body
+    with open(file_path, "r") as f:
+        dvr_xml_str = f.read()
+    parsed = xmltodict.parse(dvr_xml_str)
+
+    planets_dict = {}
+
+    e_pr_list = as_list(parsed["dv:dvTargetResults"]["dv:planetResults"])
+    for e_pr in e_pr_list:
+        e_afit = e_pr["dv:allTransitsFit"]
+        planet_num = e_afit["@planetNumber"]
+
+        params_dict = {}  # a temporary structure to access params internally
+        for mp in e_afit["dv:modelParameters"]["dv:modelParameter"]:
+            params_dict[mp["@name"]] = mp
+
+        # TODO: add other DV fitting parameters, odd/even test, centroid, etc.
+        # use the underlying xml attribute names, even thought it breaks the convention
+        a_planet_dict = dict(
+            planetNumber=planet_num,
+            transitEpochBtjd=param_value(params_dict, "transitEpochBtjd"),
+            planetRadiusEarthRadii=param_value(params_dict, "planetRadiusEarthRadii"),
+            transitDurationHour=param_value(params_dict, "transitDurationHours"),
+            orbitalPeriodDays=param_value(params_dict, "orbitalPeriodDays"),
+            transitDepthPpm=param_value(params_dict, "transitDepthPpm"),
+            minImpactParameter=param_value(params_dict, "minImpactParameter"),
+            )
+
+        planets_dict[planet_num] = a_planet_dict
+
+    return planets_dict
+
+
 def get_tce_infos_of_tic(tic_id, download_dir=None):
-    # TODO: add "DVR" later, to add validation data, odd/even fits, centroid offsets, etc.
     products_wanted = get_dv_products_of_tic(tic_id, ["DVS", "DVR"], download_dir=download_dir)
 
     res = []
     # basic info
     for p in products_wanted[products_wanted["productSubGroupDescription"] == "DVS"]:
         tce_info = parse_dvs_filename(p['productFilename'])
-        entry = dict(obsID=p["obsID"], tce_id=tce_info.get("tce_id"), tce_id_short=tce_info.get("tce_id_short"), dvs_dataURI=p["dataURI"])
+        entry = dict(
+            obsID=p["obsID"],
+            tic_id=tce_info.get("tic_id"), sector_range=tce_info.get("sector_range"), tce_num=tce_info.get("tce_num"),
+            tce_id=tce_info.get("tce_id"), tce_id_short=tce_info.get("tce_id_short"),
+            dvs_dataURI=p["dataURI"]
+            )
         res.append(entry)
 
     # DVR pdf link
@@ -78,6 +146,20 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
         # find TCEs for the same observation (sometimes there are multiple TCEs for the same observation)
         for entry in [e for e in res if e["obsID"] == p["obsID"]]:
             entry["dvr_dataURI"] = p["dataURI"]
+
+    products_dvr_xml = products_wanted[products_wanted["description"] == "full data validation report (xml)"]
+    manifest = Observations.download_products(products_dvr_xml, download_dir=download_dir)
+    for m in manifest:
+        dvr_xml_local_path = m['Local Path']
+
+        dvr_info =  parse_dvr_filename(Path(dvr_xml_local_path).name)
+        for entry in [e for e in res if e["tic_id"] == dvr_info["tic_id"] and e["sector_range"] == dvr_info["sector_range"]]:
+            entry["dvr_xml_local_path"] = dvr_xml_local_path
+
+        planets_dict = parse_dvr_xml(dvr_xml_local_path)
+        for a_planet_dict in planets_dict.values():
+            for entry in [e for e in res if e["tic_id"] == dvr_info["tic_id"] and e["sector_range"] == dvr_info["sector_range"] and e["tce_num"] == a_planet_dict['planetNumber']]:
+                entry["planet"] = a_planet_dict
 
     return res
 
@@ -136,7 +218,10 @@ def get_tic_meta_in_html(lc, download_dir=None):
         dvs_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
         dvr_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvr_dataURI")}'
         html += f"""
-<tr><td>{link(info.get("tce_id_short"), exomast_url)}</td><td>{link("dvs", dvs_url)},&emsp;{link("full", dvr_url)}</td></tr>
+<tr>
+  <td>{link(info.get("tce_id_short"), exomast_url)}</td><td>{link("dvs", dvs_url)},&emsp;{link("full", dvr_url)}</td>
+  <td>{link("dvr_xml", info.get("dvr_xml_local_path"))}</td> <!-- placeholder for actual info in xml -->
+</tr>
 """
         html += "<br>\n"
 
