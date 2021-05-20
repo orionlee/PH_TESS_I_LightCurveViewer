@@ -46,6 +46,53 @@ def get_tce_urls_of_tic(tic_id):
                     , tces))
 
 
+def parse_dvs_filename(filename):
+    # e.g.: tess2020267090513-s0030-s0030-0000000142087638-01-00394_dvs.pdf
+    match = re.match(r"^tess\d+-(s\d+-s\d+)-(\d+)-(\d+)-.+_dvs[.]pdf", filename)
+    if not match:
+        return {}
+    sector_range, tic_id_padded, tce_num_padded = match.group(1), match.group(2), match.group(3)
+    tic_id = re.sub(r"^0+", "", tic_id_padded)
+    tce_num = re.sub(r"^0+", "", tce_num_padded)
+    # sufficient to identify one for a given TIC, less visually busy
+    tce_id_short = f"{sector_range}:TCE{tce_num}"
+
+    # tce_id is the format used on ExoMAT, e.g,  TIC142087638S0030S0030TCE1
+    tce_id = f"""TIC{tic_id}{re.sub("-", "", sector_range.upper())}TCE{tce_num}"""
+
+    return dict(tce_id=tce_id, tce_id_short=tce_id_short, sector_range=sector_range, tic_id=tic_id, tce_num=tce_num)
+
+
+@cached
+def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None):
+    # Based on:
+    # - https://outerspace.stsci.edu/display/TESS/7.0+-+Tips+and+Tricks+to+Getting+TESS+Data+At+MAST
+    # - https://github.com/spacetelescope/notebooks/blob/master/notebooks/MAST/TESS/beginner_astroquery_dv/beginner_astroquery_dv.ipynb
+
+    target_lower = f"tic{tic_id}"
+    tess_match = re.match(r"^(tess|tic) ?(\d+)$", target_lower)
+    if tess_match:
+        exact_target_name = f"{tess_match.group(2).zfill(9)}"
+    else:
+        warnings.warn(f"The given tic id {tic_id} is not a valid one. No DV products to reutrn.")
+        return []
+
+    obs_wanted = Observations.query_criteria(target_name=exact_target_name, dataproduct_type="timeseries", obs_collection="TESS")
+    data_products = Observations.get_product_list(obs_wanted)
+    return Observations.filter_products(data_products, productSubGroupDescription=productSubGroupDescription)
+
+
+def get_tce_infos_of_tic(tic_id, download_dir=None):
+    # TODO: add "DVR" later, to add validation data, odd/even fits, centroid offsets, etc.
+    products_wanted = get_dv_products_of_tic(tic_id, ["DVS"], download_dir=download_dir)
+    res = []
+    for p in products_wanted:
+        tce_info = parse_dvs_filename(p['productFilename'])
+        entry = dict(tce_id=tce_info.get("tce_id"), tce_id_short=tce_info.get("tce_id_short"), dvs_dataURI=p['dataURI'])
+        res.append(entry)
+    return res
+
+
 def get_tic_meta_in_html(lc, download_dir=None):
     # This function does not do the actual display,
     # so that the caller can call it in background
@@ -75,11 +122,35 @@ def get_tic_meta_in_html(lc, download_dir=None):
     # - basic planet parameters and orbital info
     # - red flags in vetting report
     # see: https://archive.stsci.edu/missions-and-data/tess/data-products
-    url_tce_list = get_tce_urls_of_tic(tic_id)
-    if len(url_tce_list) > 0:
-        html += "TCEs:<br>\n"
-    for tce_url, tce in url_tce_list:
-        html += link(tce_url, tce) + "<br>\n"
+    tce_info_list = get_tce_infos_of_tic(tic_id, download_dir=download_dir)
+    if len(tce_info_list) < 1:
+        return html
+
+    header = [
+        ("TCE", ""), ("Summary", ""),
+        ("Rp", "Rj"), ("Epoch", "BTJD"), ("Duration", "hr"), ("Period", "day"), ("Depth", "%"), ("Impact Param", ""),
+        ]
+    html += """<br>TCEs: <table>
+<thead>"""
+    html += "<tr>"
+    html += " ".join([f"<th>{h[0]}</th>" for h in header])
+    html += "</tr>\n"
+    html += "<tr>"
+    html += " ".join([f"<th>{h[1]}</th>" for h in header])
+    html += "</tr>\n"
+    html += """
+</thead>
+<tbody>
+"""
+    for info in tce_info_list:
+        exomast_url = f'https://exo.mast.stsci.edu/exomast_planet.html?planet={info.get("tce_id")}'
+        dvs_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
+        html += f"""
+<tr><td>{link(info.get("tce_id_short"), exomast_url)}</td><td>{link("pdf", dvs_url)}</td></tr>
+"""
+        html += "<br>\n"
+
+    html += "</tbody></table>\n"
 
     # TODO: check if there is a TOI?!
 
