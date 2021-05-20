@@ -64,12 +64,21 @@ def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None
 
 def get_tce_infos_of_tic(tic_id, download_dir=None):
     # TODO: add "DVR" later, to add validation data, odd/even fits, centroid offsets, etc.
-    products_wanted = get_dv_products_of_tic(tic_id, ["DVS"], download_dir=download_dir)
+    products_wanted = get_dv_products_of_tic(tic_id, ["DVS", "DVR"], download_dir=download_dir)
+
     res = []
-    for p in products_wanted:
+    # basic info
+    for p in products_wanted[products_wanted["productSubGroupDescription"] == "DVS"]:
         tce_info = parse_dvs_filename(p['productFilename'])
-        entry = dict(tce_id=tce_info.get("tce_id"), tce_id_short=tce_info.get("tce_id_short"), dvs_dataURI=p['dataURI'])
+        entry = dict(obsID=p["obsID"], tce_id=tce_info.get("tce_id"), tce_id_short=tce_info.get("tce_id_short"), dvs_dataURI=p["dataURI"])
         res.append(entry)
+
+    # DVR pdf link
+    for p in products_wanted[products_wanted["description"] == "full data validation report"]:
+        # find TCEs for the same observation (sometimes there are multiple TCEs for the same observation)
+        for entry in [e for e in res if e["obsID"] == p["obsID"]]:
+            entry["dvr_dataURI"] = p["dataURI"]
+
     return res
 
 
@@ -107,7 +116,7 @@ def get_tic_meta_in_html(lc, download_dir=None):
         return html
 
     header = [
-        ("TCE", ""), ("Summary", ""),
+        ("TCE", ""), ("Reports", ""),
         ("Rp", "Rj"), ("Epoch", "BTJD"), ("Duration", "hr"), ("Period", "day"), ("Depth", "%"), ("Impact Param", ""),
         ]
     html += """<br>TCEs: <table>
@@ -125,8 +134,9 @@ def get_tic_meta_in_html(lc, download_dir=None):
     for info in tce_info_list:
         exomast_url = f'https://exo.mast.stsci.edu/exomast_planet.html?planet={info.get("tce_id")}'
         dvs_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
+        dvr_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvr_dataURI")}'
         html += f"""
-<tr><td>{link(info.get("tce_id_short"), exomast_url)}</td><td>{link("pdf", dvs_url)}</td></tr>
+<tr><td>{link(info.get("tce_id_short"), exomast_url)}</td><td>{link("dvs", dvs_url)},&emsp;{link("full", dvr_url)}</td></tr>
 """
         html += "<br>\n"
 
