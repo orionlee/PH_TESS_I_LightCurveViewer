@@ -4,6 +4,12 @@ Helpers to plot the lightcurve of a TESS subject, given a
 LightCurveCollection
 """
 
+import warnings
+import urllib
+import json
+import re
+from memoization import cached
+
 import matplotlib.pyplot as plt
 import matplotlib as matplotlib
 from matplotlib.ticker import (FormatStrFormatter, AutoMinorLocator)
@@ -12,12 +18,73 @@ import pandas as pd
 
 from astropy.io import fits
 from astropy import units as u
+from astroquery.mast import Observations
+
 from IPython.core.display import display, HTML
 
 from lightkurve import LightCurveCollection
 from lightkurve.utils import TessQualityFlags
 from lightkurve_ext import of_sector, of_sectors
 import lightkurve_ext as lke
+
+
+@cached
+def get_tces_of_tic(tic_id):
+    url = f'https://exo.mast.stsci.edu/api/v0.1/dvdata/tess/{tic_id}/tces/'
+    response = urllib.request.urlopen(url)
+    data = response.read()      # a `bytes` object
+    text = data.decode('utf-8') # a `str`; this step can't be used if data is binary
+    resp_obj = json.loads(text)
+    return resp_obj['TCE']
+
+
+def get_tce_urls_of_tic(tic_id):
+    tces = get_tces_of_tic(tic_id)
+    tces.sort()
+    urlPrefix = 'https://exo.mast.stsci.edu/exomast_planet.html'
+    return list(map(lambda x: (x, f"{urlPrefix}?planet=TIC{tic_id}" + re.sub(r"[-:_]", "", x.upper()))
+                    , tces))
+
+
+def get_tic_meta_in_html(lc, download_dir=None):
+    # This function does not do the actual display,
+    # so that the caller can call it in background
+    # and display it whereever it's needed
+    def link(link_text, url):
+        return f"""<a href="{url}" target="_blank">{link_text}</a>"""
+
+    def prop(prop_name, prop_value):
+        return f"""    <tr><td>{prop_name}</td><td>{prop_value}</td></tr>\n"""
+
+    m = lc.meta
+    tic_id = str(m.get("TICID"))
+
+    html = f"""
+<h2>TIC {tic_id} metadata</h2>
+"""
+    html += link("ExoFOP", f"https://exofop.ipac.caltech.edu/tess/target.php?id={tic_id}")
+    html += "\n&emsp;|&emsp;"
+    html += link("PHT Talk", f"https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/search?query={tic_id}") + "<br>\n"
+    html += "<table>\n"
+    html += prop("R_* (in R_sun)", m.get("RADIUS"))
+    html += prop("Magnitude (TESS)", m.get("TESSMAG"))
+    html += prop("T_eff (in K)", m.get("TEFF"))
+    html += "</table>\n"
+
+    # TODO: For TCE, query MAST download / parse results (the _dvr.xml), tho show
+    # - basic planet parameters and orbital info
+    # - red flags in vetting report
+    # see: https://archive.stsci.edu/missions-and-data/tess/data-products
+    url_tce_list = get_tce_urls_of_tic(tic_id)
+    if len(url_tce_list) > 0:
+        html += "TCEs:<br>\n"
+    for tce_url, tce in url_tce_list:
+        html += link(tce_url, tce) + "<br>\n"
+
+    # TODO: check if there is a TOI?!
+
+    return html
+
 
 def beep():
     """Emits a beep sound. It works only in IPython / Jupyter environment only"""
