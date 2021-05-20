@@ -188,8 +188,8 @@ def get_tic_meta_in_html(lc, download_dir=None):
     html += "\n&emsp;|&emsp;"
     html += link("PHT Talk", f"https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/search?query={tic_id}") + "<br>\n"
     html += "<table>\n"
-    html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", m.get("RADIUS"))
-    html += prop("Magnitude (TESS)", m.get("TESSMAG"))
+    html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", f'{m.get("RADIUS"):.3f}')
+    html += prop("Magnitude (TESS)", f'{m.get("TESSMAG"):.2f}')
     html += prop("T_eff (in K)", m.get("TEFF"))
     html += "</table>\n"
 
