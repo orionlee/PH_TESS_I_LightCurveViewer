@@ -66,7 +66,7 @@ def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None
     if tess_match:
         exact_target_name = f"{tess_match.group(2).zfill(9)}"
     else:
-        warnings.warn(f"The given tic id {tic_id} is not a valid one. No DV products to reutrn.")
+        warnings.warn(f"The given tic id {tic_id} is not a valid one. No DV products to return.")
         return []
 
     obs_wanted = Observations.query_criteria(target_name=exact_target_name, dataproduct_type="timeseries", obs_collection="TESS")
@@ -115,7 +115,7 @@ def parse_dvr_xml(file_path):
             planetNumber=planet_num,
             transitEpochBtjd=param_value(params_dict, "transitEpochBtjd"),
             planetRadiusEarthRadii=param_value(params_dict, "planetRadiusEarthRadii"),
-            transitDurationHour=param_value(params_dict, "transitDurationHours"),
+            transitDurationHours=param_value(params_dict, "transitDurationHours"),
             orbitalPeriodDays=param_value(params_dict, "orbitalPeriodDays"),
             transitDepthPpm=param_value(params_dict, "transitDepthPpm"),
             minImpactParameter=param_value(params_dict, "minImpactParameter"),
@@ -174,6 +174,10 @@ def get_tic_meta_in_html(lc, download_dir=None):
     def prop(prop_name, prop_value):
         return f"""    <tr><td>{prop_name}</td><td>{prop_value}</td></tr>\n"""
 
+    def row(*args):
+        return "<tr>" + "".join(f"<td>{v}</td>" for v in args) + "</tr>"
+
+    # main logic
     m = lc.meta
     tic_id = str(m.get("TICID"))
 
@@ -184,7 +188,7 @@ def get_tic_meta_in_html(lc, download_dir=None):
     html += "\n&emsp;|&emsp;"
     html += link("PHT Talk", f"https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/search?query={tic_id}") + "<br>\n"
     html += "<table>\n"
-    html += prop("R_* (in R_sun)", m.get("RADIUS"))
+    html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", m.get("RADIUS"))
     html += prop("Magnitude (TESS)", m.get("TESSMAG"))
     html += prop("T_eff (in K)", m.get("TEFF"))
     html += "</table>\n"
@@ -199,7 +203,7 @@ def get_tic_meta_in_html(lc, download_dir=None):
 
     header = [
         ("TCE", ""), ("Reports", ""),
-        ("Rp", "Rj"), ("Epoch", "BTJD"), ("Duration", "hr"), ("Period", "day"), ("Depth", "%"), ("Impact Param", ""),
+        ("R<sub>p</sub>", "R<sub>j</sub>"), ("Epoch", "BTJD"), ("Duration", "hr"), ("Period", "day"), ("Depth", "%"), ("Impact P.", "<i>b</i>"),
         ]
     html += """<br>TCEs: <table>
 <thead>"""
@@ -213,16 +217,22 @@ def get_tic_meta_in_html(lc, download_dir=None):
 </thead>
 <tbody>
 """
+    R_EARTH_TO_R_JUPITER = 6378.1 / 71492
     for info in tce_info_list:
         exomast_url = f'https://exo.mast.stsci.edu/exomast_planet.html?planet={info.get("tce_id")}'
         dvs_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
         dvr_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvr_dataURI")}'
-        html += f"""
-<tr>
-  <td>{link(info.get("tce_id_short"), exomast_url)}</td><td>{link("dvs", dvs_url)},&emsp;{link("full", dvr_url)}</td>
-  <td>{link("dvr_xml", info.get("dvr_xml_local_path"))}</td> <!-- placeholder for actual info in xml -->
-</tr>
-"""
+        p_i = info.get("planet", {})
+        html += row(
+            link(info.get("tce_id_short"), exomast_url),
+            f"""{link("dvs", dvs_url)},&emsp;{link("full", dvr_url)}""",
+            f'{p_i.get("planetRadiusEarthRadii") * R_EARTH_TO_R_JUPITER:.3f}',
+            f'{p_i.get("transitEpochBtjd"):.4f}',
+            f'{p_i.get("transitDurationHours"):.4f}',
+            f'{p_i.get("orbitalPeriodDays"):.6f}',
+            f'{p_i.get("transitDepthPpm") / 10000:.4f}',
+            f'{p_i.get("minImpactParameter"):.2f}'
+        )
         html += "<br>\n"
 
     html += "</tbody></table>\n"
