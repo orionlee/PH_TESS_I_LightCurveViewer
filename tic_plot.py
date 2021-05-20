@@ -918,23 +918,20 @@ def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None,
     if fig is None:
         fig = plt.figure(figsize=(12,12))
 
-    lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
+    lc = lcf.normalize(unit='percent')
     sector = lcf.meta.get('SECTOR')
 
-    df = lc.to_pandas()
     if time_range is not None:
-        df = df[(df.time >= time_range[0]) & (df.time <= time_range[1])]
-        if (len(df) < 1):
-            raise Exception(f'Zoomed lightcurve has no observation. time_range={time_range}')
+        lc = lc.truncate(time_range[0], time_range[1])
 
     fig.gca().yaxis.set_major_formatter(FormatStrFormatter('%.3f')) # avoid scientific notations
-    fig.gca().scatter(df.centroid_col.values, df.centroid_row.values, c=c, label=f'TIC {lc.targetid}')
+    fig.gca().scatter(lc.centroid_col.value, lc.centroid_row.value, c=c, label=f'TIC {lc.targetid}')
 
     if highlight_time_range is not None:
-        df_highlight = df[(df.time >= highlight_time_range[0]) & (df.time <= highlight_time_range[1])]
-        if (len(df_highlight) < 1):
+        lc_highlight = lc.truncate(highlight_time_range[0], highlight_time_range[1])
+        if (len(lc_highlight) < 1):
             print('WARNING: scatter_centroids() no observations in highlight_time_range')
-        fig.gca().scatter(df_highlight.centroid_col.values, df_highlight.centroid_row.values, c=c_highlight, label='highlights')
+        fig.gca().scatter(lc_highlight.centroid_col.value, lc_highlight.centroid_row.value, c=c_highlight, label='highlights')
 
     title = f'TIC {lc.targetid} Centroids, sector {sector}'
     if time_range is not None:
