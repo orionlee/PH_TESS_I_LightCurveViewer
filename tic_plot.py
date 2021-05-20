@@ -61,16 +61,13 @@ def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None
     # - https://outerspace.stsci.edu/display/TESS/7.0+-+Tips+and+Tricks+to+Getting+TESS+Data+At+MAST
     # - https://github.com/spacetelescope/notebooks/blob/master/notebooks/MAST/TESS/beginner_astroquery_dv/beginner_astroquery_dv.ipynb
 
-    target_lower = f"tic{tic_id}"
-    tess_match = re.match(r"^(tess|tic) ?(\d+)$", target_lower)
-    if tess_match:
-        exact_target_name = f"{tess_match.group(2).zfill(9)}"
-    else:
-        warnings.warn(f"The given tic id {tic_id} is not a valid one. No DV products to return.")
-        return []
-
+    # Note: for TESS, tic_id (the number without TIC) is what an exact match works
+    # Kepler / K2 ids will need some additional processing for exact match to work.
+    exact_target_name = tic_id
     obs_wanted = Observations.query_criteria(target_name=exact_target_name, dataproduct_type="timeseries", obs_collection="TESS")
     data_products = Observations.get_product_list(obs_wanted)
+    if len(data_products) < 1:
+        warnings.warn(f"No products found in MAST for target_name: {exact_target_name}")
     return Observations.filter_products(data_products, productSubGroupDescription=productSubGroupDescription)
 
 
@@ -149,6 +146,8 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
 
     products_dvr_xml = products_wanted[products_wanted["description"] == "full data validation report (xml)"]
     manifest = Observations.download_products(products_dvr_xml, download_dir=download_dir)
+    if manifest is None:
+        return res
     for m in manifest:
         dvr_xml_local_path = m['Local Path']
 
