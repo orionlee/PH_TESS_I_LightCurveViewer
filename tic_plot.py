@@ -951,8 +951,9 @@ import matplotlib.animation as animation
 def _update_anim(n, ax, lc, label, num_centroids_to_show, use_relative_time, c):
     ax.cla()
     # fix the x/y scale to ensure it doesn't change over the animation
-    ax.set_xlim(np.nanmin(lc.centroid_col), np.nanmax(lc.centroid_col))
-    ax.set_ylim(np.nanmin(lc.centroid_row), np.nanmax(lc.centroid_row))
+    c_col, c_row = _to_unitless(lc.centroid_col), _to_unitless(lc.centroid_row)
+    ax.set_xlim(np.nanmin(c_col), np.nanmax(c_col))
+    ax.set_ylim(np.nanmin(c_row), np.nanmax(c_row))
 
     # avoid scientific notation for y-axis
     # x-axis might need scientific notation so that the labels won't get too cramped with long decimals
@@ -980,13 +981,13 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
     Animate centroids to visualize changes over time.
 
     '''
-    lc = lcf.PDCSAP_FLUX
+    lc = lcf
     label = f"sector {lcf.meta.get('SECTOR')}"
 
     # Zoom to a particular time range if specified
     if time_range is not None:
         # use pandas to zoom to a particular time_range
-        df = lcf.PDCSAP_FLUX.normalize(unit='percent').to_pandas(columns=['time', 'flux', 'centroid_row', 'centroid_col'])
+        df = lc.normalize(unit='percent').to_pandas(columns=['time', 'flux', 'centroid_row', 'centroid_col'])
         df = df[(df.time >= time_range[0]) & (df.time <= time_range[1])]
         if (len(df) < 1):
             raise Exception(f'Zoomed lightcurve has no observation. time_range={time_range}')
