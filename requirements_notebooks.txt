@@ -1,5 +1,9 @@
-lightkurve>=1.11.2
+lightkurve>=2.0.9
 matplotlib
+bokeh
 pandas
 numpy
 scipy
+# Used in TCE metadata display
+memoization
+xmltodict
