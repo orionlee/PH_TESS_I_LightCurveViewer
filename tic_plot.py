@@ -21,7 +21,7 @@ from astropy import units as u
 from astroquery.exceptions import NoResultsWarning
 from astroquery.mast import Observations
 
-from IPython.core.display import display, HTML
+from IPython.display import display, HTML, Audio
 
 from lightkurve import LightCurveCollection, LightkurveWarning
 from lightkurve.utils import TessQualityFlags
@@ -251,7 +251,6 @@ def get_tic_meta_in_html(lc, download_dir=None):
 def beep():
     """Emits a beep sound. It works only in IPython / Jupyter environment only"""
     # a beep to remind the users that the data has been downloaded
-    from IPython.display import display, Audio, HTML
     # css tweak to hide beep
     display(HTML("""<script>
 function tweakCSS() {
@@ -548,11 +547,15 @@ def print_data_range(lcf_coll):
     * first / last observation time
     * camera used
     """
-    print("Sectors: " + str(list(map(lambda lc: lc.meta.get('SECTOR'), lcf_coll))) + f' ({len(lcf_coll)})')
-    print("Observation period range / data range:")
+    html = '<pre style="line-height: 1.1;">\n'
+    html += "<summary>Sectors: " + str(list(map(lambda lc: lc.meta.get('SECTOR'), lcf_coll))) + f' ({len(lcf_coll)})' + "\n"
+    html += "Observation period range / data range:" + "\n"
+    html += "<details>"
     for lc in lcf_coll:
-        print(f"  Sector {lc.meta.get('SECTOR')}: {lc.meta.get('TSTART')} - {lc.meta.get('TSTOP')}")
-        print(f"   (cam {lc.meta.get('CAMERA')})   {lc.time.min()} - {lc.time.max()}")
+        html += f"  Sector {lc.meta.get('SECTOR')}: {lc.meta.get('TSTART')} - {lc.meta.get('TSTOP')}" + "\n"
+        html += f"   (cam {lc.meta.get('CAMERA')})   {lc.time.min()} - {lc.time.max()}" + "\n"
+    html += "</details></summary></pre>"
+    display(HTML(html))
 
 
 # Do the actual plots
