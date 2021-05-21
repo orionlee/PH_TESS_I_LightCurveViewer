@@ -864,7 +864,7 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col='flux'):
     return w
 
 
-def plot_flux_sap_flux_comparison(lc, sap_col='sap_flux', ax=None, offset=0, **kwargs):
+def plot_flux_sap_flux_comparison(lc, sap_col='sap_flux', ax=None, offset=None, **kwargs):
     """Plot flux (typically PDCSAP_FLUX) and sap_flux together,
        to spot any anomaly in processed lightcurve."""
     lc_sap = lc.copy()
@@ -876,7 +876,16 @@ def plot_flux_sap_flux_comparison(lc, sap_col='sap_flux', ax=None, offset=0, **k
         # lc_sap.remove_column('flux_err')
         # zero out the column as a workaround
         lc_sap['flux_err'] = np.zeros_like(lc_sap['flux_err'])
-    lc_sap.label += f' {sap_col}'
+
+    if offset is None:
+        # auto offset: move lc_sap curve so that
+        # - its median is at about 10 percentile of main flux
+        # - move farther down by a factor of the 40% amplitude of the main flux, so that it is most below the main flux
+        #    without much gap, but not overlapping too much either.
+        offset = np. nanpercentile(lc.flux.value, 10) - np.nanmedian(lc_sap.flux.value) - (np.nanmedian(lc.flux.value) - np. nanpercentile(lc.flux.value, 10)) * 3
+
+    lc_sap.label += f" {sap_col} + {offset:.0f}"
+
     ax = LightCurveCollection([lc, lc_sap]).plot(ax=ax, offset=offset, **kwargs)
     ax.set_title(f"{lc.label}, sector {lc.sector} - flux vs {sap_col}")
     return ax
