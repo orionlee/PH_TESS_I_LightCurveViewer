@@ -252,7 +252,8 @@ def beep():
     """Emits a beep sound. It works only in IPython / Jupyter environment only"""
     # a beep to remind the users that the data has been downloaded
     from IPython.display import display, Audio
-    display(Audio(url='https://upload.wikimedia.org/wikipedia/commons/f/fb/NEC_PC-9801VX_ITF_beep_sound.ogg', autoplay=True, embed=True))
+    display(Audio(url='https://upload.wikimedia.org/wikipedia/commons/f/fb/NEC_PC-9801VX_ITF_beep_sound.ogg',
+                  autoplay=True, embed=True, element_id="beep"))
 
 
 def _normalize_to_percent_quiet(lc):
