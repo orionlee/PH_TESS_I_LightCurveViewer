@@ -251,7 +251,24 @@ def get_tic_meta_in_html(lc, download_dir=None):
 def beep():
     """Emits a beep sound. It works only in IPython / Jupyter environment only"""
     # a beep to remind the users that the data has been downloaded
-    from IPython.display import display, Audio
+    from IPython.display import display, Audio, HTML
+    # css tweak to hide beep
+    display(HTML("""<script>
+function tweakCSS() {
+  if (document.getElementById("hide-beep-css")) {
+      return;
+  }
+  document.head.insertAdjacentHTML('beforeend', `<style id="hide-beep-css" type="text/css">
+  #beep { /* hide the audio control for the beep, generated from tplt.beep() */
+    width: 1px;
+    height: 1px;
+  }
+</style>`);
+}
+tweakCSS();
+</script>
+"""))
+    # the actual beep
     display(Audio(url='https://upload.wikimedia.org/wikipedia/commons/f/fb/NEC_PC-9801VX_ITF_beep_sound.ogg',
                   autoplay=True, embed=True, element_id="beep"))
 
