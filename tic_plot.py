@@ -23,7 +23,7 @@ from astroquery.mast import Observations
 
 from IPython.core.display import display, HTML
 
-from lightkurve import LightCurveCollection
+from lightkurve import LightCurveCollection, LightkurveWarning
 from lightkurve.utils import TessQualityFlags
 from lightkurve_ext import of_sector, of_sectors
 import lightkurve_ext as lke
@@ -255,11 +255,19 @@ def beep():
     display(Audio(url='https://upload.wikimedia.org/wikipedia/commons/f/fb/NEC_PC-9801VX_ITF_beep_sound.ogg', autoplay=True, embed=True))
 
 
+def _normalize_to_percent_quiet(lc):
+    # Some product are in normalized flux, e.g., as 1, we still want to normalize them to percentage
+    # for consistency
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=LightkurveWarning, message=".*in relative units.*")
+        return lc.normalize(unit='percent')
+
+
 # Plot the flux changes (not flux themselves) to get a sense of the rate of changes, not too helpful yet.
 def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window='30min'):
 
     # possible input arguments
-    lc = lcf.PDCSAP_FLUX.normalize(unit='percent')
+    lc = _normalize_to_percent_quiet(lcf)
 
     # Basic scatter of the observation
 #    ax = lc.scatter(ax=ax)
@@ -372,7 +380,7 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='flux', xmin=None, xmax=None, t0=None,
     if lcf is _cache_plot_n_annotate_lcf['lcf'] and flux_col == _cache_plot_n_annotate_lcf['flux_col']:
         lc = _cache_plot_n_annotate_lcf['lc']
     else:
-        lc = _to_lc_with_flux(lcf, flux_col).normalize(unit='percent')
+        lc = _normalize_to_percent_quiet(_to_lc_with_flux(lcf, flux_col))
         _cache_plot_n_annotate_lcf['lcf'] = lcf
         _cache_plot_n_annotate_lcf['flux_col'] = flux_col
         _cache_plot_n_annotate_lcf['lc'] = lc
@@ -564,7 +572,7 @@ def plot_all(lcf_coll, flux_col = 'flux', moving_avg_window=None, lc_tweak_fn=No
         lcf = lcf_coll[i]
         lc = _to_lc_with_flux(lcf, flux_col)
 
-        lc = lc.normalize(unit='percent')
+        lc = _normalize_to_percent_quiet(lc)
         if lc_tweak_fn is not None:
             lc = lc_tweak_fn(lc)
 
@@ -934,7 +942,7 @@ def scatter_centroids(lcf, fig=None, highlight_time_range=None, time_range=None,
     if fig is None:
         fig = plt.figure(figsize=(12,12))
 
-    lc = lcf.normalize(unit='percent')
+    lc = _normalize_to_percent_quiet(lcf)
     sector = lcf.meta.get('SECTOR')
 
     if time_range is not None:
@@ -1000,7 +1008,7 @@ def animate_centroids(lcf, fig=None, frames=None, num_obs_per_frame=240, interva
     # Zoom to a particular time range if specified
     if time_range is not None:
         # use pandas to zoom to a particular time_range
-        df = lc.normalize(unit='percent').to_pandas(columns=['time', 'flux', 'centroid_row', 'centroid_col'])
+        df = _normalize_to_percent_quiet(lc).to_pandas(columns=['time', 'flux', 'centroid_row', 'centroid_col'])
         df = df[(df.time >= time_range[0]) & (df.time <= time_range[1])]
         if (len(df) < 1):
             raise Exception(f'Zoomed lightcurve has no observation. time_range={time_range}')
