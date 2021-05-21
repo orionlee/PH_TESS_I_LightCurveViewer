@@ -18,6 +18,7 @@ import pandas as pd
 
 from astropy.io import fits
 from astropy import units as u
+from astroquery.exceptions import NoResultsWarning
 from astroquery.mast import Observations
 
 from IPython.core.display import display, HTML
@@ -64,11 +65,11 @@ def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None
     # Note: for TESS, tic_id (the number without TIC) is what an exact match works
     # Kepler / K2 ids will need some additional processing for exact match to work.
     exact_target_name = tic_id
-    obs_wanted = Observations.query_criteria(target_name=exact_target_name, dataproduct_type="timeseries", obs_collection="TESS")
-    data_products = Observations.get_product_list(obs_wanted)
-    if len(data_products) < 1:
-        warnings.warn(f"No products found in MAST for target_name: {exact_target_name}")
-    return Observations.filter_products(data_products, productSubGroupDescription=productSubGroupDescription)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*No products to download.*")
+        obs_wanted = Observations.query_criteria(target_name=exact_target_name, dataproduct_type="timeseries", obs_collection="TESS")
+        data_products = Observations.get_product_list(obs_wanted)
+        return Observations.filter_products(data_products, productSubGroupDescription=productSubGroupDescription)
 
 
 @cached
@@ -180,16 +181,22 @@ def get_tic_meta_in_html(lc, download_dir=None):
     m = lc.meta
     tic_id = str(m.get("TICID"))
 
+    def safe_m_get(key, default_val):
+        # in some meta, the key exists but the value is None
+        # this helper handles it
+        res = m.get(key, default_val)
+        return res if res is not None else default_val
+
     html = f"""
-<h2>TIC {tic_id} metadata</h2>
+<h3>TIC {tic_id}</h3>
 """
-    html += link("ExoFOP", f"https://exofop.ipac.caltech.edu/tess/target.php?id={tic_id}")
+    html += "&emsp;" + link("ExoFOP", f"https://exofop.ipac.caltech.edu/tess/target.php?id={tic_id}")
     html += "\n&emsp;|&emsp;"
     html += link("PHT Talk", f"https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/search?query={tic_id}") + "<br>\n"
     html += "<table>\n"
-    html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", f'{m.get("RADIUS"):.3f}')
-    html += prop("Magnitude (TESS)", f'{m.get("TESSMAG"):.2f}')
-    html += prop("T_eff (in K)", m.get("TEFF"))
+    html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", f'{safe_m_get("RADIUS", 0):.3f}')
+    html += prop("Magnitude (TESS)", f'{safe_m_get("TESSMAG", 0):.2f}')
+    html += prop("T_eff (in K)", safe_m_get("TEFF", 0))
     html += "</table>\n"
 
     # TODO: For TCE, query MAST download / parse results (the _dvr.xml), tho show
