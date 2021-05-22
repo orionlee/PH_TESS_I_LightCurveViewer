@@ -645,6 +645,10 @@ def plot_all(lcf_coll, flux_col = 'flux', moving_avg_window=None, lc_tweak_fn=No
             ax.xaxis.set_label_text('Time - relative')
             # restore original time after plot is done
             lc.time = lc.time_orig
+        else:
+            t_start = lc.meta.get("TSTART")
+            if t_start is not None:
+                ax.xaxis.set_label_text(ax.xaxis.label.get_text() + f", TSTART={t_start:0.2f}")
 
         # to avoid occasional formating in scientific notations
         ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
