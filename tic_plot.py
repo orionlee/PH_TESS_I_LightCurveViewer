@@ -467,7 +467,11 @@ def plot_n_annotate_lcf(lcf, ax, flux_col='flux', xmin=None, xmax=None, t0=None,
             if flux_t0 is not None:
                 flux_begin = max(flux_mavg_near(df, t_start), flux_mavg_near(df, t_end))
                 flux_dip = flux_begin - flux_t0
-                title_text += f" \nflux@$t_0$ ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{transit_duration_msg}"
+                r_obj_msg = ""
+                r_obj = lke.estimate_object_radius_in_r_jupiter(lc, flux_dip / 100)  # convert flux_dip in percent to fractions
+                if r_obj is not None:
+                    r_obj_msg = f", R_p ~= {r_obj:0.2f} R_j"
+                title_text += f" \nflux@$t_0$ ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{r_obj_msg}{transit_duration_msg}"
         ax.set_title(title_text, {'fontsize': title_fontsize})
     ax.legend()
     ax.xaxis.label.set_size(18)

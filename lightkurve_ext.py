@@ -90,6 +90,18 @@ def of_tic(lcf_coll, tic):
     return lk.LightCurveCollection(filtered)
 
 
+def estimate_object_radius_in_r_jupiter(lc, depth):
+    """Return a back of envelope estimate of a companion object's radius."""
+    R_JUPITER_IN_R_SUN = 71492 / 695700
+
+    r_star = lc.meta.get("RADIUS")  # assumed to be in R_sun
+    if r_star is None:
+        return None  # cannot estimate
+    r_obj = math.sqrt(r_star * r_star * depth)
+    r_obj_in_r_jupiter = r_obj / R_JUPITER_IN_R_SUN
+    return r_obj_in_r_jupiter
+
+
 def download_lightcurve(target, mission=('Kepler', 'K2', 'TESS'),
                              exptime='short',
                              author='SPOC',
