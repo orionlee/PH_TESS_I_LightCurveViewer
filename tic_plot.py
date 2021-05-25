@@ -941,6 +941,10 @@ def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, tt_specs_default
 #         ax = plt.figure(figsize=(30, 10)).gca()
         ax = plt.figure(figsize=(15, 5)).gca()
     ax = lc.scatter(ax=ax, color='black', label=f"{lc.label} s.{getattr(lc, 'sector', 'N/A')}")
+    ax.xaxis.set_minor_locator(AutoMinorLocator())
+    ax.tick_params(axis='x', which='minor', length=4)
+    ax.yaxis.set_minor_locator(AutoMinorLocator())
+    ax.tick_params(axis='y', which='minor', length=4)
 
     if axvline_kwargs_specs is None:
         axvline_kwargs_specs = [dict(label="dip", linestyle='--', color="red")]
