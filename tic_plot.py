@@ -500,33 +500,17 @@ def plot_transit(lcf, ax, t0, duration, surround_time, **kwargs):
                                , **kwargs
                                )
 
-def plot_transits(lcf_coll, transit_specs, default_spec = None, ax_fn=lambda: lcf_fig().gca(), **kwargs):
+def plot_transits(lcf_coll, transit_specs, ax_fn=lambda: lcf_fig().gca(), **kwargs):
     """Helper to plot transits zoomed-in."""
-    defaults = default_spec
-    if defaults is None:
-        defaults = dict()
-    # now apply hardcoded defaults if not specified
-    defaults.setdefault('duration_hr', 0)
-    defaults.setdefault('period', 0)
-    defaults.setdefault('steps_to_show', [0])
-    defaults.setdefault('surround_time', 1.5)
-
     axs = []
     for spec in transit_specs:
-        for lcf in of_sectors(lcf_coll, spec['sector']): # in case we have multiple lcf per sector
+        for lcf in of_sectors(lcf_coll, spec['sector']):  # in case we have multiple lcf per sector
             #  process the supplied spec and apply defaults
-            t0 = spec.get('t0', defaults.get('t0', None))
-            if t0 is None: # case t0 is specified in relative time
-                t0_relative = spec.get('t0_relative', defaults.get('t0_relative', None))
-                if t0_relative is None:
-                    raise ValueError('plot_transits: in a transit spec, `t0` or `t0_relative` must be specified')
-                t_start = lcf.meta.get('TSTART')
-                t0 = t0_relative + t_start
-
-            duration = spec.get('duration_hr', defaults['duration_hr']) / 24
-            period = spec.get('period', defaults['period'])
-            steps_to_show = spec.get('steps_to_show', defaults['steps_to_show'])
-            surround_time = spec.get('surround_time', defaults['surround_time'])
+            t0 = spec["epoch"]
+            duration = spec["duration_hr"] / 24
+            period = spec["period"]
+            steps_to_show = spec["steps_to_show"]
+            surround_time = spec.get("surround_time", 1.5) # a hardcoded last resort default
 
             # TODO: warn if period is 0, but steps to show is not [0]
 
@@ -805,13 +789,12 @@ def _update_plot_transit_interactive(figsize, flux_col, t0, duration_hr, period,
 plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
 
 # transit_specs for calling plot_transits()
-transit_specs = [
-    dict(sector={lcf.meta.get('SECTOR')}
-         , t0 = {t0}
-         , duration_hr = {duration_hr}, period = {period}
-         , steps_to_show = [{step}]),
-]
-transit_defaults = dict(surround_time = {surround_time})
+transit_specs = TransitTimeSpecList(
+    dict(epoch={t0}, period={period}, duration_hr={duration_hr},
+         sector={lcf.meta.get('SECTOR')}, steps_to_show=[{step}], label="dip"
+        ),
+    defaults=dict(surround_time={surround_time})
+    )
 """)
 
     ymin_to_use = ymin if ymin >= 0 else None
@@ -935,7 +918,46 @@ def plot_flux_sap_flux_comparison(lc, sap_col='sap_flux', ax=None, offset=None, 
     return ax
 
 
-def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, tt_specs_defaults=None, ax=None):
+class TransitTimeSpec(dict):
+    def __init__(self, epoch: float=None, period: float=None, duration_hr: float=None,
+                 sector: int=None, steps_to_show: list=None, surround_time: float=None, label: str=None,
+                 defaults: TransitTimeSpec=None):
+        # core parameters
+        self["epoch"] = epoch
+        self["period"] = period
+        self["duration_hr"] = duration_hr
+
+        # used for plotting
+        self["sector"] = sector
+        self["steps_to_show"] = steps_to_show
+        self["surround_time"] = surround_time
+        self["label"] = label
+
+        if defaults is None:
+            defaults = {}
+        self._defaults = defaults  # put it as a custom attribute
+
+    def __getitem__(self, key):
+        res = super().get(key)
+        if res is None:
+            res = self._defaults.get(key)
+        return res
+
+    def get(self, key, default=None):
+        res = self.__getitem__(key)
+        if res is None:
+            res = default
+        return res
+
+
+class TransitTimeSpecList(list):
+    def __init__(self, *tt_spec_dict_list, defaults={}):
+        self._defaults = TransitTimeSpec(**defaults)
+        for tt_spec_dict in tt_spec_dict_list:
+            self.append(TransitTimeSpec(**tt_spec_dict, defaults=self._defaults))
+
+
+def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, ax=None):
     """Plot the given LC, and mark the transit times based on `tt_specs`."""
     if ax is None:
 #         ax = plt.figure(figsize=(30, 10)).gca()
@@ -949,7 +971,12 @@ def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, tt_specs_default
     if axvline_kwargs_specs is None:
         axvline_kwargs_specs = [dict(label="dip", linestyle='--', color="red")]
 
-    tt_list = [lke.get_transit_times_in_lc(lc, a_spec['t0'], a_spec.get('period', tt_specs_defaults['period'])) for a_spec in tt_specs]
+    # use the label in tt_specs if not specified in axvline_kwargs
+    for (a_spec, an_axvline_kwargs, idx_0_based) in zip(tt_specs, axvline_kwargs_specs, range(len(axvline_kwargs_specs))):
+        if an_axvline_kwargs.get("label") is None:
+            an_axvline_kwargs["label"] = a_spec.get("label", f"dip {idx_0_based + 1}")
+
+    tt_list = [lke.get_transit_times_in_lc(lc, a_spec["epoch"], a_spec["period"]) for a_spec in tt_specs]
 
     # a hack: mark the first line for each tt set, then set legend
     # so that each tt set will have 1 legend
