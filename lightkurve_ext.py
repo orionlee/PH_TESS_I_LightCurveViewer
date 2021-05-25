@@ -9,6 +9,7 @@ import json
 import warnings
 from collections import OrderedDict
 
+import astropy.units as u
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 
@@ -100,6 +101,44 @@ def estimate_object_radius_in_r_jupiter(lc, depth):
     r_obj = math.sqrt(r_star * r_star * depth)
     r_obj_in_r_jupiter = r_obj / R_JUPITER_IN_R_SUN
     return r_obj_in_r_jupiter
+
+
+def download_lighcurves_of_tic_with_priority(tic, download_dir=None):
+    """For a given TIC, download lightcurves across all sectors.
+       For each sector, download one based on pre-set priority.
+       """
+
+    sr_unfiltered = lk.search_lightcurve(f"TIC{tic}", mission='TESS')
+    if len(sr_unfiltered) < 1:
+        print(f"WARNING: no result found for TIC {tic}")
+        return None, None, None
+
+    sr_unfiltered = sr_unfiltered[sr_unfiltered.target_name == str(tic)]  # in case we get some other nearby TICs
+
+    # for each sector, filter based on the given priority.
+    # - note: prefer QLP over TESS-SPOC because QLP is detrended, with multiple apertures within 1 file
+    sr = filter_by_priority(sr_unfiltered,
+                            author_priority=['SPOC', 'QLP', 'TESS-SPOC'],
+                            exptime_priority=['short', 'long', 'fast'])
+    num_filtered = len(sr_unfiltered) - len(sr)
+    num_fast = len(sr_unfiltered[sr_unfiltered.exptime < 60 * u.second])
+    if num_filtered > 0:
+        msg = f"{num_filtered} rows filtered"
+        if num_fast > 0:
+            msg = msg + f" ; {num_fast} fast (20secs) products."
+        print(msg)
+    from IPython.display import display, HTML, Audio
+    display(sr)
+
+    lcf_coll = sr.download_all(download_dir=download_dir)
+
+    if lcf_coll is not None and len(lcf_coll) > 0:
+        print(f"TIC {tic} \t#sectors: {len(lcf_coll)} ; {lcf_coll[0].meta['SECTOR']} - {lcf_coll[-1].meta['SECTOR']}")
+        print(f"   sector {lcf_coll[-1].meta['SECTOR']}: \tcamera = {lcf_coll[-1].meta['CAMERA']} ; ccd = {lcf_coll[-1].meta['CCD']}")
+    else:
+        print(f"TIC {tic}: no data")
+
+    return lcf_coll, sr, sr_unfiltered
 
 
 def download_lightcurve(target, mission=('Kepler', 'K2', 'TESS'),
