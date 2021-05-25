@@ -817,26 +817,26 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col='flux'):
     widget_out2 = widgets.Output()
 
     t0 = widgets.FloatText(value = -1
-                           , step = 0.001
+                           , step = 0.01
                            , description = r'$t_{epoch}$, -1 for unspecified'
                            , style= desc_style)
     duration_hr = widgets.FloatText(value=1
-                                   , step = 0.001
+                                   , step = 0.01
                                   , description = 'duration (hours)'
                                   , style= desc_style)
-    period = widgets.FloatText(value=1
-                              , step = 0.001
+    period = widgets.FloatText(value=999
+                              , step = 0.01
                               , description = 'period (days)'
                               , style= desc_style)
     step = widgets.IntText(value=0
                                 , description = r'cycle (0 for transit at $t_{epoch}$)'
                                 , style= desc_style)
-    surround_time = widgets.FloatText(value=1
+    surround_time = widgets.FloatText(value=7
                                       , step = 0.5
                                       , description = 'padding (days)'
                                       , style= desc_style)
-    moving_avg_window = widgets.Dropdown(options = [('None', None), ('10 min', '20min'), ('20 min', '20min'), ('30 min', '30min'), ('1 hour', '1h'), ('2 hours', '2h'), ('4 hours', '4h')]
-                                         , value = '30min'
+    moving_avg_window = widgets.Dropdown(options = [('None', None), ('10 min', '10min'), ('20 min', '20min'), ('30 min', '30min'), ('1 hour', '1h'), ('2 hours', '2h'), ('4 hours', '4h')]
+                                         , value = '20min'
                                          , description = 'moving average window'
                                          , style = desc_style)
     ymin = widgets.FloatText(value=-1
