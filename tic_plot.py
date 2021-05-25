@@ -4,6 +4,10 @@ Helpers to plot the lightcurve of a TESS subject, given a
 LightCurveCollection
 """
 
+from __future__ import annotations
+# ^^^ so that TransitTimeSpec can be referenced in type annotation in the class itself
+# see: https://stackoverflow.com/a/49872353
+
 import warnings
 from pathlib import Path
 import re
