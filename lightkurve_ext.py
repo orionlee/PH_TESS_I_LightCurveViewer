@@ -118,10 +118,17 @@ def download_lighcurves_of_tic_with_priority(tic, download_dir=None):
         sr_unfiltered.target_name == str(tic)
     ]  # in case we get some other nearby TICs
 
+    # filter out HLSPs not supported by lightkurve yet
+    sr = sr_unfiltered[sr_unfiltered.author != "DIAMANTE"]
+    if len(sr) < len(sr_unfiltered):
+        print(
+            "Note: there are products not supported by Lightkurve, which are excluded from download."
+        )
+
     # for each sector, filter based on the given priority.
     # - note: prefer QLP over TESS-SPOC because QLP is detrended, with multiple apertures within 1 file
     sr = filter_by_priority(
-        sr_unfiltered,
+        sr,
         author_priority=["SPOC", "QLP", "TESS-SPOC"],
         exptime_priority=["short", "long", "fast"],
     )
