@@ -1234,8 +1234,23 @@ class TransitTimeSpecList(list):
             self.append(TransitTimeSpec(**tt_spec_dict, defaults=self._defaults))
 
 
-def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, ax=None):
+def mark_transit_times(
+    lc, tt_specs, axvline_kwargs_specs=None, skip_no_transit_plot=False, ax=None
+):
     """Plot the given LC, and mark the transit times based on `tt_specs`."""
+    tt_list = [
+        lke.get_transit_times_in_lc(lc, a_spec["epoch"], a_spec["period"])
+        for a_spec in tt_specs
+    ]
+
+    # skip if no transit found
+    # (tt_list is a list of list, so it needs to be flattend for counting)
+    if skip_no_transit_plot and len(np.array(tt_list).flatten()) < 1:
+        print(f"{lc._repr_simple_()} is skipped - no matching transits.")
+        return None, None
+
+    # base plot
+    #
     if ax is None:
         #         ax = plt.figure(figsize=(30, 10)).gca()
         ax = plt.figure(figsize=(15, 5)).gca()
@@ -1247,6 +1262,8 @@ def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, ax=None):
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.tick_params(axis="y", which="minor", length=4)
 
+    # pre-process axvline_kwargs
+    #
     if axvline_kwargs_specs is None:
         axvline_kwargs_specs = [dict(label="dip", linestyle="--", color="red")]
 
@@ -1257,11 +1274,8 @@ def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, ax=None):
         if an_axvline_kwargs.get("label") is None:
             an_axvline_kwargs["label"] = a_spec.get("label", f"dip {idx_0_based + 1}")
 
-    tt_list = [
-        lke.get_transit_times_in_lc(lc, a_spec["epoch"], a_spec["period"])
-        for a_spec in tt_specs
-    ]
-
+    # Mark transit times on the base plot
+    #
     # a hack: mark the first line for each tt set, then set legend
     # so that each tt set will have 1 legend
     # if we simply set legend at the end, each dip will have its own legend!
