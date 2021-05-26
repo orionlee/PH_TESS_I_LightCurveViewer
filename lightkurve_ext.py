@@ -22,9 +22,10 @@ log = logging.getLogger(__name__)
 
 def of_sector(lcf_coll, sectorNum):
     for lcf in lcf_coll:
-        if lcf.meta['SECTOR'] == sectorNum:
+        if lcf.meta["SECTOR"] == sectorNum:
             return lcf
     return None
+
 
 def of_sectors(*args):
     lcf_coll = args[0]
@@ -52,7 +53,7 @@ def of_sector_n_around(lcf_coll, sector_num, num_additions=8):
 
 def of_2min_cadences(lcf_coll):
     """Return LightCurveFiles of short, typically 2-minute cadence, only.
-       Primary use case is to filter out 20-second files.
+    Primary use case is to filter out 20-second files.
     """
     filtered = [lcf for lcf in lcf_coll if "short" == estimate_cadence_type(lcf)]
     return lk.LightCurveCollection(filtered)
@@ -77,7 +78,7 @@ def map_cadence_type(cadence_in_days):
 
 def estimate_cadence_type(lc):
     """Estimate the type of cadence to be one of long, short, or fast.
-       The definition is the same as ``exptime`` in `lightkurve.search_lightcurve()`.
+    The definition is the same as ``exptime`` in `lightkurve.search_lightcurve()`.
     """
     return map_cadence_type(estimate_cadence(lc))
 
@@ -87,7 +88,7 @@ def of_tic(lcf_coll, tic):
 
     Useful in case the default MAST result returned nearby targets.
     """
-    filtered = [lcf for lcf in lcf_coll if lcf.meta.get('TICID', None) == tic]
+    filtered = [lcf for lcf in lcf_coll if lcf.meta.get("TICID", None) == tic]
     return lk.LightCurveCollection(filtered)
 
 
@@ -105,21 +106,25 @@ def estimate_object_radius_in_r_jupiter(lc, depth):
 
 def download_lighcurves_of_tic_with_priority(tic, download_dir=None):
     """For a given TIC, download lightcurves across all sectors.
-       For each sector, download one based on pre-set priority.
-       """
+    For each sector, download one based on pre-set priority.
+    """
 
-    sr_unfiltered = lk.search_lightcurve(f"TIC{tic}", mission='TESS')
+    sr_unfiltered = lk.search_lightcurve(f"TIC{tic}", mission="TESS")
     if len(sr_unfiltered) < 1:
         print(f"WARNING: no result found for TIC {tic}")
         return None, None, None
 
-    sr_unfiltered = sr_unfiltered[sr_unfiltered.target_name == str(tic)]  # in case we get some other nearby TICs
+    sr_unfiltered = sr_unfiltered[
+        sr_unfiltered.target_name == str(tic)
+    ]  # in case we get some other nearby TICs
 
     # for each sector, filter based on the given priority.
     # - note: prefer QLP over TESS-SPOC because QLP is detrended, with multiple apertures within 1 file
-    sr = filter_by_priority(sr_unfiltered,
-                            author_priority=['SPOC', 'QLP', 'TESS-SPOC'],
-                            exptime_priority=['short', 'long', 'fast'])
+    sr = filter_by_priority(
+        sr_unfiltered,
+        author_priority=["SPOC", "QLP", "TESS-SPOC"],
+        exptime_priority=["short", "long", "fast"],
+    )
     num_filtered = len(sr_unfiltered) - len(sr)
     num_fast = len(sr_unfiltered[sr_unfiltered.exptime < 60 * u.second])
     if num_filtered > 0:
@@ -128,25 +133,34 @@ def download_lighcurves_of_tic_with_priority(tic, download_dir=None):
             msg = msg + f" ; {num_fast} fast (20secs) products."
         print(msg)
     from IPython.display import display, HTML, Audio
+
     display(sr)
 
     lcf_coll = sr.download_all(download_dir=download_dir)
 
     if lcf_coll is not None and len(lcf_coll) > 0:
-        print(f"TIC {tic} \t#sectors: {len(lcf_coll)} ; {lcf_coll[0].meta['SECTOR']} - {lcf_coll[-1].meta['SECTOR']}")
-        print(f"   sector {lcf_coll[-1].meta['SECTOR']}: \tcamera = {lcf_coll[-1].meta['CAMERA']} ; ccd = {lcf_coll[-1].meta['CCD']}")
+        print(
+            f"TIC {tic} \t#sectors: {len(lcf_coll)} ; {lcf_coll[0].meta['SECTOR']} - {lcf_coll[-1].meta['SECTOR']}"
+        )
+        print(
+            f"   sector {lcf_coll[-1].meta['SECTOR']}: \tcamera = {lcf_coll[-1].meta['CAMERA']} ; ccd = {lcf_coll[-1].meta['CCD']}"
+        )
     else:
         print(f"TIC {tic}: no data")
 
     return lcf_coll, sr, sr_unfiltered
 
 
-def download_lightcurve(target, mission=('Kepler', 'K2', 'TESS'),
-                             exptime='short',
-                             author='SPOC',
-                             download_dir=None, use_cache='yes',
-                             display_search_result=True):
-    '''
+def download_lightcurve(
+    target,
+    mission=("Kepler", "K2", "TESS"),
+    exptime="short",
+    author="SPOC",
+    download_dir=None,
+    use_cache="yes",
+    display_search_result=True,
+):
+    """
     Wraps `lightkurve.search_lightcurve()` and the
     subsequent `lightkurve.search.SearchResult.download_all()` calls,
     with the option of caching, so that for a given search,
@@ -167,41 +181,55 @@ def download_lightcurve(target, mission=('Kepler', 'K2', 'TESS'),
     collection : `~lightkurve.collections.Collection` object
         Returns a `~lightkurve.collections.LightCurveCollection`
         containing all lightcurve files that match the criteria
-    '''
+    """
 
-    if use_cache == 'no':
-        return _search_and_cache(target, mission, exptime, author, download_dir, display_search_result)
-    if use_cache == 'yes':
+    if use_cache == "no":
+        return _search_and_cache(
+            target, mission, exptime, author, download_dir, display_search_result
+        )
+    if use_cache == "yes":
         result_file_ids = _load_from_cache_if_any(target, mission, download_dir)
         if result_file_ids is not None:
-            result_files = list(map(lambda e: f"{download_dir}/mastDownload/{e}",
-                                    result_file_ids))
+            result_files = list(
+                map(lambda e: f"{download_dir}/mastDownload/{e}", result_file_ids)
+            )
             return lk.collections.LightCurveCollection(
-                list(map(lambda f: lk.read(f), result_files)))
+                list(map(lambda f: lk.read(f), result_files))
+            )
         # else
-        return _search_and_cache(target, mission, exptime, author, download_dir, display_search_result)
+        return _search_and_cache(
+            target, mission, exptime, author, download_dir, display_search_result
+        )
     # else
-    raise ValueError('invalid value for argument use_cache')
+    raise ValueError("invalid value for argument use_cache")
+
 
 # Private helpers for `download_lightcurvefiles`
 
 
-def _search_and_cache(target, mission, exptime, author, download_dir, display_search_result):
-    search_res = lk.search_lightcurve(target=target, mission=mission, exptime=exptime, author=author)
+def _search_and_cache(
+    target, mission, exptime, author, download_dir, display_search_result
+):
+    search_res = lk.search_lightcurve(
+        target=target, mission=mission, exptime=exptime, author=author
+    )
     if len(search_res) < 1:
         return None
     if display_search_result:
         _display_search_result(search_res)
     _cache_search_result_product_identifiers(search_res, download_dir, target, mission)
-    return search_res.download_all(quality_bitmask='default', download_dir=download_dir)
+    return search_res.download_all(quality_bitmask="default", download_dir=download_dir)
 
 
 def _display_search_result(search_res):
     from IPython.core.display import display
+
     tab = search_res.table
     # move useful columns to the front
-    preferred_cols = ['proposal_id', 'target_name', 'sequence_number', 't_exptime']
-    colnames_reordered = preferred_cols + [c for c in tab.colnames if c not in preferred_cols]
+    preferred_cols = ["proposal_id", "target_name", "sequence_number", "t_exptime"]
+    colnames_reordered = preferred_cols + [
+        c for c in tab.colnames if c not in preferred_cols
+    ]
     display(tab[colnames_reordered])
 
 
@@ -216,6 +244,7 @@ def _cache_search_result_product_identifiers(search_res, download_dir, target, m
     _save_search_result_product_identifiers(identifiers, download_dir, key)
     return key
 
+
 def _get_search_result_cache_dir(download_dir):
     # TODO: handle download_dir is None (defaults)
     cache_dir = f"{download_dir}/mastQueries"
@@ -228,50 +257,68 @@ def _get_search_result_cache_dir(download_dir):
         os.mkdir(cache_dir)
     # downloads locally if OS error occurs
     except OSError:
-        log.warning('Warning: unable to create {}. '
-                    'Cache MAST query results to the current '
-                    'working directory instead.'.format(cache_dir))
-        cache_dir = '.'
+        log.warning(
+            "Warning: unable to create {}. "
+            "Cache MAST query results to the current "
+            "working directory instead.".format(cache_dir)
+        )
+        cache_dir = "."
     return cache_dir
 
+
 def _get_cache_key(target, mission):
-    #TODO: handle cases the generated key is not a valid filename
+    # TODO: handle cases the generated key is not a valid filename
     return f"{target}_{mission}_ids"
 
 
 def _to_product_identifiers(search_res):
-    '''
+    """
     Returns
     -------
     A list of str, constructed from `(obs_collection, obs_id, productFilename)` tuples, that can
     identify cached lightcurve file,s if any.
-    '''
-    return list(map(
-        lambda e: e['obs_collection'] +  '/' + e['obs_id'] + '/' + e['productFilename'],
-        search_res.table))
+    """
+    return list(
+        map(
+            lambda e: e["obs_collection"]
+            + "/"
+            + e["obs_id"]
+            + "/"
+            + e["productFilename"],
+            search_res.table,
+        )
+    )
+
 
 def _save_search_result_product_identifiers(identifiers, download_dir, key):
     resolved_cache_dir = _get_search_result_cache_dir(download_dir)
     filepath = f"{resolved_cache_dir}/{key}.json"
-    fp = open(filepath, 'w+')
+    fp = open(filepath, "w+")
     json.dump(identifiers, fp)
     return filepath
+
 
 def _load_search_result_product_identifiers(download_dir, key):
     resolved_cache_dir = _get_search_result_cache_dir(download_dir)
     filepath = f"{resolved_cache_dir}/{key}.json"
     try:
-        fp = open(filepath, 'r')
+        fp = open(filepath, "r")
         return json.load(fp)
     except OSError as err:
         # errno == 2: file not found, typical case of cache miss
         # errno != 2: unexpected error, log a warning
         if err.errno != 2:
-            log.warning('Unexpected OSError in retrieving cached search result: {}'.format(err))
+            log.warning(
+                "Unexpected OSError in retrieving cached search result: {}".format(err)
+            )
         return None
 
 
-def filter_by_priority(sr, author_priority=['SPOC', 'TESS-SPOC', 'QLP'], exptime_priority=['short', 'long', 'fast']):
+def filter_by_priority(
+    sr,
+    author_priority=["SPOC", "TESS-SPOC", "QLP"],
+    exptime_priority=["short", "long", "fast"],
+):
     author_sort_keys = {}
     for idx, author in enumerate(author_priority):
         author_sort_keys[author] = idx + 1
@@ -289,7 +336,9 @@ def filter_by_priority(sr, author_priority=['SPOC', 'TESS-SPOC', 'QLP'], exptime
 
         # secondary priority
         exptime_default = max(dict(exptime_sort_keys).values()) + 1
-        exptime_key = exptime_sort_keys.get(map_cadence_type(row["exptime"] / 60 / 60 / 24), exptime_default)
+        exptime_key = exptime_sort_keys.get(
+            map_cadence_type(row["exptime"] / 60 / 60 / 24), exptime_default
+        )
         return author_key + exptime_key
 
     sr.table["_filter_priority"] = [calc_filter_priority(r) for r in sr.table]
@@ -316,19 +365,24 @@ def filter_by_priority(sr, author_priority=['SPOC', 'TESS-SPOC', 'QLP'], exptime
 
 # Download TPF asynchronously
 
+
 def search_and_download_tpf(*args, **kwargs):
     """Search and Download a TPFs.
 
-       All parameters are passed on ``search_targetpixelfile()``,
-       with the exception of ``download_dir`` and ``quality_bitmask``,
-       which are passed to ``download_all()`
-       """
+    All parameters are passed on ``search_targetpixelfile()``,
+    with the exception of ``download_dir`` and ``quality_bitmask``,
+    which are passed to ``download_all()`
+    """
 
     # extract download_all() parameters
     download_dir = kwargs.pop("download_dir", None)
     quality_bitmask = kwargs.pop("quality_bitmask", None)
-    sr = lk.search_targetpixelfile(*args, **kwargs)  # pass the rest of the argument to search_targetpixelfile
-    tpf_coll = sr.download_all(download_dir=download_dir, quality_bitmask=quality_bitmask)
+    sr = lk.search_targetpixelfile(
+        *args, **kwargs
+    )  # pass the rest of the argument to search_targetpixelfile
+    tpf_coll = sr.download_all(
+        download_dir=download_dir, quality_bitmask=quality_bitmask
+    )
     return tpf_coll, sr
 
 
@@ -336,7 +390,9 @@ def create_download_tpf_task(*args, **kwargs):
     # - still somewhat blocking in jupyter: the cell completes, but running in subsequent cells are stalled)
     # - try to use specific event loop to see if it helps, so far not promising.
     #    https://stackoverflow.com/questions/47518874/how-do-i-run-python-asyncio-code-in-a-jupyter-notebook
-    return asyncio_compat.create_task(asyncio_compat.to_thread(search_and_download_tpf, *args, **kwargs))
+    return asyncio_compat.create_task(
+        asyncio_compat.to_thread(search_and_download_tpf, *args, **kwargs)
+    )
 
 
 #
@@ -345,9 +401,9 @@ def create_download_tpf_task(*args, **kwargs):
 def get_bkg_lightcurve(lcf):
     """Returns the background flux, i.e., ``SAP_BKG`` in the file"""
     lc = lcf.copy()
-    lc['flux'] = lc['sap_bkg']
-    lc['flux_err'] = lc['sap_bkg_err']
-    lc.label = lc.label + ' BKG'
+    lc["flux"] = lc["sap_bkg"]
+    lc["flux_err"] = lc["sap_bkg_err"]
+    lc.label = lc.label + " BKG"
     return lc
 
 
@@ -356,8 +412,8 @@ def create_quality_issues_mask(lc, flags_included=0b0101001010111111):
 
     The default `flags_included` is a TESS default, based on https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags
     """
-    if np.issubdtype(lc['quality'].dtype, np.integer):
-        return np.logical_and(lc.quality & flags_included,  np.isfinite(lc.flux))
+    if np.issubdtype(lc["quality"].dtype, np.integer):
+        return np.logical_and(lc.quality & flags_included, np.isfinite(lc.flux))
     else:
         # quality column is not an integer, probably a non-standard product
         return np.zeros_like(lc.flux, dtype=bool)
@@ -368,7 +424,9 @@ def list_times_w_quality_issues(lc):
     return lc.time[mask], lc.quality[mask]
 
 
-def list_transit_times(t0, period, steps_or_num_transits=range(0, 10), return_string=False):
+def list_transit_times(
+    t0, period, steps_or_num_transits=range(0, 10), return_string=False
+):
     """List the transit times based on the supplied transit parameters"""
     if isinstance(steps_or_num_transits, int):
         steps = range(0, steps_or_num_transits)
@@ -376,9 +434,10 @@ def list_transit_times(t0, period, steps_or_num_transits=range(0, 10), return_st
         steps = steps_or_num_transits
     times = [t0 + period * i for i in steps]
     if return_string:
-        return ','.join(map(str, times))
+        return ",".join(map(str, times))
     else:
         return times
+
 
 def get_segment_times_idx(times, break_tolerance=5):
     """Segment the input array of times into segments due to data gaps. Return the indices of the segments.
@@ -387,7 +446,7 @@ def get_segment_times_idx(times, break_tolerance=5):
 
     The logic is adapted from `LightCurve.flatten`
     """
-    if hasattr(times, 'value'):  # convert astropy Time to raw values if needed
+    if hasattr(times, "value"):  # convert astropy Time to raw values if needed
         times = times.value
     dt = times[1:] - times[0:-1]
     with warnings.catch_warnings():  # Ignore warnings due to NaNs
@@ -397,12 +456,13 @@ def get_segment_times_idx(times, break_tolerance=5):
     high = np.append(cut, len(times))
     return (low, high)
 
+
 def get_segment_times(times, **kwargs):
-    if hasattr(times, 'value'):  # convert astropy Time to raw values if needed
+    if hasattr(times, "value"):  # convert astropy Time to raw values if needed
         times = times.value
     low, high = get_segment_times_idx(times, **kwargs)
     # add a small 1e-10 to end so that the end time is exclusive (follow convention in range)
-    return [(times[l], times[h-1] + 1e-10) for l, h in zip(low, high)]
+    return [(times[l], times[h - 1] + 1e-10) for l, h in zip(low, high)]
 
 
 def get_transit_times_in_range(t0, period, start, end):
@@ -414,7 +474,7 @@ def get_transit_times_in_range(t0, period, start, end):
 def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
     """Get the transit times with observations of the given lightcurve, based on the supplied transit parameters.
 
-       The method will exclude the times where there is no observation due to data gaps.
+    The method will exclude the times where there is no observation due to data gaps.
     """
 
     # break up the times to exclude times in gap
@@ -423,17 +483,16 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
     for start, end in times_list:
         transit_times.extend(get_transit_times_in_range(t0, period, start, end))
     if return_string:
-        return ','.join(map(str, transit_times))
+        return ",".join(map(str, transit_times))
     else:
         return transit_times
-
 
 
 def to_window_length_for_2min_cadence(length_day):
     """Helper for LightCurve.flatten(). Return a `window_length` for the given number of days, assuming the data has 2-minute cadence."""
     res = math.floor(720 * length_day)
     if res % 2 == 0:
-        res += 1 # savgol_filter window length must be odd number
+        res += 1  # savgol_filter window length must be odd number
     return res
 
 
@@ -444,10 +503,10 @@ def flatten_with_spline_normalized(lc, return_trend=False, **kwargs):
     spline = UnivariateSpline(lc.time, lc.flux, **kwargs)
     trend = spline(lc.time)
     detrended = lc.flux - trend
-    detrended_relative = 100 * ((lc.flux / trend) - 1) + 100 # in percentage
+    detrended_relative = 100 * ((lc.flux / trend) - 1) + 100  # in percentage
     lc_flattened = lc.copy()
     lc_flattened.flux = detrended_relative
-    lc_flattened.flux_unit = 'percent'
+    lc_flattened.flux_unit = "percent"
     if not return_trend:
         return lc_flattened
     else:
@@ -464,9 +523,18 @@ if PATCH_LK:
     import matplotlib.gridspec as gridspec
     from lightkurve import MPLSTYLE
     from lightkurve import LightkurveWarning
-    def _plot_pixels(self, ax=None, periodogram=False, aperture_mask=None,
-                    show_flux=False, corrector_func=None, style='lightkurve',
-                    title=None, **kwargs):
+
+    def _plot_pixels(
+        self,
+        ax=None,
+        periodogram=False,
+        aperture_mask=None,
+        show_flux=False,
+        corrector_func=None,
+        style="lightkurve",
+        title=None,
+        **kwargs,
+    ):
         """Show the light curve of each pixel in a single plot.
 
         Note that all values are autoscaled and axis labels are not provided.
@@ -498,29 +566,34 @@ if PATCH_LK:
         kwargs : dict
             e.g. extra parameters to be passed to `lc.to_periodogram`.
         """
-        if style == 'lightkurve' or style is None:
+        if style == "lightkurve" or style is None:
             style = MPLSTYLE
         if title is None:
-            title = f'Target ID: {self.targetid}'
+            title = f"Target ID: {self.targetid}"
         if corrector_func is None:
             corrector_func = lambda x: x.remove_outliers()
         if show_flux:
             cmap = plt.get_cmap()
-            norm = plt.Normalize(vmin=np.nanmin(self.flux[0]),
-                                 vmax=np.nanmax(self.flux[0]))
+            norm = plt.Normalize(
+                vmin=np.nanmin(self.flux[0]), vmax=np.nanmax(self.flux[0])
+            )
         mask = self._parse_aperture_mask(aperture_mask)
 
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=(RuntimeWarning, LightkurveWarning))
+            warnings.simplefilter(
+                "ignore", category=(RuntimeWarning, LightkurveWarning)
+            )
 
             # get an aperture mask for each pixel
-            masks = np.zeros((self.shape[1]*self.shape[2], self.shape[1], self.shape[2]),
-                             dtype='bool')
-            for i in range(self.shape[1]*self.shape[2]):
+            masks = np.zeros(
+                (self.shape[1] * self.shape[2], self.shape[1], self.shape[2]),
+                dtype="bool",
+            )
+            for i in range(self.shape[1] * self.shape[2]):
                 masks[i][np.unravel_index(i, (self.shape[1], self.shape[2]))] = True
 
             pixel_list = []
-            for j in range(self.shape[1]*self.shape[2]):
+            for j in range(self.shape[1] * self.shape[2]):
                 lc = self.to_lightcurve(aperture_mask=masks[j])
                 lc = corrector_func(lc)
 
@@ -542,19 +615,21 @@ if PATCH_LK:
                 ax.get_xaxis().set_ticks([])
                 ax.get_yaxis().set_ticks([])
                 if periodogram:
-                    ax.set(title=title, xlabel='Frequency', ylabel='Power')
+                    ax.set(title=title, xlabel="Frequency", ylabel="Power")
                 else:
-                    ax.set(title=title, xlabel='Time', ylabel='Flux')
+                    ax.set(title=title, xlabel="Time", ylabel="Flux")
 
-            gs = gridspec.GridSpec(self.shape[1], self.shape[2], wspace=0.01, hspace=0.01)
+            gs = gridspec.GridSpec(
+                self.shape[1], self.shape[2], wspace=0.01, hspace=0.01
+            )
 
-            for k in range(self.shape[1]*self.shape[2]):
+            for k in range(self.shape[1] * self.shape[2]):
                 if pixel_list[k]:
                     x, y = np.unravel_index(k, (self.shape[1], self.shape[2]))
 
                     # Highlight aperture mask in red
-                    if aperture_mask is not None and mask[x,y]:
-                        rc = {"axes.linewidth": 2, "axes.edgecolor": 'red'}
+                    if aperture_mask is not None and mask[x, y]:
+                        rc = {"axes.linewidth": 2, "axes.edgecolor": "red"}
                     else:
                         rc = {"axes.linewidth": 1}
                     with plt.rc_context(rc=rc):
@@ -562,31 +637,39 @@ if PATCH_LK:
 
                     # Determine background and foreground color
                     if show_flux:
-                        gax.set_facecolor(cmap(norm(self.flux[0,x,y])))
+                        gax.set_facecolor(cmap(norm(self.flux[0, x, y])))
                         markercolor = "white"
                     else:
                         markercolor = "black"
 
                     # Plot flux or periodogram
                     if periodogram:
-                        gax.plot(pixel_list[k].frequency.value,
-                                 pixel_list[k].power.value,
-                                 marker='None', color=markercolor, lw=0.5)
+                        gax.plot(
+                            pixel_list[k].frequency.value,
+                            pixel_list[k].power.value,
+                            marker="None",
+                            color=markercolor,
+                            lw=0.5,
+                        )
                     else:
-                        gax.plot(pixel_list[k].time,
-                                 pixel_list[k].flux,
-                                 marker='.', color=markercolor, ms=0.5, lw=0)
+                        gax.plot(
+                            pixel_list[k].time,
+                            pixel_list[k].flux,
+                            marker=".",
+                            color=markercolor,
+                            ms=0.5,
+                            lw=0,
+                        )
 
-                    gax.margins(y=.1, x=0)
-                    gax.set_xticklabels('')
-                    gax.set_yticklabels('')
+                    gax.margins(y=0.1, x=0)
+                    gax.set_xticklabels("")
+                    gax.set_yticklabels("")
                     gax.set_xticks([])
                     gax.set_yticks([])
 
-            fig.set_size_inches((y*1.5, x*1.5))
+            fig.set_size_inches((y * 1.5, x * 1.5))
 
         return ax
-
 
     lk.KeplerTargetPixelFile.plot_pixels = _plot_pixels
     lk.TessTargetPixelFile.plot_pixels = _plot_pixels

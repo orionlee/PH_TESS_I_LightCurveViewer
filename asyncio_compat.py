@@ -4,9 +4,9 @@ import functools
 
 def create_task(coro, *, name=None):
     """create_task that supports Python 3.6."""
-    if hasattr(asyncio, 'create_task'):
+    if hasattr(asyncio, "create_task"):
         task = asyncio.create_task(coro)
-        if name is not None and hasattr(task, 'set_name'):
+        if name is not None and hasattr(task, "set_name"):
             task.set_name(name)
         return task
     else:
@@ -15,7 +15,7 @@ def create_task(coro, *, name=None):
 
 def get_running_loop():
     """get_running_loop that supports Python 3.6."""
-    if hasattr(asyncio, 'get_running_loop'):
+    if hasattr(asyncio, "get_running_loop"):
         return asyncio.get_running_loop()
     else:
         return asyncio.get_event_loop()
@@ -33,11 +33,12 @@ async def to_thread(func, *args, **kwargs):
 
     This is a backport that supports Python 3.6.
     """
-    if hasattr(asyncio, 'to_thread'):
+    if hasattr(asyncio, "to_thread"):
         return asyncio.to_thread(func, *args, **kwargs)
     # Otherwise fallback to our approximation
     loop = get_running_loop()
     import contextvars
+
     ctx = contextvars.copy_context()  # TODO: contextvars only available in Python 3.7
     func_call = functools.partial(ctx.run, func, *args, **kwargs)
     return await loop.run_in_executor(None, func_call)
