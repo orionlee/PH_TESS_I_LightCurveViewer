@@ -1,21 +1,28 @@
-# Planet Hunters TESS Subject Lightcurve Viewers
-Jupyter Notebooks that lets you interactively visualize the a star's lightcurve provided by Planet Hunters TESS:
-    https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess
+# TESS Target (TIC) Vetting
 
-## TIC Lightcurve Viewer 
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/master/TIC_Lightcurve_Viewer.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/master/TIC_Vetting.ipynb)
 
-A notebook that given a TIC, produces lightcurves, with many other options.
-- It is essentially a template that you're likely need to modify to suit the specific needs.
-- In simple cases, you  just need to replace the TIC, but you do need to know some Python / Jupyter notebooks.
+A [Jupyter notebook](TIC_Vetting.ipynb) that can be used a template for vetting / inspecting a particular TIC.
+
+- it downloads the lightcurves of a given TIC, and let you inspect it in a variety of ways, including:
+  - show zoomed-in plots
+  - visualize transit period
+  - check against background spikes
+- it can also download the Target Pixel File, so that one can inspect it in per-pixel fashion.
+  - useful for checking against contamination from nearby stars.
 
 
-## Interactive Subject Lightcurve Viewer 
+---
+
+## Other: Interactive Subject Lightcurve Viewer
+
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/master/PH_TESS_I_LightCurveViewer.ipynb)
   [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/orionlee/PH_TESS_I_LightCurveViewer/master?filepath=PH_TESS_I_LightCurveViewer.ipynb)
 
-An interactive (but more limited) one that uses the data available on the Planet Hunters TESS subject page, without relying on MAST Portal. 
+An interactive (but more limited) one that uses the data available on the Planet Hunters TESS subject page, without relying on MAST Portal.
 
-### Instructions
+Instructions:
+
 1. Goto the subject page of a star ([example](https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/subjects/36971891)) on Planet Hunters TESS
 2. Click the `2` button below the lightcurve. The data in json format will be shown.
 3. Copy the data and paste it to the `Lightcurve data` textbox in the notebook.
