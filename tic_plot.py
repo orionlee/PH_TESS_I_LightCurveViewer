@@ -26,6 +26,7 @@ from astropy import units as u
 from astroquery.exceptions import NoResultsWarning
 from astroquery.mast import Observations
 
+import IPython
 from IPython.display import display, HTML, Audio
 
 from lightkurve import LightCurveCollection, LightkurveWarning
@@ -335,14 +336,13 @@ tweakCSS();
         )
     )
     # the actual beep
-    display(
-        Audio(
-            url="https://upload.wikimedia.org/wikipedia/commons/f/fb/NEC_PC-9801VX_ITF_beep_sound.ogg",
-            autoplay=True,
-            embed=True,
-            element_id="beep",
-        )
-    )
+    beep_url = "https://upload.wikimedia.org/wikipedia/commons/f/fb/NEC_PC-9801VX_ITF_beep_sound.ogg"
+    if int(re.sub(r"[.].+", "", IPython.__version__)) < 7:
+        # compatibility with older older IPython (e.g., google colab)
+        audio = Audio(url=beep_url, autoplay=True, embed=True)
+    else:
+        audio = Audio(url=beep_url, autoplay=True, embed=True, element_id="beep")
+    display(audio)
 
 
 def _normalize_to_percent_quiet(lc):
