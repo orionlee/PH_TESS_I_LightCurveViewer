@@ -2,7 +2,7 @@
 
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/master/TIC_Vetting.ipynb)
 
-A [Jupyter notebook](TIC_Vetting.ipynb) that can be used a template for vetting / inspecting a particular TIC.
+[TIC_Vetting.ipynb](TIC_Vetting.ipynb) - a Jupyter notebook that can be used a template for vetting / inspecting a particular TIC.
 
 - it downloads the lightcurves of a given TIC, and let you inspect it in a variety of ways, including:
   - show zoomed-in plots
