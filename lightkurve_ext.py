@@ -9,6 +9,8 @@ import json
 import warnings
 from collections import OrderedDict
 
+from memoization import cached
+
 import astropy.units as u
 import numpy as np
 from scipy.interpolate import UnivariateSpline
@@ -104,6 +106,7 @@ def estimate_object_radius_in_r_jupiter(lc, depth):
     return r_obj_in_r_jupiter
 
 
+@cached  # temporary enhancement, until lightkurve supports query cache
 def download_lighcurves_of_tic_with_priority(tic, download_dir=None):
     """For a given TIC, download lightcurves across all sectors.
     For each sector, download one based on pre-set priority.
