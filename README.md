@@ -4,6 +4,7 @@
 
 [TIC_Vetting.ipynb](TIC_Vetting.ipynb) - a Jupyter notebook that can be used a template for vetting / inspecting a particular TIC.
 
+- A [visual walkthrough](TIC_Vetting_Walkthrough.md)
 - it downloads the lightcurves of a given TIC, and let you inspect it in a variety of ways, including:
   - show zoomed-in plots
   - visualize transit period
