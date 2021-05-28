@@ -1493,7 +1493,8 @@ def show_tpf_orientation(tpf):
     display(
         HTML(
             f"""<div style="position: relative; margin-left: 16px;height: 64px;">
-    <div style="float: left; max-width: 64px;font-size: 32px;margin: 16px;transform: rotate({-deg_from_north}deg);transform-origin: left;">↳</div>
+    <div title="Long arm: North; Short arm with arrow: East"
+         style="float: left; max-width: 64px;font-size: 32px;margin: 16px;transform: rotate({-deg_from_north}deg);transform-origin: left; cursor:pointer;">↳</div>
         <div style="font-family: monospace;">Upper right offset from bottom left - <br>
         RA: {(coord_upper_right.ra - coord_bottom_left.ra).to(u.arcmin):0.6},
         Dec: {(coord_upper_right.dec - coord_bottom_left.dec).to(u.arcmin):0.6}
