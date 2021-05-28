@@ -15,7 +15,7 @@
 
 ---
 
-## Other: Interactive Subject Lightcurve Viewer
+## Others: Interactive Subject Lightcurve Viewer
 
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/master/PH_TESS_I_LightCurveViewer.ipynb)
   [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/orionlee/PH_TESS_I_LightCurveViewer/master?filepath=PH_TESS_I_LightCurveViewer.ipynb)
