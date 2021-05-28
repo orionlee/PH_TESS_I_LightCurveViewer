@@ -6,11 +6,11 @@
 
 - A [visual walkthrough](TIC_Vetting_Walkthrough.md)
 - it downloads the lightcurves of a given TIC, and let you inspect it in a variety of ways, including:
-  - show zoomed-in plots
-  - visualize transit period
-  - check against background spikes
+    - show zoomed-in plots
+    - visualize transit period
+    - check against background spikes
 - it can also download the Target Pixel File, so that one can inspect it in per-pixel fashion.
-  - useful for checking against contamination from nearby stars.
+    - useful for checking against contamination from nearby stars.
 
 
 ---
@@ -30,7 +30,9 @@ Instructions:
 4. The lightcurve will be plotted. You can then explore it using the controls to zoom in, show the curve in moving average, etc.
 
 ---
+
 ## Learn More
+
 - [About Planet Hunters TESS](https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/about/research)
 - [Light curve](https://en.wikipedia.org/wiki/Light_curve)
 - [Exoplanets detection methods](https://en.wikipedia.org/wiki/Methods_of_detecting_exoplanets)
