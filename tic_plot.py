@@ -1040,7 +1040,7 @@ plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_a
 
 # transit_specs for calling plot_transits()
 transit_specs = TransitTimeSpecList(
-    dict(epoch={t0}, period={period}, duration_hr={duration_hr},
+    dict(epoch={t0}, duration_hr={duration_hr}, period={period},
          sector={lcf.meta.get('SECTOR')}, steps_to_show=[{step}], label="dip"
         ),
     defaults=dict(surround_time={surround_time})
