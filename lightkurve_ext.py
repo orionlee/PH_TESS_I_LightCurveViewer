@@ -151,7 +151,7 @@ def estimate_object_radius_in_r_jupiter(lc, depth):
     return r_obj_in_r_jupiter
 
 
-def download_lightcurves_of_tic_with_priority(tic, sector, max_num_sectors_to_download=None, download_dir=None):
+def download_lightcurves_of_tic_with_priority(tic, download_filter_func=None, download_dir=None):
     """For a given TIC, download lightcurves across all sectors.
     For each sector, download one based on pre-set priority.
     """
@@ -185,16 +185,17 @@ def download_lightcurves_of_tic_with_priority(tic, sector, max_num_sectors_to_do
 
     display(sr)
 
+    # let caller to optionally further restrict a subset to be downloaded
     sr_to_download = sr
-    if max_num_sectors_to_download is not None and len(sr) > max_num_sectors_to_download:
-        sr_to_download = of_sector_n_around(sr, sector, num_additions=max_num_sectors_to_download - 1)
-        display(
-            HTML(
-                f"""<font style="background-color: yellow;">Note</font>:
-SearchResult larger than the max number of sectors to download ({max_num_sectors_to_download}):
-Only a subset will be downloaded."""
+    if download_filter_func is not None:
+        sr_to_download = download_filter_func(sr)
+        if len(sr_to_download) < len(sr):
+            display(
+                HTML(
+                    f"""<font style="background-color: yellow;">Note</font>:
+SearchResult is further filtered - only a subset will be downloaded."""
+                )
             )
-        )
 
     lcf_coll = sr_to_download.download_all(download_dir=download_dir)
 
