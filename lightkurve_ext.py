@@ -46,8 +46,18 @@ def of_sector_n_around(lcf_coll, sector_num, num_additions=8):
         return lk.LightCurveCollection([])
 
     idx = np.where(lcf_coll.sector == sector_num)[0][0]
+    # if num_additions is odd number, we add one to older sector
     start = max(idx - math.ceil(num_additions / 2), 0)
-    end = min(idx + math.ceil(num_additions / 2) + 1, len(lcf_coll))
+    end = min(idx + math.floor(num_additions / 2) + 1, len(lcf_coll))
+
+    # case the start:end window does not fill up the requested num_additions,
+    # try to fill it up
+    if end - start < num_additions:
+        num_more_needed = num_additions - (end - start)
+        if start > 0:
+            start = max(start - num_more_needed, 0)
+        else:
+            end = min(end + num_more_needed, len(lcf_coll))
 
     # workaround bug that lcf_coll[start:end] returns a list only
     return lk.LightCurveCollection(lcf_coll[start:end])
