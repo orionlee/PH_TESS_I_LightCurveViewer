@@ -1178,7 +1178,7 @@ def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, skip_no_transit_
 
     # skip if no transit found
     # (tt_list is a list of list, so it needs to be flattend for counting)
-    if skip_no_transit_plot and len(np.array(tt_list).flatten()) < 1:
+    if skip_no_transit_plot and len(np.array(tt_list, dtype=object).flatten()) < 1:
         print(f"{lc._repr_simple_()} is skipped - no matching transits.")
         return None, None
 
