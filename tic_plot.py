@@ -460,6 +460,14 @@ def mask_gap(x, y, min_x_diff):
     return np.ma.masked_where(x_diff > min_x_diff, y)
 
 
+def normalize_percent(lc):
+    """
+    A syntactic surgar for lambda for normalize as percentage.
+    Useful when calling ``lc.fold()``, ``tpf.interact()``, etc.
+    """
+    return lc.normalize(unit="percent")
+
+
 def _to_lc_with_flux(lc, flux_col):
     """Return a Lightcurve object with the named column as the flux column"""
 
@@ -1474,6 +1482,53 @@ def markTimes(ax, times, **kwargs):
     axvline_kwargs.setdefault("linestyle", "--")
     for t in times:
         ax.axvline(t, **axvline_kwargs)
+
+
+def fold_and_plot_odd_even(lc, period, epoch_time, figsize=(12, 6), title_extra=""):
+    lc_folded = lc.fold(period=period, epoch_time=epoch_time, epoch_phase=0)
+
+    ax = plt.figure(figsize=figsize).gca()
+    lc_f_odd = lc_folded[lc_folded.odd_mask]
+    lc_f_odd.scatter(ax=ax, c="r", label="odd", marker=".", s=4)
+    lc_f_even = lc_folded[lc_folded.even_mask]
+    lc_f_even.scatter(ax=ax, c="b", label="even", marker="x", s=4)
+
+    pct01_odd = np.nanpercentile(lc_f_odd.flux, 0.1)
+    pct01_even = np.nanpercentile(lc_f_even.flux, 0.1)
+
+    ax.axhline(
+        pct01_odd * 100,
+        c="r",
+        linestyle="--",
+        label=f"odd 0.1 pctile {pct01_odd:0.4f}",
+    )
+    ax.axhline(
+        pct01_even * 100,
+        c="b",
+        linestyle="dotted",
+        label=f"even 0.1 pctile {pct01_even:0.4f}",
+    )
+
+    ax.legend()
+    plt.title(f"{lc.label} folded {title_extra}")
+
+    print("odd  0.1 percentile: ", pct01_odd)
+    print("even 0.1 percentile: ", pct01_even)
+    return ax, lc_folded
+
+
+def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(12, 6), title_extra=""):
+    lc_folded = lc.fold(
+        period=period * 2, epoch_time=epoch_time, epoch_phase=period / 2
+    )
+
+    ax = plt.figure(figsize=figsize).gca()
+    lc_folded.scatter(ax=ax)
+
+    ax.legend()
+    plt.title(f"{lc.label} folded at 2X periods {title_extra}")
+
+    return ax, lc_folded
 
 
 #
