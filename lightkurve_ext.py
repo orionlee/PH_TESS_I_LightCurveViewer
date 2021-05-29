@@ -42,14 +42,53 @@ def of_sectors(*args):
     return lcf_coll[np.in1d(lcf_coll.sector, sector_nums)]
 
 
-def of_sector_n_around(lcf_coll, sector_num, num_additions=8):
-    if sector_num not in lcf_coll.sector:
-        return lk.LightCurveCollection([])
+def of_sector_n_around(lk_coll_or_sr, sector_num, num_additions=8):
+    def do_for_lk_coll():
+        subset_slice = _get_slice_for_of_sector_n_around(
+            lk_coll_or_sr,
+            lambda coll: coll.sector,
+            sector_num,
+            num_additions=num_additions,
+        )
+        if subset_slice is not None:
+            # workaround bug that lcf_coll[start:end] returns a list only
+            return lk.LightCurveCollection(lk_coll_or_sr[subset_slice])
+        else:
+            return lk.LightCurveCollection([])
 
-    idx = np.where(lcf_coll.sector == sector_num)[0][0]
+    def do_for_sr():
+        subset_slice = _get_slice_for_of_sector_n_around(
+            lk_coll_or_sr,
+            lambda sr: sr.table["sequence_number"],
+            sector_num,
+            num_additions=num_additions,
+        )
+        if subset_slice is not None:
+            return lk_coll_or_sr[subset_slice]
+        else:
+            return SearchResult()
+
+    if hasattr(lk_coll_or_sr, "sector"):
+        return do_for_lk_coll()
+    elif (
+        hasattr(lk_coll_or_sr, "table")
+        and lk_coll_or_sr.table["sequence_number"] is not None
+    ):
+        return do_for_sr()
+    else:
+        raise TypeError(f"Unsupported type of collection: {type(lk_coll_or_sr)}")
+
+
+def _get_slice_for_of_sector_n_around(
+    coll, sector_accessor_func, sector_num, num_additions
+):
+    if sector_num not in sector_accessor_func(coll):
+        return None
+
+    idx = np.where(sector_accessor_func(coll) == sector_num)[0][0]
     # if num_additions is odd number, we add one to older sector
     start = max(idx - math.ceil(num_additions / 2), 0)
-    end = min(idx + math.floor(num_additions / 2) + 1, len(lcf_coll))
+    end = min(idx + math.floor(num_additions / 2) + 1, len(coll))
 
     # case the start:end window does not fill up the requested num_additions,
     # try to fill it up
@@ -58,31 +97,9 @@ def of_sector_n_around(lcf_coll, sector_num, num_additions=8):
         if start > 0:
             start = max(start - num_more_needed, 0)
         else:
-            end = min(end + num_more_needed, len(lcf_coll))
+            end = min(end + num_more_needed, len(coll))
 
-    # workaround bug that lcf_coll[start:end] returns a list only
-    return lk.LightCurveCollection(lcf_coll[start:end])
-
-
-def _of_sector_n_around_sr(sr, sector_num, num_additions=8):
-    if sector_num not in sr.table["sequence_number"]:
-        return SearchResult([])
-
-    idx = np.where(sr.table["sequence_number"] == sector_num)[0][0]
-    # if num_additions is odd number, we add one to older sector
-    start = max(idx - math.ceil(num_additions / 2), 0)
-    end = min(idx + math.floor(num_additions / 2) + 1, len(sr))
-
-    # case the start:end window does not fill up the requested num_additions,
-    # try to fill it up
-    if end - start < num_additions:
-        num_more_needed = num_additions - (end - start)
-        if start > 0:
-            start = max(start - num_more_needed, 0)
-        else:
-            end = min(end + num_more_needed, len(sr))
-
-    return sr[start:end]
+    return slice(start, end)
 
 
 def of_2min_cadences(lcf_coll):
@@ -184,7 +201,7 @@ def download_lightcurves_of_tic_with_priority(
         max_num_sectors_to_download is not None
         and len(sr) > max_num_sectors_to_download
     ):
-        sr_to_download = _of_sector_n_around_sr(
+        sr_to_download = of_sector_n_around(
             sr, sector, num_additions=max_num_sectors_to_download - 1
         )
         display(
