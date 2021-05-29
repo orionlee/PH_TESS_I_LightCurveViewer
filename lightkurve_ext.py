@@ -8,6 +8,7 @@ import math
 import json
 import warnings
 from collections import OrderedDict
+from lightkurve.search import SearchResult
 
 from memoization import cached
 
@@ -63,6 +64,27 @@ def of_sector_n_around(lcf_coll, sector_num, num_additions=8):
     return lk.LightCurveCollection(lcf_coll[start:end])
 
 
+def _of_sector_n_around_sr(sr, sector_num, num_additions=8):
+    if sector_num not in sr.table["sequence_number"]:
+        return SearchResult([])
+
+    idx = np.where(sr.table["sequence_number"] == sector_num)[0][0]
+    # if num_additions is odd number, we add one to older sector
+    start = max(idx - math.ceil(num_additions / 2), 0)
+    end = min(idx + math.floor(num_additions / 2) + 1, len(sr))
+
+    # case the start:end window does not fill up the requested num_additions,
+    # try to fill it up
+    if end - start < num_additions:
+        num_more_needed = num_additions - (end - start)
+        if start > 0:
+            start = max(start - num_more_needed, 0)
+        else:
+            end = min(end + num_more_needed, len(sr))
+
+    return sr[start:end]
+
+
 def of_2min_cadences(lcf_coll):
     """Return LightCurveFiles of short, typically 2-minute cadence, only.
     Primary use case is to filter out 20-second files.
@@ -116,7 +138,9 @@ def estimate_object_radius_in_r_jupiter(lc, depth):
     return r_obj_in_r_jupiter
 
 
-def download_lightcurves_of_tic_with_priority(tic, download_dir=None):
+def download_lightcurves_of_tic_with_priority(
+    tic, sector, max_num_sectors_to_download=None, download_dir=None
+):
     """For a given TIC, download lightcurves across all sectors.
     For each sector, download one based on pre-set priority.
     """
@@ -155,7 +179,23 @@ def download_lightcurves_of_tic_with_priority(tic, download_dir=None):
 
     display(sr)
 
-    lcf_coll = sr.download_all(download_dir=download_dir)
+    sr_to_download = sr
+    if (
+        max_num_sectors_to_download is not None
+        and len(sr) > max_num_sectors_to_download
+    ):
+        sr_to_download = _of_sector_n_around_sr(
+            sr, sector, num_additions=max_num_sectors_to_download - 1
+        )
+        display(
+            HTML(
+                f"""<font style="background-color: yellow;">Note</font>:
+SearchResult larger than the max number of sectors to download ({max_num_sectors_to_download}):
+Only a subset will be downloaded."""
+            )
+        )
+
+    lcf_coll = sr_to_download.download_all(download_dir=download_dir)
 
     if lcf_coll is not None and len(lcf_coll) > 0:
         print(
