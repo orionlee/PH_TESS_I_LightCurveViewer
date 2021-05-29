@@ -475,6 +475,7 @@ def plot_n_annotate_lcf(
     moving_avg_window="30min",
     t0mark_ymax=0.3,
     set_title=True,
+    show_r_obj_estimate=True,
     title_fontsize=18,
     lc_tweak_fn=None,
     ax_tweak_fn=None,
@@ -578,7 +579,7 @@ def plot_n_annotate_lcf(
                 flux_dip = flux_begin - flux_t0
                 r_obj_msg = ""
                 r_obj = lke.estimate_object_radius_in_r_jupiter(lc, flux_dip / 100)  # convert flux_dip in percent to fractions
-                if r_obj is not None:
+                if show_r_obj_estimate and r_obj is not None:
                     r_obj_msg = f", R_p ~= {r_obj:0.2f} R_j"
                 title_text += (
                     f" \nflux@$t_0$ ~= {as_4decimal(flux_t0)}%, "
