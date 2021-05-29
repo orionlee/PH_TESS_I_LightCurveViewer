@@ -10,8 +10,6 @@ import warnings
 from collections import OrderedDict
 from lightkurve.search import SearchResult
 
-from memoization import cached
-
 import astropy.units as u
 import numpy as np
 from scipy.interpolate import UnivariateSpline
