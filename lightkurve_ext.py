@@ -88,10 +88,11 @@ def _get_slice_for_of_sector_n_around(
     start = max(idx - math.ceil(num_additions / 2), 0)
     end = min(idx + math.floor(num_additions / 2) + 1, len(coll))
 
-    # case the start:end window does not fill up the requested num_additions,
+    # case the start:end slice does not fill up the requested num_additions,
     # try to fill it up
-    if end - start < num_additions:
-        num_more_needed = num_additions - (end - start)
+    cur_slice_size = end - start - 1
+    if cur_slice_size < num_additions:
+        num_more_needed = num_additions - cur_slice_size
         if start > 0:
             start = max(start - num_more_needed, 0)
         else:
