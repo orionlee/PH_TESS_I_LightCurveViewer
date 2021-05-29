@@ -86,18 +86,14 @@ def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None
     # Kepler / K2 ids will need some additional processing for exact match to work.
     exact_target_name = tic_id
     with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore", category=NoResultsWarning, message=".*No products to download.*"
-        )
+        warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*No products to download.*")
         obs_wanted = Observations.query_criteria(
             target_name=exact_target_name,
             dataproduct_type="timeseries",
             obs_collection="TESS",
         )
         data_products = Observations.get_product_list(obs_wanted)
-        return Observations.filter_products(
-            data_products, productSubGroupDescription=productSubGroupDescription
-        )
+        return Observations.filter_products(data_products, productSubGroupDescription=productSubGroupDescription)
 
 
 @cached
@@ -153,9 +149,7 @@ def parse_dvr_xml(file_path):
 
 
 def get_tce_infos_of_tic(tic_id, download_dir=None):
-    products_wanted = get_dv_products_of_tic(
-        tic_id, ["DVS", "DVR"], download_dir=download_dir
-    )
+    products_wanted = get_dv_products_of_tic(tic_id, ["DVS", "DVR"], download_dir=download_dir)
 
     res = []
     # basic info
@@ -173,31 +167,20 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
         res.append(entry)
 
     # DVR pdf link
-    for p in products_wanted[
-        products_wanted["description"] == "full data validation report"
-    ]:
+    for p in products_wanted[products_wanted["description"] == "full data validation report"]:
         # find TCEs for the same observation (sometimes there are multiple TCEs for the same observation)
         for entry in [e for e in res if e["obsID"] == p["obsID"]]:
             entry["dvr_dataURI"] = p["dataURI"]
 
-    products_dvr_xml = products_wanted[
-        products_wanted["description"] == "full data validation report (xml)"
-    ]
-    manifest = Observations.download_products(
-        products_dvr_xml, download_dir=download_dir
-    )
+    products_dvr_xml = products_wanted[products_wanted["description"] == "full data validation report (xml)"]
+    manifest = Observations.download_products(products_dvr_xml, download_dir=download_dir)
     if manifest is None:
         return res
     for m in manifest:
         dvr_xml_local_path = m["Local Path"]
 
         dvr_info = parse_dvr_filename(Path(dvr_xml_local_path).name)
-        for entry in [
-            e
-            for e in res
-            if e["tic_id"] == dvr_info["tic_id"]
-            and e["sector_range"] == dvr_info["sector_range"]
-        ]:
+        for entry in [e for e in res if e["tic_id"] == dvr_info["tic_id"] and e["sector_range"] == dvr_info["sector_range"]]:
             entry["dvr_xml_local_path"] = dvr_xml_local_path
 
         planets_dict = parse_dvr_xml(dvr_xml_local_path)
@@ -240,9 +223,7 @@ def get_tic_meta_in_html(lc, download_dir=None):
     html = f"""
 <h3>TIC {tic_id}</h3>
 """
-    html += "&emsp;" + link(
-        "ExoFOP", f"https://exofop.ipac.caltech.edu/tess/target.php?id={tic_id}"
-    )
+    html += "&emsp;" + link("ExoFOP", f"https://exofop.ipac.caltech.edu/tess/target.php?id={tic_id}")
     html += "\n&emsp;|&emsp;"
     html += (
         link(
@@ -349,9 +330,7 @@ def _normalize_to_percent_quiet(lc):
     # Some product are in normalized flux, e.g., as 1, we still want to normalize them to percentage
     # for consistency
     with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore", category=LightkurveWarning, message=".*in relative units.*"
-        )
+        warnings.filterwarnings("ignore", category=LightkurveWarning, message=".*in relative units.*")
         return lc.normalize(unit="percent")
 
 
@@ -473,9 +452,7 @@ def _to_lc_with_flux(lc, flux_col):
 
     # analogous lkv1's way: lc = getattr(lcf, flux_col)
     res = lc.copy()
-    res["flux"] = lc[
-        flux_col.lower()
-    ]  # e.g., PDCSAP_FLUX (how we do in lkv1) will be lowerecased
+    res["flux"] = lc[flux_col.lower()]  # e.g., PDCSAP_FLUX (how we do in lkv1) will be lowerecased
     return res
 
 
@@ -504,10 +481,7 @@ def plot_n_annotate_lcf(
 
     # cache lc to speed up plots repeatedly over the same lcf
     global _cache_plot_n_annotate_lcf
-    if (
-        lcf is _cache_plot_n_annotate_lcf["lcf"]
-        and flux_col == _cache_plot_n_annotate_lcf["flux_col"]
-    ):
+    if lcf is _cache_plot_n_annotate_lcf["lcf"] and flux_col == _cache_plot_n_annotate_lcf["flux_col"]:
         lc = _cache_plot_n_annotate_lcf["lc"]
     else:
         lc = _normalize_to_percent_quiet(_to_lc_with_flux(lcf, flux_col))
@@ -560,9 +534,7 @@ def plot_n_annotate_lcf(
             label=f"Moving average ({moving_avg_window})",
         )
     else:
-        df = add_flux_moving_average(
-            lc, "10min"
-        )  # still needed for some subsequent calc, but don't plot it
+        df = add_flux_moving_average(lc, "10min")  # still needed for some subsequent calc, but don't plot it
 
     # annotate the graph
     if t_start is not None:
@@ -592,17 +564,13 @@ def plot_n_annotate_lcf(
         if t0 is not None:
             transit_duration_msg = ""
             if t_start is not None and t_end is not None:
-                transit_duration_msg = (
-                    f"\ntransit duration ~= {as_4decimal(24 * (t_end - t_start))}h"
-                )
+                transit_duration_msg = f"\ntransit duration ~= {as_4decimal(24 * (t_end - t_start))}h"
             flux_t0 = flux_mavg_near(df, t0)
             if flux_t0 is not None:
                 flux_begin = max(flux_mavg_near(df, t_start), flux_mavg_near(df, t_end))
                 flux_dip = flux_begin - flux_t0
                 r_obj_msg = ""
-                r_obj = lke.estimate_object_radius_in_r_jupiter(
-                    lc, flux_dip / 100
-                )  # convert flux_dip in percent to fractions
+                r_obj = lke.estimate_object_radius_in_r_jupiter(lc, flux_dip / 100)  # convert flux_dip in percent to fractions
                 if r_obj is not None:
                     r_obj_msg = f", R_p ~= {r_obj:0.2f} R_j"
                 title_text += f" \nflux@$t_0$ ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{r_obj_msg}{transit_duration_msg}"
@@ -643,17 +611,13 @@ def plot_transits(lcf_coll, transit_specs, ax_fn=lambda: lcf_fig().gca(), **kwar
     """Helper to plot transits zoomed-in."""
     axs = []
     for spec in transit_specs:
-        for lcf in of_sectors(
-            lcf_coll, spec["sector"]
-        ):  # in case we have multiple lcf per sector
+        for lcf in of_sectors(lcf_coll, spec["sector"]):  # in case we have multiple lcf per sector
             #  process the supplied spec and apply defaults
             t0 = spec["epoch"]
             duration = spec["duration_hr"] / 24
             period = spec["period"]
             steps_to_show = spec["steps_to_show"]
-            surround_time = spec.get(
-                "surround_time", 1.5
-            )  # a hardcoded last resort default
+            surround_time = spec.get("surround_time", 1.5)  # a hardcoded last resort default
 
             # TODO: warn if period is 0, but steps to show is not [0]
 
@@ -682,23 +646,12 @@ def print_data_range(lcf_coll):
     * camera used
     """
     html = '<pre style="line-height: 1.1;">\n'
-    html += (
-        "<summary>Sectors: "
-        + str(list(map(lambda lc: lc.meta.get("SECTOR"), lcf_coll)))
-        + f" ({len(lcf_coll)})"
-        + "\n"
-    )
+    html += "<summary>Sectors: " + str(list(map(lambda lc: lc.meta.get("SECTOR"), lcf_coll))) + f" ({len(lcf_coll)})" + "\n"
     html += "Observation period range / data range:" + "\n"
     html += "<details>"
     for lc in lcf_coll:
-        html += (
-            f"  Sector {lc.meta.get('SECTOR')}: {lc.meta.get('TSTART')} - {lc.meta.get('TSTOP')}"
-            + "\n"
-        )
-        html += (
-            f"   (cam {lc.meta.get('CAMERA')})   {lc.time.min()} - {lc.time.max()}"
-            + "\n"
-        )
+        html += f"  Sector {lc.meta.get('SECTOR')}: {lc.meta.get('TSTART')} - {lc.meta.get('TSTOP')}" + "\n"
+        html += f"   (cam {lc.meta.get('CAMERA')})   {lc.time.min()} - {lc.time.max()}" + "\n"
     html += "</details></summary></pre>"
     display(HTML(html))
 
@@ -804,9 +757,7 @@ def plot_all(
         else:
             t_start = lc.meta.get("TSTART")
             if t_start is not None:
-                ax.xaxis.set_label_text(
-                    ax.xaxis.label.get_text() + f", TSTART={t_start:0.2f}"
-                )
+                ax.xaxis.set_label_text(ax.xaxis.label.get_text() + f", TSTART={t_start:0.2f}")
 
         # to avoid occasional formating in scientific notations
         ax.yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
@@ -860,10 +811,7 @@ def plot_all(
                     if use_relative_time:
                         t_start = lcf.meta.get("TSTART")
                         time = time - t_start
-                    mom_dumps_mask = (
-                        np.bitwise_and(hdu[1].data["QUALITY"], TessQualityFlags.Desat)
-                        >= 1
-                    )
+                    mom_dumps_mask = np.bitwise_and(hdu[1].data["QUALITY"], TessQualityFlags.Desat) >= 1
                     time_mom_dumps = time[mom_dumps_mask]
                     if len(time_mom_dumps) > 0:
                         ybottom, ytop = ax.get_ylim()
@@ -893,9 +841,7 @@ from IPython.display import display
 _lcf_4_plot_interactive = None
 
 
-def _update_plot_lcf_interactive(
-    figsize, flux_col, xrange, moving_avg_window, ymin, ymax, widget_out2
-):
+def _update_plot_lcf_interactive(figsize, flux_col, xrange, moving_avg_window, ymin, ymax, widget_out2):
     # use global to accept lct
     global _lcf_4_plot_interactive
     lcf = _lcf_4_plot_interactive
@@ -973,12 +919,8 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col="flux"):
             description="Moving average window",
             style=desc_style,
         ),
-        ymin=widgets.FloatText(
-            value=-1, description="Flux min, -1 for default", style=desc_style
-        ),
-        ymax=widgets.FloatText(
-            value=-1, description="Flux max, -1 for default", style=desc_style
-        ),
+        ymin=widgets.FloatText(value=-1, description="Flux min, -1 for default", style=desc_style),
+        ymax=widgets.FloatText(value=-1, description="Flux max, -1 for default", style=desc_style),
         widget_out2=fixed(widget_out2),
     )
     w.layout.border = "1px solid lightgray"
@@ -1014,13 +956,9 @@ def _update_plot_transit_interactive(
 
     ax = plt.figure(figsize=figsize).gca()
     codes_text = "# Snippets to generate the plot"
-    moving_avg_window_for_codes = (
-        "None" if moving_avg_window is None else f"'{moving_avg_window}'"
-    )
+    moving_avg_window_for_codes = "None" if moving_avg_window is None else f"'{moving_avg_window}'"
     if t0 < 0:
-        plot_n_annotate_lcf(
-            lcf, ax, flux_col=flux_col, moving_avg_window=moving_avg_window
-        )
+        plot_n_annotate_lcf(lcf, ax, flux_col=flux_col, moving_avg_window=moving_avg_window)
         codes_text += f"\nplot_n_annotate_lcf(lcf, ax, moving_avg_window={moving_avg_window_for_codes})"
     else:
         t0_to_use = t0 + step * period
@@ -1073,18 +1011,10 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux"):
         description=r"$t_{epoch}$, -1 for unspecified",
         style=desc_style,
     )
-    duration_hr = widgets.FloatText(
-        value=1, step=0.01, description="duration (hours)", style=desc_style
-    )
-    period = widgets.FloatText(
-        value=999, step=0.01, description="period (days)", style=desc_style
-    )
-    step = widgets.IntText(
-        value=0, description=r"cycle (0 for transit at $t_{epoch}$)", style=desc_style
-    )
-    surround_time = widgets.FloatText(
-        value=7, step=0.5, description="padding (days)", style=desc_style
-    )
+    duration_hr = widgets.FloatText(value=1, step=0.01, description="duration (hours)", style=desc_style)
+    period = widgets.FloatText(value=999, step=0.01, description="period (days)", style=desc_style)
+    step = widgets.IntText(value=0, description=r"cycle (0 for transit at $t_{epoch}$)", style=desc_style)
+    surround_time = widgets.FloatText(value=7, step=0.5, description="padding (days)", style=desc_style)
     moving_avg_window = widgets.Dropdown(
         options=[
             ("None", None),
@@ -1099,12 +1029,8 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux"):
         description="moving average window",
         style=desc_style,
     )
-    ymin = widgets.FloatText(
-        value=-1, step=0.1, description="flux min, -1 for default", style=desc_style
-    )
-    ymax = widgets.FloatText(
-        value=-1, step=0.1, description="flux max, -1 for default", style=desc_style
-    )
+    ymin = widgets.FloatText(value=-1, step=0.1, description="flux min, -1 for default", style=desc_style)
+    ymax = widgets.FloatText(value=-1, step=0.1, description="flux max, -1 for default", style=desc_style)
     t0mark_ymax = widgets.BoundedFloatText(
         value=0.05,
         step=0.05,
@@ -1162,9 +1088,7 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux"):
     return w
 
 
-def plot_flux_sap_flux_comparison(
-    lc, sap_col="sap_flux", ax=None, offset=None, **kwargs
-):
+def plot_flux_sap_flux_comparison(lc, sap_col="sap_flux", ax=None, offset=None, **kwargs):
     """Plot flux (typically PDCSAP_FLUX) and sap_flux together,
     to spot any anomaly in processed lightcurve."""
     lc_sap = lc.copy()
@@ -1242,14 +1166,9 @@ class TransitTimeSpecList(list):
             self.append(TransitTimeSpec(**tt_spec_dict, defaults=self._defaults))
 
 
-def mark_transit_times(
-    lc, tt_specs, axvline_kwargs_specs=None, skip_no_transit_plot=False, ax=None
-):
+def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, skip_no_transit_plot=False, ax=None):
     """Plot the given LC, and mark the transit times based on `tt_specs`."""
-    tt_list = [
-        lke.get_transit_times_in_lc(lc, a_spec["epoch"], a_spec["period"])
-        for a_spec in tt_specs
-    ]
+    tt_list = [lke.get_transit_times_in_lc(lc, a_spec["epoch"], a_spec["period"]) for a_spec in tt_specs]
 
     # skip if no transit found
     # (tt_list is a list of list, so it needs to be flattend for counting)
@@ -1262,9 +1181,7 @@ def mark_transit_times(
     if ax is None:
         #         ax = plt.figure(figsize=(30, 10)).gca()
         ax = plt.figure(figsize=(15, 5)).gca()
-    ax = lc.scatter(
-        ax=ax, color="black", label=f"{lc.label} s.{getattr(lc, 'sector', 'N/A')}"
-    )
+    ax = lc.scatter(ax=ax, color="black", label=f"{lc.label} s.{getattr(lc, 'sector', 'N/A')}")
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.tick_params(axis="x", which="minor", length=4)
     ax.yaxis.set_minor_locator(AutoMinorLocator())
@@ -1276,9 +1193,7 @@ def mark_transit_times(
         axvline_kwargs_specs = [dict(label="dip", linestyle="--", color="red")]
 
     # use the label in tt_specs if not specified in axvline_kwargs
-    for (a_spec, an_axvline_kwargs, idx_0_based) in zip(
-        tt_specs, axvline_kwargs_specs, range(len(axvline_kwargs_specs))
-    ):
+    for (a_spec, an_axvline_kwargs, idx_0_based) in zip(tt_specs, axvline_kwargs_specs, range(len(axvline_kwargs_specs))):
         if an_axvline_kwargs.get("label") is None:
             an_axvline_kwargs["label"] = a_spec.get("label", f"dip {idx_0_based + 1}")
 
@@ -1321,19 +1236,13 @@ def scatter_centroids(
     if time_range is not None:
         lc = lc.truncate(time_range[0], time_range[1])
 
-    fig.gca().yaxis.set_major_formatter(
-        FormatStrFormatter("%.3f")
-    )  # avoid scientific notations
-    fig.gca().scatter(
-        lc.centroid_col.value, lc.centroid_row.value, c=c, label=f"TIC {lc.targetid}"
-    )
+    fig.gca().yaxis.set_major_formatter(FormatStrFormatter("%.3f"))  # avoid scientific notations
+    fig.gca().scatter(lc.centroid_col.value, lc.centroid_row.value, c=c, label=f"TIC {lc.targetid}")
 
     if highlight_time_range is not None:
         lc_highlight = lc.truncate(highlight_time_range[0], highlight_time_range[1])
         if len(lc_highlight) < 1:
-            print(
-                "WARNING: scatter_centroids() no observations in highlight_time_range"
-            )
+            print("WARNING: scatter_centroids() no observations in highlight_time_range")
         fig.gca().scatter(
             lc_highlight.centroid_col.value,
             lc_highlight.centroid_row.value,
@@ -1377,10 +1286,7 @@ def _update_anim(n, ax, lc, label, num_centroids_to_show, use_relative_time, c):
         row = lc.centroid_row[n_start:n]
         time_label = f"{as_4decimal(lc.time[n_start])} - {as_4decimal(lc.time[n])}"
         if use_relative_time:
-            time_label = (
-                time_label
-                + f" ({as_4decimal(lc.time_rel[n_start])} - {as_4decimal(lc.time_rel[n])})"
-            )
+            time_label = time_label + f" ({as_4decimal(lc.time_rel[n_start])} - {as_4decimal(lc.time_rel[n])})"
 
     ax.set_title(f"TIC {lc.targetid} Centroids, {label}\nday: {time_label}")
     ax.scatter(col, row, c=c)
@@ -1408,18 +1314,12 @@ def animate_centroids(
     # Zoom to a particular time range if specified
     if time_range is not None:
         # use pandas to zoom to a particular time_range
-        df = _normalize_to_percent_quiet(lc).to_pandas(
-            columns=["time", "flux", "centroid_row", "centroid_col"]
-        )
+        df = _normalize_to_percent_quiet(lc).to_pandas(columns=["time", "flux", "centroid_row", "centroid_col"])
         df = df[(df.time >= time_range[0]) & (df.time <= time_range[1])]
         if len(df) < 1:
-            raise Exception(
-                f"Zoomed lightcurve has no observation. time_range={time_range}"
-            )
+            raise Exception(f"Zoomed lightcurve has no observation. time_range={time_range}")
 
-        lc_z = (
-            lambda: None
-        )  # zoomed-in lightcurve-like object for the purpose of animation
+        lc_z = lambda: None  # zoomed-in lightcurve-like object for the purpose of animation
         setattr(lc_z, "time", df.time.values)
         setattr(lc_z, "flux", df.flux.values)
         setattr(lc_z, "centroid_row", df.centroid_row.values)
@@ -1431,17 +1331,13 @@ def animate_centroids(
         fig = plt.figure(figsize=(12, 12))
     if frames is None:
         num_obs = len(lc.centroid_row)
-        num_frames = int(
-            num_obs / num_obs_per_frame
-        )  # default 240 is about every 8 hours, given 2-minute intervals
+        num_frames = int(num_obs / num_obs_per_frame)  # default 240 is about every 8 hours, given 2-minute intervals
         ary_n = np.linspace(1, num_obs, num=num_frames, endpoint=False)
         ary_n[0] = np.ceil(ary_n[1] / 2)
         ary_n = list(map(lambda n: int(n), ary_n))
     else:
         ary_n = frames
-        num_obs_per_frame = (
-            frames[-1] - frames[-2]
-        )  # assume the spacing of input is linear
+        num_obs_per_frame = frames[-1] - frames[-2]  # assume the spacing of input is linear
 
     num_centroids_to_show = num_obs_per_frame
     if accumulative:
@@ -1467,9 +1363,7 @@ def animate_centroids(
 
             return iDisplay(HTML(anim.to_jshtml(default_mode="once")))
         except ImportError:
-            print(
-                "WARNING: animate_centroids() - inline display not possible Not in IPython environment."
-            )
+            print("WARNING: animate_centroids() - inline display not possible Not in IPython environment.")
             return anim
 
 
@@ -1518,9 +1412,7 @@ def fold_and_plot_odd_even(lc, period, epoch_time, figsize=(12, 6), title_extra=
 
 
 def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(12, 6), title_extra=""):
-    lc_folded = lc.fold(
-        period=period * 2, epoch_time=epoch_time, epoch_phase=period / 2
-    )
+    lc_folded = lc.fold(period=period * 2, epoch_time=epoch_time, epoch_phase=period / 2)
 
     ax = plt.figure(figsize=figsize).gca()
     lc_folded.scatter(ax=ax)

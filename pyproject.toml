@@ -1,0 +1,36 @@
+[tool.poetry]
+name = "PH_TESS_I_LightCurveViewer"
+version = "0.0.0"
+description = "Notebooks to help in vetting TESS data, along with some general helpers built on top of Lightkurve."
+license = "MIT"
+authors = ["Sam Lee"]
+readme = "README.md"
+repository = "https://github.com/orionlee/PH_TESS_I_LightCurveViewer"
+keywords = ["NASA", "TESS", "Astronomy", "Exoplanet", "Lightcurve"]
+# Indicate to poetry that this is not a python package
+#  https://github.com/python-poetry/poetry/issues/1148#issuecomment-501462169
+classifiers = [
+  "Private :: Do Not Upload",
+]
+
+[tool.poetry.dependencies]
+python = ">=3.6.1"
+lightkurve = "^2.0.9"
+# lightkurve bug makes it incompatible with bokeh 2.3.x
+#  https://github.com/lightkurve/lightkurve/issues/990
+bokeh = ">=1.0, <2.3.0"
+matplotlib = ">=1.5.3"
+memoization = { version = ">=0.3.1", python = ">=3.6,<4.0" }
+xmltodict = "^0.12.0"
+jupyter = "^1.0.0"
+
+[tool.poetry.dev-dependencies]
+black = ">=20.8"
+flake8 = ">=3.8.4"
+
+[tool.black]
+line-length = 127
+target-version = ['py36']
+extend-exclude = '''
+^/.vscode/
+'''

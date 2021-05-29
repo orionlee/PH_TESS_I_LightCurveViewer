@@ -7,6 +7,9 @@ __pycache__/
 # juypter internals
 .ipynb_checkpoints/
 
+# poetry lock
+poetry.lock
+
 # Temp notebook
 Untitled.ipynb
 

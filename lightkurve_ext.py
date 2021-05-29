@@ -68,18 +68,13 @@ def of_sector_n_around(lk_coll_or_sr, sector_num, num_additions=8):
 
     if hasattr(lk_coll_or_sr, "sector"):
         return do_for_lk_coll()
-    elif (
-        hasattr(lk_coll_or_sr, "table")
-        and lk_coll_or_sr.table["sequence_number"] is not None
-    ):
+    elif hasattr(lk_coll_or_sr, "table") and lk_coll_or_sr.table["sequence_number"] is not None:
         return do_for_sr()
     else:
         raise TypeError(f"Unsupported type of collection: {type(lk_coll_or_sr)}")
 
 
-def _get_slice_for_of_sector_n_around(
-    coll, sector_accessor_func, sector_num, num_additions
-):
+def _get_slice_for_of_sector_n_around(coll, sector_accessor_func, sector_num, num_additions):
     if sector_num not in sector_accessor_func(coll):
         return None
 
@@ -154,9 +149,7 @@ def estimate_object_radius_in_r_jupiter(lc, depth):
     return r_obj_in_r_jupiter
 
 
-def download_lightcurves_of_tic_with_priority(
-    tic, sector, max_num_sectors_to_download=None, download_dir=None
-):
+def download_lightcurves_of_tic_with_priority(tic, sector, max_num_sectors_to_download=None, download_dir=None):
     """For a given TIC, download lightcurves across all sectors.
     For each sector, download one based on pre-set priority.
     """
@@ -166,16 +159,12 @@ def download_lightcurves_of_tic_with_priority(
         print(f"WARNING: no result found for TIC {tic}")
         return None, None, None
 
-    sr_unfiltered = sr_unfiltered[
-        sr_unfiltered.target_name == str(tic)
-    ]  # in case we get some other nearby TICs
+    sr_unfiltered = sr_unfiltered[sr_unfiltered.target_name == str(tic)]  # in case we get some other nearby TICs
 
     # filter out HLSPs not supported by lightkurve yet
     sr = sr_unfiltered[sr_unfiltered.author != "DIAMANTE"]
     if len(sr) < len(sr_unfiltered):
-        print(
-            "Note: there are products not supported by Lightkurve, which are excluded from download."
-        )
+        print("Note: there are products not supported by Lightkurve, which are excluded from download.")
 
     # for each sector, filter based on the given priority.
     # - note: prefer QLP over TESS-SPOC because QLP is detrended, with multiple apertures within 1 file
@@ -196,13 +185,8 @@ def download_lightcurves_of_tic_with_priority(
     display(sr)
 
     sr_to_download = sr
-    if (
-        max_num_sectors_to_download is not None
-        and len(sr) > max_num_sectors_to_download
-    ):
-        sr_to_download = of_sector_n_around(
-            sr, sector, num_additions=max_num_sectors_to_download - 1
-        )
+    if max_num_sectors_to_download is not None and len(sr) > max_num_sectors_to_download:
+        sr_to_download = of_sector_n_around(sr, sector, num_additions=max_num_sectors_to_download - 1)
         display(
             HTML(
                 f"""<font style="background-color: yellow;">Note</font>:
@@ -214,9 +198,7 @@ Only a subset will be downloaded."""
     lcf_coll = sr_to_download.download_all(download_dir=download_dir)
 
     if lcf_coll is not None and len(lcf_coll) > 0:
-        print(
-            f"TIC {tic} \t#sectors: {len(lcf_coll)} ; {lcf_coll[0].meta['SECTOR']} - {lcf_coll[-1].meta['SECTOR']}"
-        )
+        print(f"TIC {tic} \t#sectors: {len(lcf_coll)} ; {lcf_coll[0].meta['SECTOR']} - {lcf_coll[-1].meta['SECTOR']}")
         print(
             f"   sector {lcf_coll[-1].meta['SECTOR']}: \tcamera = {lcf_coll[-1].meta['CAMERA']} ; ccd = {lcf_coll[-1].meta['CCD']}"
         )
@@ -259,22 +241,14 @@ def download_lightcurve(
     """
 
     if use_cache == "no":
-        return _search_and_cache(
-            target, mission, exptime, author, download_dir, display_search_result
-        )
+        return _search_and_cache(target, mission, exptime, author, download_dir, display_search_result)
     if use_cache == "yes":
         result_file_ids = _load_from_cache_if_any(target, mission, download_dir)
         if result_file_ids is not None:
-            result_files = list(
-                map(lambda e: f"{download_dir}/mastDownload/{e}", result_file_ids)
-            )
-            return lk.collections.LightCurveCollection(
-                list(map(lambda f: lk.read(f), result_files))
-            )
+            result_files = list(map(lambda e: f"{download_dir}/mastDownload/{e}", result_file_ids))
+            return lk.collections.LightCurveCollection(list(map(lambda f: lk.read(f), result_files)))
         # else
-        return _search_and_cache(
-            target, mission, exptime, author, download_dir, display_search_result
-        )
+        return _search_and_cache(target, mission, exptime, author, download_dir, display_search_result)
     # else
     raise ValueError("invalid value for argument use_cache")
 
@@ -282,12 +256,8 @@ def download_lightcurve(
 # Private helpers for `download_lightcurvefiles`
 
 
-def _search_and_cache(
-    target, mission, exptime, author, download_dir, display_search_result
-):
-    search_res = lk.search_lightcurve(
-        target=target, mission=mission, exptime=exptime, author=author
-    )
+def _search_and_cache(target, mission, exptime, author, download_dir, display_search_result):
+    search_res = lk.search_lightcurve(target=target, mission=mission, exptime=exptime, author=author)
     if len(search_res) < 1:
         return None
     if display_search_result:
@@ -302,9 +272,7 @@ def _display_search_result(search_res):
     tab = search_res.table
     # move useful columns to the front
     preferred_cols = ["proposal_id", "target_name", "sequence_number", "t_exptime"]
-    colnames_reordered = preferred_cols + [
-        c for c in tab.colnames if c not in preferred_cols
-    ]
+    colnames_reordered = preferred_cols + [c for c in tab.colnames if c not in preferred_cols]
     display(tab[colnames_reordered])
 
 
@@ -355,11 +323,7 @@ def _to_product_identifiers(search_res):
     """
     return list(
         map(
-            lambda e: e["obs_collection"]
-            + "/"
-            + e["obs_id"]
-            + "/"
-            + e["productFilename"],
+            lambda e: e["obs_collection"] + "/" + e["obs_id"] + "/" + e["productFilename"],
             search_res.table,
         )
     )
@@ -383,9 +347,7 @@ def _load_search_result_product_identifiers(download_dir, key):
         # errno == 2: file not found, typical case of cache miss
         # errno != 2: unexpected error, log a warning
         if err.errno != 2:
-            log.warning(
-                "Unexpected OSError in retrieving cached search result: {}".format(err)
-            )
+            log.warning("Unexpected OSError in retrieving cached search result: {}".format(err))
         return None
 
 
@@ -411,9 +373,7 @@ def filter_by_priority(
 
         # secondary priority
         exptime_default = max(dict(exptime_sort_keys).values()) + 1
-        exptime_key = exptime_sort_keys.get(
-            map_cadence_type(row["exptime"] / 60 / 60 / 24), exptime_default
-        )
+        exptime_key = exptime_sort_keys.get(map_cadence_type(row["exptime"] / 60 / 60 / 24), exptime_default)
         return author_key + exptime_key
 
     sr.table["_filter_priority"] = [calc_filter_priority(r) for r in sr.table]
@@ -452,12 +412,8 @@ def search_and_download_tpf(*args, **kwargs):
     # extract download_all() parameters
     download_dir = kwargs.pop("download_dir", None)
     quality_bitmask = kwargs.pop("quality_bitmask", None)
-    sr = lk.search_targetpixelfile(
-        *args, **kwargs
-    )  # pass the rest of the argument to search_targetpixelfile
-    tpf_coll = sr.download_all(
-        download_dir=download_dir, quality_bitmask=quality_bitmask
-    )
+    sr = lk.search_targetpixelfile(*args, **kwargs)  # pass the rest of the argument to search_targetpixelfile
+    tpf_coll = sr.download_all(download_dir=download_dir, quality_bitmask=quality_bitmask)
     return tpf_coll, sr
 
 
@@ -465,9 +421,7 @@ def create_download_tpf_task(*args, **kwargs):
     # - still somewhat blocking in jupyter: the cell completes, but running in subsequent cells are stalled)
     # - try to use specific event loop to see if it helps, so far not promising.
     #    https://stackoverflow.com/questions/47518874/how-do-i-run-python-asyncio-code-in-a-jupyter-notebook
-    return asyncio_compat.create_task(
-        asyncio_compat.to_thread(search_and_download_tpf, *args, **kwargs)
-    )
+    return asyncio_compat.create_task(asyncio_compat.to_thread(search_and_download_tpf, *args, **kwargs))
 
 
 #
@@ -499,9 +453,7 @@ def list_times_w_quality_issues(lc):
     return lc.time[mask], lc.quality[mask]
 
 
-def list_transit_times(
-    t0, period, steps_or_num_transits=range(0, 10), return_string=False
-):
+def list_transit_times(t0, period, steps_or_num_transits=range(0, 10), return_string=False):
     """List the transit times based on the supplied transit parameters"""
     if isinstance(steps_or_num_transits, int):
         steps = range(0, steps_or_num_transits)
@@ -649,15 +601,11 @@ if PATCH_LK:
             corrector_func = lambda x: x.remove_outliers()
         if show_flux:
             cmap = plt.get_cmap()
-            norm = plt.Normalize(
-                vmin=np.nanmin(self.flux[0]), vmax=np.nanmax(self.flux[0])
-            )
+            norm = plt.Normalize(vmin=np.nanmin(self.flux[0]), vmax=np.nanmax(self.flux[0]))
         mask = self._parse_aperture_mask(aperture_mask)
 
         with warnings.catch_warnings():
-            warnings.simplefilter(
-                "ignore", category=(RuntimeWarning, LightkurveWarning)
-            )
+            warnings.simplefilter("ignore", category=(RuntimeWarning, LightkurveWarning))
 
             # get an aperture mask for each pixel
             masks = np.zeros(
@@ -694,9 +642,7 @@ if PATCH_LK:
                 else:
                     ax.set(title=title, xlabel="Time", ylabel="Flux")
 
-            gs = gridspec.GridSpec(
-                self.shape[1], self.shape[2], wspace=0.01, hspace=0.01
-            )
+            gs = gridspec.GridSpec(self.shape[1], self.shape[2], wspace=0.01, hspace=0.01)
 
             for k in range(self.shape[1] * self.shape[2]):
                 if pixel_list[k]:
