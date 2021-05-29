@@ -12,12 +12,14 @@ from __future__ import annotations
 import warnings
 from pathlib import Path
 import re
+from types import SimpleNamespace
+
 from memoization import cached
 import xmltodict
 
 import matplotlib.pyplot as plt
-import matplotlib as matplotlib
 from matplotlib.ticker import FormatStrFormatter, AutoMinorLocator
+import matplotlib.animation as animation
 import numpy as np
 import pandas as pd
 
@@ -28,10 +30,12 @@ from astroquery.mast import Observations
 
 import IPython
 from IPython.display import display, HTML, Audio
+from ipywidgets import interactive, interactive_output, fixed
+import ipywidgets as widgets
 
 from lightkurve import LightCurveCollection, LightkurveWarning
 from lightkurve.utils import TessQualityFlags
-from lightkurve_ext import of_sector, of_sectors
+from lightkurve_ext import of_sectors
 import lightkurve_ext as lke
 
 
@@ -80,7 +84,7 @@ def parse_dvr_filename(filename):
 def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None):
     # Based on:
     # - https://outerspace.stsci.edu/display/TESS/7.0+-+Tips+and+Tricks+to+Getting+TESS+Data+At+MAST
-    # - https://github.com/spacetelescope/notebooks/blob/master/notebooks/MAST/TESS/beginner_astroquery_dv/beginner_astroquery_dv.ipynb
+    # https://github.com/spacetelescope/notebooks/blob/master/notebooks/MAST/TESS/beginner_astroquery_dv/beginner_astroquery_dv.ipynb
 
     # Note: for TESS, tic_id (the number without TIC) is what an exact match works
     # Kepler / K2 ids will need some additional processing for exact match to work.
@@ -518,7 +522,10 @@ def plot_n_annotate_lcf(
 
     if len(lc) < 1:
         print(
-            f"Warning: specified (xmin, xmax) is out of the range of the lightcurve {lc.label} sector {lcfh['SECTOR']}. Nothing to plot"
+            (
+                "Warning: specified (xmin, xmax) is out of the range of the lightcurve "
+                f"{lc.label} sector {lcfh['SECTOR']}. Nothing to plot"
+            )
         )
         return ax
 
@@ -573,7 +580,10 @@ def plot_n_annotate_lcf(
                 r_obj = lke.estimate_object_radius_in_r_jupiter(lc, flux_dip / 100)  # convert flux_dip in percent to fractions
                 if r_obj is not None:
                     r_obj_msg = f", R_p ~= {r_obj:0.2f} R_j"
-                title_text += f" \nflux@$t_0$ ~= {as_4decimal(flux_t0)}%, dip ~= {as_4decimal(flux_dip)}%{r_obj_msg}{transit_duration_msg}"
+                title_text += (
+                    f" \nflux@$t_0$ ~= {as_4decimal(flux_t0)}%, "
+                    f"dip ~= {as_4decimal(flux_dip)}%{r_obj_msg}{transit_duration_msg}"
+                )
         ax.set_title(title_text, {"fontsize": title_fontsize})
     ax.legend()
     ax.xaxis.label.set_size(18)
@@ -688,7 +698,8 @@ def plot_all(
     #     for i in range(0, len(lcf_coll)):
     #         lcf_coll[i].PDCSAP_FLUX.scatter(ax=ax_all)
 
-    #     ax_all.set_title(f"TIC {lcf_coll[0].PDCSAP_FLUX.label}, sectors {list(map(lambda lcf: lcf.meta.get('SECTOR'), lcf_coll))}")
+    #     ax_all.set_title((f"TIC {lcf_coll[0].PDCSAP_FLUX.label}, "
+    #                       f"sectors {list(map(lambda lcf: lcf.meta.get('SECTOR'), lcf_coll))}"))
     #     return ax_all
 
     # choice 4: plot the lightcurve sector by sector: each sector in its own graph
@@ -834,10 +845,6 @@ def plot_all(
     return axs
 
 
-from ipywidgets import interactive, interactive_output, fixed
-import ipywidgets as widgets
-from IPython.display import display
-
 _lcf_4_plot_interactive = None
 
 
@@ -890,9 +897,8 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col="flux"):
 
     w = interactive(
         _update_plot_lcf_interactive,
-        figsize=fixed(figsize)
-        # , lcf = fixed_lcf
-        ,
+        figsize=fixed(figsize),
+        # lcf = fixed_lcf,
         flux_col=fixed(flux_col),
         xrange=widgets.FloatRangeSlider(
             min=t_start,
@@ -974,7 +980,8 @@ def _update_plot_transit_interactive(
         )
         codes_text += f"""
 #   transit parameters - t0: BTJD {t0}, duration: {duration_hr} hours, period: {period} days
-plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
+plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, \
+moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
 
 # transit_specs for calling plot_transits()
 transit_specs = TransitTimeSpecList(
@@ -1062,9 +1069,8 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux"):
     w = interactive_output(
         _update_plot_transit_interactive,
         dict(
-            figsize=fixed(figsize)
-            # , lcf=fixed_lcf
-            ,
+            figsize=fixed(figsize),
+            # lcf=fixed_lcf,
             flux_col=fixed(flux_col),
             t0=t0,
             duration_hr=duration_hr,
@@ -1260,9 +1266,6 @@ def scatter_centroids(
     return fig
 
 
-import matplotlib.animation as animation
-
-
 def _update_anim(n, ax, lc, label, num_centroids_to_show, use_relative_time, c):
     ax.cla()
     # fix the x/y scale to ensure it doesn't change over the animation
@@ -1319,7 +1322,7 @@ def animate_centroids(
         if len(df) < 1:
             raise Exception(f"Zoomed lightcurve has no observation. time_range={time_range}")
 
-        lc_z = lambda: None  # zoomed-in lightcurve-like object for the purpose of animation
+        lc_z = SimpleNamespace()  # zoomed-in lightcurve-like object for the purpose of animation
         setattr(lc_z, "time", df.time.values)
         setattr(lc_z, "flux", df.flux.values)
         setattr(lc_z, "centroid_row", df.centroid_row.values)
@@ -1441,7 +1444,8 @@ def show_tpf_orientation(tpf):
         HTML(
             f"""<div style="position: relative; margin-left: 16px;height: 64px;">
     <div title="Long arm: North; Short arm with arrow: East"
-         style="float: left; max-width: 64px;font-size: 32px;margin: 16px;transform: rotate({-deg_from_north}deg);transform-origin: left; cursor:pointer;">↳</div>
+         style="float: left; max-width: 64px;font-size: 32px;margin: 16px;\
+transform: rotate({-deg_from_north}deg);transform-origin: left; cursor:pointer;">↳</div>
         <div style="font-family: monospace;">Upper right offset from bottom left - <br>
         RA: {(coord_upper_right.ra - coord_bottom_left.ra).to(u.arcmin):0.6},
         Dec: {(coord_upper_right.dec - coord_bottom_left.dec).to(u.arcmin):0.6}

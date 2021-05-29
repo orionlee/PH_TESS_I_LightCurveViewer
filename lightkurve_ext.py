@@ -8,13 +8,15 @@ import math
 import json
 import warnings
 from collections import OrderedDict
-from lightkurve.search import SearchResult
 
 import astropy.units as u
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 
+from IPython.display import display, HTML
+
 import lightkurve as lk
+from lightkurve.search import SearchResult
 
 import asyncio_compat
 
@@ -180,7 +182,6 @@ def download_lightcurves_of_tic_with_priority(tic, sector, max_num_sectors_to_do
         if num_fast > 0:
             msg = msg + f" ; {num_fast} fast (20secs) products."
         print(msg)
-    from IPython.display import display, HTML, Audio
 
     display(sr)
 
@@ -200,7 +201,10 @@ Only a subset will be downloaded."""
     if lcf_coll is not None and len(lcf_coll) > 0:
         print(f"TIC {tic} \t#sectors: {len(lcf_coll)} ; {lcf_coll[0].meta['SECTOR']} - {lcf_coll[-1].meta['SECTOR']}")
         print(
-            f"   sector {lcf_coll[-1].meta['SECTOR']}: \tcamera = {lcf_coll[-1].meta['CAMERA']} ; ccd = {lcf_coll[-1].meta['CCD']}"
+            (
+                f"   sector {lcf_coll[-1].meta['SECTOR']}: \t"
+                f"camera = {lcf_coll[-1].meta['CAMERA']} ; ccd = {lcf_coll[-1].meta['CCD']}"
+            )
         )
     else:
         print(f"TIC {tic}: no data")
@@ -439,7 +443,8 @@ def get_bkg_lightcurve(lcf):
 def create_quality_issues_mask(lc, flags_included=0b0101001010111111):
     """Returns a boolean array which flags cadences with *issues*.
 
-    The default `flags_included` is a TESS default, based on https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags
+    The default `flags_included` is a TESS default, based on
+    https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags
     """
     if np.issubdtype(lc["quality"].dtype, np.integer):
         return np.logical_and(lc.quality & flags_included, np.isfinite(lc.flux))
@@ -489,7 +494,7 @@ def get_segment_times(times, **kwargs):
         times = times.value
     low, high = get_segment_times_idx(times, **kwargs)
     # add a small 1e-10 to end so that the end time is exclusive (follow convention in range)
-    return [(times[l], times[h - 1] + 1e-10) for l, h in zip(low, high)]
+    return [(times[lo], times[hi - 1] + 1e-10) for lo, hi in zip(low, high)]
 
 
 def get_transit_times_in_range(t0, period, start, end):
@@ -516,7 +521,8 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
 
 
 def to_window_length_for_2min_cadence(length_day):
-    """Helper for LightCurve.flatten(). Return a `window_length` for the given number of days, assuming the data has 2-minute cadence."""
+    """Helper for LightCurve.flatten().
+    Return a `window_length` for the given number of days, assuming the data has 2-minute cadence."""
     res = math.floor(720 * length_day)
     if res % 2 == 0:
         res += 1  # savgol_filter window length must be odd number
@@ -529,7 +535,7 @@ def flatten_with_spline_normalized(lc, return_trend=False, **kwargs):
     lc = lc.remove_nans()
     spline = UnivariateSpline(lc.time, lc.flux, **kwargs)
     trend = spline(lc.time)
-    detrended = lc.flux - trend
+    # detrended = lc.flux - trend
     detrended_relative = 100 * ((lc.flux / trend) - 1) + 100  # in percentage
     lc_flattened = lc.copy()
     lc_flattened.flux = detrended_relative
@@ -540,166 +546,3 @@ def flatten_with_spline_normalized(lc, return_trend=False, **kwargs):
         lc_trend = lc.copy()
         lc_trend.flux = trend
         return (lc_flattened, lc_trend)
-
-
-# Backport tpf.plot_pixels() from lightkurve2 for use in lightkurve1
-PATCH_LK = False
-if PATCH_LK:
-    # adapted from https://github.com/KeplerGO/lightkurve/blob/v2.0b3/lightkurve/targetpixelfile.py
-    import matplotlib.pyplot as plt
-    import matplotlib.gridspec as gridspec
-    from lightkurve import MPLSTYLE
-    from lightkurve import LightkurveWarning
-
-    def _plot_pixels(
-        self,
-        ax=None,
-        periodogram=False,
-        aperture_mask=None,
-        show_flux=False,
-        corrector_func=None,
-        style="lightkurve",
-        title=None,
-        **kwargs,
-    ):
-        """Show the light curve of each pixel in a single plot.
-
-        Note that all values are autoscaled and axis labels are not provided.
-        This utility is designed for by-eye inspection of signal morphology.
-
-        Parameters
-        ----------
-        ax : `~matplotlib.axes.Axes`
-            A matplotlib axes object to plot into. If no axes is provided,
-            a new one will be generated.
-        periodogram : bool
-            Default: False; if True, periodograms will be plotted, using normalized light curves.
-            Note that this keyword overrides normalized.
-        aperture_mask : ndarray or str
-            Highlight pixels selected by aperture_mask.
-            Only `pipeline`, `threshold`, or custom masks will be plotted.
-            `all` and None masks will be ignored.
-        show_flux : bool
-            Default: False; if True, shade pixels with frame 0 flux colour
-            Inspired by https://github.com/noraeisner/LATTE
-        corrector_func : function
-            Function that accepts and returns a `~lightkurve.lightcurve.LightCurve`.
-            This function is applied to each light curve in the collection
-            prior to stitching. The default is to normalize each light curve.
-        style : str
-            Path or URL to a matplotlib style file, or name of one of
-            matplotlib's built-in stylesheets (e.g. 'ggplot').
-            Lightkurve's custom stylesheet is used by default.
-        kwargs : dict
-            e.g. extra parameters to be passed to `lc.to_periodogram`.
-        """
-        if style == "lightkurve" or style is None:
-            style = MPLSTYLE
-        if title is None:
-            title = f"Target ID: {self.targetid}"
-        if corrector_func is None:
-            corrector_func = lambda x: x.remove_outliers()
-        if show_flux:
-            cmap = plt.get_cmap()
-            norm = plt.Normalize(vmin=np.nanmin(self.flux[0]), vmax=np.nanmax(self.flux[0]))
-        mask = self._parse_aperture_mask(aperture_mask)
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=(RuntimeWarning, LightkurveWarning))
-
-            # get an aperture mask for each pixel
-            masks = np.zeros(
-                (self.shape[1] * self.shape[2], self.shape[1], self.shape[2]),
-                dtype="bool",
-            )
-            for i in range(self.shape[1] * self.shape[2]):
-                masks[i][np.unravel_index(i, (self.shape[1], self.shape[2]))] = True
-
-            pixel_list = []
-            for j in range(self.shape[1] * self.shape[2]):
-                lc = self.to_lightcurve(aperture_mask=masks[j])
-                lc = corrector_func(lc)
-
-                if periodogram:
-                    try:
-                        pixel_list.append(lc.to_periodogram(**kwargs))
-                    except IndexError:
-                        pixel_list.append(None)
-                else:
-                    if len(lc.remove_nans().flux) == 0:
-                        pixel_list.append(None)
-                    else:
-                        pixel_list.append(lc)
-
-        with plt.style.context(style):
-            fig = plt.figure()
-            if ax is None:  # Configure axes if none is given
-                ax = plt.gca()
-                ax.get_xaxis().set_ticks([])
-                ax.get_yaxis().set_ticks([])
-                if periodogram:
-                    ax.set(title=title, xlabel="Frequency", ylabel="Power")
-                else:
-                    ax.set(title=title, xlabel="Time", ylabel="Flux")
-
-            gs = gridspec.GridSpec(self.shape[1], self.shape[2], wspace=0.01, hspace=0.01)
-
-            for k in range(self.shape[1] * self.shape[2]):
-                if pixel_list[k]:
-                    x, y = np.unravel_index(k, (self.shape[1], self.shape[2]))
-
-                    # Highlight aperture mask in red
-                    if aperture_mask is not None and mask[x, y]:
-                        rc = {"axes.linewidth": 2, "axes.edgecolor": "red"}
-                    else:
-                        rc = {"axes.linewidth": 1}
-                    with plt.rc_context(rc=rc):
-                        gax = fig.add_subplot(gs[self.shape[1] - x - 1, y])
-
-                    # Determine background and foreground color
-                    if show_flux:
-                        gax.set_facecolor(cmap(norm(self.flux[0, x, y])))
-                        markercolor = "white"
-                    else:
-                        markercolor = "black"
-
-                    # Plot flux or periodogram
-                    if periodogram:
-                        gax.plot(
-                            pixel_list[k].frequency.value,
-                            pixel_list[k].power.value,
-                            marker="None",
-                            color=markercolor,
-                            lw=0.5,
-                        )
-                    else:
-                        gax.plot(
-                            pixel_list[k].time,
-                            pixel_list[k].flux,
-                            marker=".",
-                            color=markercolor,
-                            ms=0.5,
-                            lw=0,
-                        )
-
-                    gax.margins(y=0.1, x=0)
-                    gax.set_xticklabels("")
-                    gax.set_yticklabels("")
-                    gax.set_xticks([])
-                    gax.set_yticks([])
-
-            fig.set_size_inches((y * 1.5, x * 1.5))
-
-        return ax
-
-    lk.KeplerTargetPixelFile.plot_pixels = _plot_pixels
-    lk.TessTargetPixelFile.plot_pixels = _plot_pixels
-
-
-def plot_pixels(tpf, pixel_size_inch=1, **kwargs):
-    """A thin wrapper over ``plot_pixels()`` that provides preferred UI tweak: figure size, etc."""
-    ax = tpf.plot_pixels(**kwargs)
-
-    y, x = tpf.shape[1], tpf.shape[2]
-    ax.get_figure().set_size_inches((x * pixel_size_inch, y * pixel_size_inch))
-    return ax
