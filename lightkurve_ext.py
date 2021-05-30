@@ -423,10 +423,7 @@ def search_and_download_tpf(*args, **kwargs):
 
 
 def create_download_tpf_task(*args, **kwargs):
-    # - still somewhat blocking in jupyter: the cell completes, but running in subsequent cells are stalled)
-    # - try to use specific event loop to see if it helps, so far not promising.
-    #    https://stackoverflow.com/questions/47518874/how-do-i-run-python-asyncio-code-in-a-jupyter-notebook
-    return asyncio_compat.create_task(asyncio_compat.to_thread(search_and_download_tpf, *args, **kwargs))
+    return asyncio_compat.create_background_task(search_and_download_tpf, *args, **kwargs)
 
 
 #
