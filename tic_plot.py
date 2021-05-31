@@ -282,12 +282,12 @@ def get_tic_meta_in_html(lc, download_dir=None):
         html += row(
             link(info.get("tce_id_short"), exomast_url),
             f"""{link("dvs", dvs_url)},&emsp;{link("full", dvr_url)}""",
-            f'{p_i.get("planetRadiusEarthRadii") * R_EARTH_TO_R_JUPITER:.3f}',
-            f'{p_i.get("transitEpochBtjd"):.4f}',
-            f'{p_i.get("transitDurationHours"):.4f}',
-            f'{p_i.get("orbitalPeriodDays"):.6f}',
-            f'{p_i.get("transitDepthPpm") / 10000:.4f}',
-            f'{p_i.get("minImpactParameter"):.2f}',
+            f'{p_i.get("planetRadiusEarthRadii", 0) * R_EARTH_TO_R_JUPITER:.3f}',
+            f'{p_i.get("transitEpochBtjd", 0):.4f}',
+            f'{p_i.get("transitDurationHours", 0):.4f}',
+            f'{p_i.get("orbitalPeriodDays", 0):.6f}',
+            f'{p_i.get("transitDepthPpm", 0) / 10000:.4f}',
+            f'{p_i.get("minImpactParameter", 0):.2f}',
         )
         html += "<br>\n"
 
