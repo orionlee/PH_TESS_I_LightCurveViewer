@@ -1172,6 +1172,31 @@ class TransitTimeSpecList(list):
         for tt_spec_dict in tt_spec_dict_list:
             self.append(TransitTimeSpec(**tt_spec_dict, defaults=self._defaults))
 
+    def _spec_property_values(self, property_name):
+        return np.array([tt[property_name] for tt in self])
+
+    #
+    # The following properties return the specific transit parameters
+    # in an array. Together they can be used to create a mask
+    # for the transits using ``LightCurve.create_transit_mask()``
+    #
+
+    @property
+    def epoch(self):
+        return self._spec_property_values("epoch")
+
+    @property
+    def period(self):
+        return self._spec_property_values("period")
+
+    @property
+    def duration_hr(self):
+        return self._spec_property_values("duration_hr")
+
+    @property
+    def duration(self):
+        return self.duration_hr / 24
+
 
 def mark_transit_times(
     lc, tt_specs, axvline_kwargs_specs=None, skip_no_transit_plot=False, lc_plot_func_name="scatter", ax=None
