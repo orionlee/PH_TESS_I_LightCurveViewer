@@ -1173,7 +1173,9 @@ class TransitTimeSpecList(list):
             self.append(TransitTimeSpec(**tt_spec_dict, defaults=self._defaults))
 
 
-def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, skip_no_transit_plot=False, ax=None):
+def mark_transit_times(
+    lc, tt_specs, axvline_kwargs_specs=None, skip_no_transit_plot=False, lc_plot_func_name="scatter", ax=None
+):
     """Plot the given LC, and mark the transit times based on `tt_specs`."""
     tt_list = [lke.get_transit_times_in_lc(lc, a_spec["epoch"], a_spec["period"]) for a_spec in tt_specs]
 
@@ -1188,7 +1190,7 @@ def mark_transit_times(lc, tt_specs, axvline_kwargs_specs=None, skip_no_transit_
     if ax is None:
         #         ax = plt.figure(figsize=(30, 10)).gca()
         ax = plt.figure(figsize=(15, 5)).gca()
-    ax = lc.scatter(ax=ax, color="black", label=f"{lc.label} s.{getattr(lc, 'sector', 'N/A')}")
+    ax = getattr(lc, lc_plot_func_name)(ax=ax, color="black", label=f"{lc.label} s.{getattr(lc, 'sector', 'N/A')}")
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.tick_params(axis="x", which="minor", length=4)
     ax.yaxis.set_minor_locator(AutoMinorLocator())
