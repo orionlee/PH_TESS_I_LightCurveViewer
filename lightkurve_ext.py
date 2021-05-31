@@ -192,7 +192,7 @@ def download_lightcurves_of_tic_with_priority(tic, download_filter_func=None, do
         if len(sr_to_download) < len(sr):
             display(
                 HTML(
-                    f"""<font style="background-color: yellow;">Note</font>:
+                    """<font style="background-color: yellow;">Note</font>:
 SearchResult is further filtered - only a subset will be downloaded."""
                 )
             )
