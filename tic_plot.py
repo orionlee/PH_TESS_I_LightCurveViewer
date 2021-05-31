@@ -25,6 +25,7 @@ import pandas as pd
 
 from astropy.io import fits
 from astropy import units as u
+from astropy.table import Table
 from astroquery.exceptions import NoResultsWarning
 from astroquery.mast import Observations
 
@@ -1196,6 +1197,15 @@ class TransitTimeSpecList(list):
     @property
     def duration(self):
         return self.duration_hr / 24
+
+    @property
+    def label(self):
+        return self._spec_property_values("label")
+
+    def to_table(self, columns=("label", "epoch", "duration_hr", "period")):
+        """Convert the specs to an ``astropy.Table``"""
+        data = [getattr(self, col) for col in columns]
+        return Table(data, names=columns)
 
 
 def mark_transit_times(
