@@ -248,6 +248,9 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
             a_subject_id,
             f"https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/subjects/{a_subject_id}",
         )
+        # show the sector number (here we assume a_subject_id does correspond the the sector)
+        # the sector is useful to be included so that users can easily locate the TCE matching the sector.
+        html += f' (sector {safe_m_get("SECTOR", "")})'
     html += "<br>\n"
     html += "<table>\n"
     html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", f'{safe_m_get("RADIUS", 0):.3f}')
