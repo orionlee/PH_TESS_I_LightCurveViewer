@@ -1008,8 +1008,8 @@ moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
 
 # transit_specs for calling plot_transits()
 transit_specs = TransitTimeSpecList(
-    dict(epoch={t0}, duration_hr={duration_hr}, period={period},
-         sector={lcf.meta.get('SECTOR')}, steps_to_show=[{step}], label="dip"
+    dict(epoch={t0}, duration_hr={duration_hr}, period={period}, label="dip",
+         sector={lcf.meta.get('SECTOR')}, steps_to_show=[{step}],
         ),
     defaults=dict(surround_time={surround_time})
     )
