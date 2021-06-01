@@ -209,7 +209,7 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
     return res
 
 
-def get_tic_meta_in_html(lc, download_dir=None):
+def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
     # This function does not do the actual display,
     # so that the caller can call it in background
     # and display it whereever it's needed
@@ -237,13 +237,18 @@ def get_tic_meta_in_html(lc, download_dir=None):
 """
     html += "&emsp;" + link("ExoFOP", f"https://exofop.ipac.caltech.edu/tess/target.php?id={tic_id}")
     html += "\n&emsp;|&emsp;"
-    html += (
-        link(
-            "PHT Talk",
-            f"https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/search?query={tic_id}",
-        )
-        + "<br>\n"
+    html += link(
+        "PHT Talk",
+        f"https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/search?query={tic_id}",
     )
+    if a_subject_id is not None:
+        # note, a TIC can have multiple subjects, here is just one of them.
+        html += "\n , a subject: "
+        html += link(
+            a_subject_id,
+            f"https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/subjects/{a_subject_id}",
+        )
+    html += "<br>\n"
     html += "<table>\n"
     html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", f'{safe_m_get("RADIUS", 0):.3f}')
     html += prop("Magnitude (TESS)", f'{safe_m_get("TESSMAG", 0):.2f}')
