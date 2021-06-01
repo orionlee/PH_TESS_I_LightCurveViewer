@@ -301,7 +301,7 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
             f'{p_i.get("transitDepthPpm", 0) / 10000:.4f}',
             f'{p_i.get("minImpactParameter", 0):.2f}',
         )
-        html += "<br>\n"
+        html += "\n"
 
     html += "</tbody></table>\n"
 
