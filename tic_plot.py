@@ -275,6 +275,7 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
         ("Period", "day"),
         ("Depth", "%"),
         ("Impact P.", "<i>b</i>"),
+        ("Codes", ""),
     ]
     html += """<br>TCEs: <table>
 <thead>"""
@@ -303,6 +304,11 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
             f'{p_i.get("orbitalPeriodDays", 0):.6f}',
             f'{p_i.get("transitDepthPpm", 0) / 10000:.4f}',
             f'{p_i.get("minImpactParameter", 0):.2f}',
+            # code fragments to so that users can easily use a TCE as an entry in transit_specs
+            f"""\
+<input type="text" style="margin-left: 3ch; font-size: 90%; color: #666; width: 10ch;"
+       value='epoch={p_i.get("transitEpochBtjd", 0):.4f}, duration_hr={p_i.get("transitDurationHours", 0):.4f}, \
+period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}",'>""",
         )
         html += "\n"
 
