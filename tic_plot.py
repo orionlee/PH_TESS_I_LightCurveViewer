@@ -154,11 +154,18 @@ def parse_dvr_xml(file_path):
 
 
 def get_tce_infos_of_tic(tic_id, download_dir=None):
+    def filter_by_dataURI_suffix(products, suffix):
+        # Helper to filter products into summary, full report, full report xml using suffix.
+        # It replaces the logic to filter by "description" column, as description is sometimes unreliable
+        # E.g., for the TCE for TIC 43843023 sector 5, the dvr xml has incorrect description
+        # so that the entry is treated as a dvr pdf
+        return products[np.char.endswith(products["dataURI"], suffix)]
+
     products_wanted = get_dv_products_of_tic(tic_id, ["DVS", "DVR"], download_dir=download_dir)
 
     res = []
     # basic info
-    for p in products_wanted[products_wanted["productSubGroupDescription"] == "DVS"]:
+    for p in filter_by_dataURI_suffix(products_wanted, "_dvs.pdf"):
         tce_info = parse_dvs_filename(p["productFilename"])
         entry = dict(
             obsID=p["obsID"],
@@ -172,12 +179,12 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
         res.append(entry)
 
     # DVR pdf link
-    for p in products_wanted[products_wanted["description"] == "full data validation report"]:
+    for p in filter_by_dataURI_suffix(products_wanted, "_dvr.pdf"):
         # find TCEs for the same observation (sometimes there are multiple TCEs for the same observation)
         for entry in [e for e in res if e["obsID"] == p["obsID"]]:
             entry["dvr_dataURI"] = p["dataURI"]
 
-    products_dvr_xml = products_wanted[products_wanted["description"] == "full data validation report (xml)"]
+    products_dvr_xml = filter_by_dataURI_suffix(products_wanted, "_dvr.xml")
     manifest = Observations.download_products(products_dvr_xml, download_dir=download_dir)
     if manifest is None:
         return res
