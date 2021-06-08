@@ -9,6 +9,7 @@ LightCurveCollection
 from __future__ import annotations
 
 
+import inspect
 import warnings
 from pathlib import Path
 import re
@@ -1512,3 +1513,13 @@ transform: rotate({-deg_from_north}deg);transform-origin: left; cursor:pointer;"
     </div>"""
         )
     )
+
+
+def interact_sky(tpf, notebook_url="localhost:8888", aperture_mask="empty", magnitude_limit=18):
+    """tpf.interact_sky wrapper to handle different lightkurve versions."""
+    if "aperture_mask" in inspect.getfullargspec(tpf.interact_sky).args:
+        # case using a pre-release lightkurve that supports aperture_mask
+        return tpf.interact_sky(notebook_url=notebook_url, aperture_mask=aperture_mask, magnitude_limit=magnitude_limit)
+    else:
+        # using release lightkurve that not yet supports aperture_mask
+        return tpf.interact_sky(notebook_url=notebook_url, magnitude_limit=magnitude_limit)
