@@ -1523,3 +1523,48 @@ def interact_sky(tpf, notebook_url="localhost:8888", aperture_mask="empty", magn
     else:
         # using release lightkurve that not yet supports aperture_mask
         return tpf.interact_sky(notebook_url=notebook_url, magnitude_limit=magnitude_limit)
+
+
+def show_nearby_tic_summary_form():
+    """Display a form that create a 1-line summary of a nearby TIC from the first three rows of the selected TIC table"""
+    display(
+        HTML(
+            r"""
+First 3 rows of the TIC info table:<br>
+<textarea id="inStarInfo" style="width: 40ch; height: 6em;" placeholder="TIC \t12345678\nTESS Mag \t10.123\nSeparation ...">
+</textarea><br>
+<button id="ctlStarInfo">Create Nearby TIC summary</button>
+<input id="outStarInfo" style="width: 40ch;" value="" readonly>
+
+<script>
+
+function convertToMultiLinePlaceholder(elem) { // create multiline placeholder
+  elem.placeholder = elem.placeholder.replace(/\\n/g, '\n');
+  elem.placeholder = elem.placeholder.replace(/\\t/g, '\t');
+}
+convertToMultiLinePlaceholder(document.querySelector('#inStarInfo'));
+
+
+function createNearbyTicSummary(text) {
+const toCells = (line) => {
+    return line.split("\t");
+}
+
+const lines = text.split(/[\r\n]+/);
+
+
+const ticId = toCells(lines[0])[1].replace(/^\s*(\d+).*$/, '$1');
+const tessMag = toCells(lines[1])[1];
+const separation = toCells(lines[2])[1];
+
+return `TIC ${ticId} (TESS magnitude ${tessMag}, ${separation} arcsec away)`;
+}
+
+document.querySelector('#ctlStarInfo').onclick = (evt) => {
+const summary = createNearbyTicSummary(document.querySelector('#inStarInfo').value);
+document.querySelector('#outStarInfo').value = summary;
+};
+</script>
+"""
+        )
+    )
