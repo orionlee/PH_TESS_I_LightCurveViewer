@@ -1270,13 +1270,17 @@ def mark_transit_times(
     # if we simply set legend at the end, each dip will have its own legend!
     for (transit_times, axvline_kwargs) in zip(tt_list, axvline_kwargs_specs):
         if len(transit_times) > 0 and axvline_kwargs is not None:
-            ax.axvline(transit_times[0], 0, 0.1, **axvline_kwargs)
+            axvline_kwargs = axvline_kwargs.copy()  # as we might need to modify them locally
+            ymin, ymax = axvline_kwargs.pop("ymin", 0), axvline_kwargs.pop("ymax", 0.1)
+            ax.axvline(transit_times[0], ymin, ymax, **axvline_kwargs)
     ax.legend()
 
     for (transit_times, axvline_kwargs) in zip(tt_list, axvline_kwargs_specs):
         if axvline_kwargs is not None:
+            axvline_kwargs = axvline_kwargs.copy()  # as we might need to modify them locally
+            ymin, ymax = axvline_kwargs.pop("ymin", 0), axvline_kwargs.pop("ymax", 0.1)
             for tt in transit_times:
-                ax.axvline(tt, 0, 0.1, **axvline_kwargs)
+                ax.axvline(tt, ymin, ymax, **axvline_kwargs)
 
     return ax, tt_list
 
