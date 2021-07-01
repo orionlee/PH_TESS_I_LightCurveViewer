@@ -478,9 +478,10 @@ def _to_lc_with_flux(lc, flux_col):
     """Return a Lightcurve object with the named column as the flux column"""
 
     # analogous lkv1's way: lc = getattr(lcf, flux_col)
-    res = lc.copy()
-    res["flux"] = lc[flux_col.lower()]  # e.g., PDCSAP_FLUX (how we do in lkv1) will be lowerecased
-    return res
+    if "flux" == flux_col.lower():
+        return lc
+    else:
+        return lc.select_flux(flux_col)
 
 
 _cache_plot_n_annotate_lcf = dict(lcf=None, flux_col=None, lc=None)
