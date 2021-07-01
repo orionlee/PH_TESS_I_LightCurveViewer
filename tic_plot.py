@@ -484,6 +484,15 @@ def _to_lc_with_flux(lc, flux_col):
         return lc.select_flux(flux_col)
 
 
+def _add_flux_origin_to_ylabel(ax, lc):
+    # e.g., QLP uses sap_flux as the standard.
+    # it needs to support other products too
+    standard_flux_col = "pdcsap_flux" if lc.author in ["SPOC", "TESS-SPOC"] else "sap_flux"
+
+    if lc.flux_origin is not None and lc.flux_origin != standard_flux_col:
+        ax.yaxis.set_label_text(ax.yaxis.get_label_text().replace("Flux", lc.flux_origin))
+
+
 _cache_plot_n_annotate_lcf = dict(lcf=None, flux_col=None, lc=None)
 
 
@@ -611,6 +620,9 @@ def plot_n_annotate_lcf(
                 )
         ax.set_title(title_text, {"fontsize": title_fontsize})
     ax.legend()
+
+    _add_flux_origin_to_ylabel(ax, lc)
+
     ax.xaxis.label.set_size(18)
     ax.yaxis.label.set_size(18)
 
@@ -794,6 +806,8 @@ def plot_all(
             t_start = lc.meta.get("TSTART")
             if t_start is not None:
                 ax.xaxis.set_label_text(ax.xaxis.label.get_text() + f", TSTART={t_start:0.2f}")
+
+        _add_flux_origin_to_ylabel(ax, lc)
 
         # to avoid occasional formating in scientific notations
         ax.yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
