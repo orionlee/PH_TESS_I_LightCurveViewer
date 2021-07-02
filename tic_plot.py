@@ -503,9 +503,16 @@ def _to_lc_with_flux(lc, flux_cols):
 def _add_flux_origin_to_ylabel(ax, lc):
     # e.g., QLP uses sap_flux as the standard.
     # it needs to support other products too
-    standard_flux_col = "pdcsap_flux" if lc.author in ["SPOC", "TESS-SPOC"] else "sap_flux"
+    standard_flux_col_map = {
+        "SPOC": "pdcsap_flux",
+        "TESS-SPOC": "pdcsap_flux",
+        "QLP": "sap_flux",
+        "TASOC": "flux_raw",
+        "CDIPS": "irm1",
+        "PATHOS": "psf_flux_cor",
+    }
 
-    if lc.flux_origin is not None and lc.flux_origin != standard_flux_col:
+    if lc.flux_origin is not None and lc.flux_origin != standard_flux_col_map.get(lc.author, None):
         ax.yaxis.set_label_text(ax.yaxis.get_label_text().replace("Flux", lc.flux_origin))
 
 
