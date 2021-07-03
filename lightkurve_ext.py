@@ -24,22 +24,26 @@ log = logging.getLogger(__name__)
 
 
 def of_sector(lcf_coll, sectorNum):
-    for lcf in lcf_coll:
-        if lcf.meta["SECTOR"] == sectorNum:
-            return lcf
-    return None
+    res_list = of_sectors(lcf_coll, sectorNum)
+    return res_list[0] if len(res_list) > 0 else None
 
 
 def of_sectors(*args):
-    lcf_coll = args[0]
+    lk_coll_or_sr = args[0]
     if len(args) == 1:
         # when no sectors are specified, return entire collection
         # For convenience: when a notebooks is modified such that
         # a user sometimes use a subset of sectors , and sometimes everything
         # the user can can still use of_sectors() wrapper regardless
-        return lcf_coll
+        return lk_coll_or_sr
     sector_nums = args[1:]
-    return lcf_coll[np.in1d(lcf_coll.sector, sector_nums)]
+
+    if hasattr(lk_coll_or_sr, "sector"):
+        return lk_coll_or_sr[np.in1d(lk_coll_or_sr.sector, sector_nums)]
+    elif hasattr(lk_coll_or_sr, "table") and lk_coll_or_sr.table["sequence_number"] is not None:
+        return lk.SearchResult(lk_coll_or_sr.table[np.in1d(lk_coll_or_sr.table["sequence_number"], sector_nums)])
+    else:
+        raise TypeError(f"Unsupported type of collection: {type(lk_coll_or_sr)}")
 
 
 def of_sector_n_around(lk_coll_or_sr, sector_num, num_additions=8):
@@ -544,3 +548,29 @@ def flatten_with_spline_normalized(lc, return_trend=False, **kwargs):
         lc_trend = lc.copy()
         lc_trend.flux = trend
         return (lc_flattened, lc_trend)
+
+
+def _lksl_statistics(ts):
+    """Compute LKSL Statistics of the given (time-series) values.
+    Useful to compare the noises in a folded lightcurve.
+
+    Based on https://arxiv.org/pdf/1901.00009.pdf , equation 4.
+    See https://www.aanda.org/articles/aa/pdf/2002/17/aa2208.pdf for more information.
+    """
+    ts = ts[~np.isnan(ts)]
+
+    vector_length_sq_sum = np.square(np.diff(ts)).sum()
+    if len(ts) > 2:
+        # to fully utilize the data by including the vector length between the last and first measurement
+        # section 2 of Clarke, 2002
+        vector_length_sq_sum += np.square(ts[-1] - ts[0])
+
+    diff_from_mean_sq_sum = np.square(ts - np.mean(ts)).sum()
+    if diff_from_mean_sq_sum == 0:  # to avoid boundary case that'd cause division by zero
+        diff_from_mean_sq_sum = 1e-10
+
+    return (vector_length_sq_sum / diff_from_mean_sq_sum) * (len(ts) - 1) / (2 * len(ts))
+
+
+def lksl_statistics(lc, column="flux"):
+    return _lksl_statistics(lc[column].value)
