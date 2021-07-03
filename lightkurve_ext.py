@@ -57,7 +57,7 @@ def of_sector_n_around(lk_coll_or_sr, sector_num, num_additions=8):
         if subset_slice is not None:
             return lk_coll_or_sr[subset_slice]
         else:
-            return lk.LightCurveCollection([])
+            return type(lk_coll_or_sr)([])
 
     def do_for_sr():
         subset_slice = _get_slice_for_of_sector_n_around(
