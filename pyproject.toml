@@ -15,7 +15,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.6.1"
-lightkurve = "^2.0.9"
+lightkurve = "^2.0.10"
 # lightkurve bug makes it incompatible with bokeh 2.3.x
 #  https://github.com/lightkurve/lightkurve/issues/990
 bokeh = ">=1.0, <2.3.0"

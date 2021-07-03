@@ -55,8 +55,7 @@ def of_sector_n_around(lk_coll_or_sr, sector_num, num_additions=8):
             num_additions=num_additions,
         )
         if subset_slice is not None:
-            # workaround bug that lcf_coll[start:end] returns a list only
-            return lk.LightCurveCollection(lk_coll_or_sr[subset_slice])
+            return lk_coll_or_sr[subset_slice]
         else:
             return lk.LightCurveCollection([])
 
