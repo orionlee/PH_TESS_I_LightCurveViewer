@@ -47,36 +47,30 @@ def of_sectors(*args):
 
 
 def of_sector_n_around(lk_coll_or_sr, sector_num, num_additions=8):
-    def do_for_lk_coll():
-        subset_slice = _get_slice_for_of_sector_n_around(
-            lk_coll_or_sr,
-            lambda coll: coll.sector,
-            sector_num,
-            num_additions=num_additions,
-        )
-        if subset_slice is not None:
-            return lk_coll_or_sr[subset_slice]
-        else:
-            return type(lk_coll_or_sr)([])
+    def get_sector_for_lk_coll(lk_coll):
+        return lk_coll.sector
 
-    def do_for_sr():
-        subset_slice = _get_slice_for_of_sector_n_around(
-            lk_coll_or_sr,
-            lambda sr: sr.table["sequence_number"],
-            sector_num,
-            num_additions=num_additions,
-        )
-        if subset_slice is not None:
-            return lk_coll_or_sr[subset_slice]
-        else:
-            return SearchResult()
+    def get_sector_for_sr(sr):
+        return sr.table["sequence_number"]
 
+    sector_accessor_func = None
     if hasattr(lk_coll_or_sr, "sector"):
-        return do_for_lk_coll()
+        sector_accessor_func = get_sector_for_lk_coll
     elif hasattr(lk_coll_or_sr, "table") and lk_coll_or_sr.table["sequence_number"] is not None:
-        return do_for_sr()
+        sector_accessor_func = get_sector_for_sr
     else:
         raise TypeError(f"Unsupported type of collection: {type(lk_coll_or_sr)}")
+
+    subset_slice = _get_slice_for_of_sector_n_around(
+        lk_coll_or_sr,
+        sector_accessor_func,
+        sector_num,
+        num_additions=num_additions,
+    )
+    if subset_slice is not None:
+        return lk_coll_or_sr[subset_slice]
+    else:
+        return type(lk_coll_or_sr)([])
 
 
 def _get_slice_for_of_sector_n_around(coll, sector_accessor_func, sector_num, num_additions):
