@@ -567,3 +567,22 @@ def _lksl_statistics(ts):
 
 def lksl_statistics(lc, column="flux"):
     return _lksl_statistics(lc[column].value)
+
+
+def tess_flux_to_mag(flux):
+    """Convert flux from TESS observation to magnitude."""
+    # Based on https://heasarc.gsfc.nasa.gov/docs/tess/observing-technical.html#saturation
+    # TESS CCDs produce 15000 e/s for magnitude 10 light source
+
+    if isinstance(flux, u.Quantity):
+        flux_raw = flux.to(u.electron / u.second).value
+    else:
+        flux_raw = flux
+
+    # np.log10 does not work on Quantity, unless it's dimensionless
+    res_raw = 10 - 2.5 * np.log10((flux_raw / 15000))
+
+    if isinstance(flux, u.Quantity):
+        return res_raw * u.mag
+    else:
+        return res_raw
