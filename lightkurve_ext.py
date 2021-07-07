@@ -9,6 +9,7 @@ import json
 import warnings
 from collections import OrderedDict
 
+from astropy.io import fits
 import astropy.units as u
 import numpy as np
 from scipy.interpolate import UnivariateSpline
@@ -435,22 +436,67 @@ def get_bkg_lightcurve(lcf):
     return lc
 
 
+def _do_create_quality_issues_mask(quality, flux, flags_included=0b0101001010111111):
+    """Returns a boolean array which flags cadences with *issues*.
+
+    The default `flags_included` is a TESS default, based on
+    https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags
+    """
+    if np.issubdtype(quality.dtype, np.integer):
+        return np.logical_and(quality & flags_included, np.isfinite(flux))
+    else:
+        # quality column is not an integer, probably a non-standard product
+        return np.zeros_like(quality, dtype=bool)
+
+
 def create_quality_issues_mask(lc, flags_included=0b0101001010111111):
     """Returns a boolean array which flags cadences with *issues*.
 
     The default `flags_included` is a TESS default, based on
     https://outerspace.stsci.edu/display/TESS/2.0+-+Data+Product+Overview#id-2.0DataProductOverview-Table:CadenceQualityFlags
     """
-    if np.issubdtype(lc["quality"].dtype, np.integer):
-        return np.logical_and(lc.quality & flags_included, np.isfinite(lc.flux))
+
+    # use sap_flux when available (it may not be there in some HLSP)
+    # we prefer sap_flux over pdcsap_flux as
+    # pdcsap_flux is more likely to be NaN (due to exclusion by quality flags)
+    if "sap_flux" in lc.colnames:
+        flux = lc["sap_flux"]
     else:
-        # quality column is not an integer, probably a non-standard product
-        return np.zeros_like(lc.flux, dtype=bool)
+        flux = lc.flux
+
+    return _do_create_quality_issues_mask(lc.quality, flux)
 
 
-def list_times_w_quality_issues(lc):
-    mask = create_quality_issues_mask(lc)
-    return lc.time[mask], lc.quality[mask]
+def _get_n_truncate_fits_data(lc, before, after, return_columns, return_mask=False):
+    with fits.open(lc.filename) as hdu:
+        time = hdu[1].data["TIME"]
+        mask = (time >= before) & (time < after)
+        res = dict()
+        for col in return_columns:
+            res[col] = hdu[1].data[col][mask]
+        if return_mask:
+            return res, mask
+        else:
+            return res
+
+
+def list_times_w_quality_issues(lc, include_excluded_cadences=False):
+    if not include_excluded_cadences:
+        mask = create_quality_issues_mask(lc)
+        return lc.time[mask], lc.quality[mask]
+    else:
+        # case we want cadences that have been excluded in the lc object
+        # use the underlying fits file
+
+        flux_colname = lc.meta.get("FLUX_ORIGIN", "sap_flux")
+        if flux_colname == "pdcsap_flux":
+            flux_colname = "sap_flux"  # pdcsap_flux would not have values in excluded cadences, defeating the purpose
+
+        # data is truncated if the given lc is truncated
+        # TODO: cadences excluded before lc.time.min() or after lc.time.max() will still be missing.
+        data = _get_n_truncate_fits_data(lc, lc.time.min().value, lc.time.max().value, ["time", "quality", flux_colname])
+        mask = _do_create_quality_issues_mask(data["quality"], data[flux_colname])
+        return data["time"][mask], data["quality"][mask]
 
 
 def list_transit_times(t0, period, steps_or_num_transits=range(0, 10), return_string=False):
