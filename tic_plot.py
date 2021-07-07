@@ -693,16 +693,7 @@ def plot_transits(lcf_coll, transit_specs, ax_fn=lambda: lcf_fig().gca(), **kwar
 
             for i in steps_to_show:
                 cur_t0 = t0 + period * i
-                ax = plot_n_annotate_lcf(
-                    lcf,
-                    ax=ax_fn(),
-                    t0=cur_t0,
-                    t_start=cur_t0 - duration / 2,
-                    t_end=cur_t0 + duration / 2,
-                    xmin=cur_t0 - (duration + surround_time) / 2,
-                    xmax=cur_t0 + (duration + surround_time) / 2,
-                    **kwargs,
-                )
+                ax = plot_transit(lcf, ax_fn(), cur_t0, duration, surround_time, **kwargs)
                 axs.append(ax)
     return axs
 
