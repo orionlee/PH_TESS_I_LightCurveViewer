@@ -533,6 +533,7 @@ def plot_n_annotate_lcf(
     set_title=True,
     show_r_obj_estimate=True,
     title_fontsize=18,
+    t0_label_suffix=None,
     lc_tweak_fn=None,
     ax_tweak_fn=None,
 ):
@@ -611,6 +612,9 @@ def plot_n_annotate_lcf(
         if t_lc_start is not None:
             t0_rel = t0 - t_lc_start
             t0_rel_text = f" ({as_4decimal(t0_rel)})"
+        label_vline = f"t0 ~= {t0}{t0_rel_text}"
+        if t0_label_suffix is not None:
+            label_vline = f"{label_vline}\n{t0_label_suffix}"
         ax.axvline(
             t0,
             ymin=0,
@@ -618,7 +622,7 @@ def plot_n_annotate_lcf(
             color="black",
             linewidth=3,
             linestyle="--",
-            label=f"t0 ~= {t0}{t0_rel_text}",
+            label=label_vline,
         )
 
     if set_title:
@@ -693,7 +697,10 @@ def plot_transits(lcf_coll, transit_specs, ax_fn=lambda: lcf_fig().gca(), **kwar
 
             for i in steps_to_show:
                 cur_t0 = t0 + period * i
-                ax = plot_transit(lcf, ax_fn(), cur_t0, duration, surround_time, **kwargs)
+                t0_label_suffix = None
+                if spec.get("label", "") not in ["", "dip", "dips"]:
+                    t0_label_suffix = spec.get("label")
+                ax = plot_transit(lcf, ax_fn(), cur_t0, duration, surround_time, t0_label_suffix=t0_label_suffix, **kwargs)
                 axs.append(ax)
     return axs
 
