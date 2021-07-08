@@ -1521,7 +1521,10 @@ def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(12, 6), title_extr
     lc_folded.scatter(ax=ax)
 
     ax.legend()
-    plt.title(f"{lc.label} folded at 2X periods {title_extra}")
+    ax.xaxis.set_label_text(
+        ax.xaxis.get_label_text() + f" , {lc.time.format.upper()} {lc.time.min().value:.2f} - {lc.time.max().value:.2f}"
+    )
+    plt.title(f"{lc.label} folded at 2X periods {title_extra}\nperiod={period:.4f} d")
 
     return ax, lc_folded
 
