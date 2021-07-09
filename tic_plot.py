@@ -474,32 +474,6 @@ def normalize_percent(lc):
     return lc.normalize(unit="percent")
 
 
-def _to_lc_with_flux(lc, flux_cols):
-    """Return a Lightcurve object with the named column as the flux column.
-
-    flux_cols: either a column name (string), or a list of prioritized column names
-    such that the first one that the lightcurve contains will be used.
-    """
-
-    def _to_lc_with_1flux(lc, flux_1col):
-        flux_1col = flux_1col.lower()
-        if "flux" == flux_1col:
-            return lc
-        elif flux_1col in lc.colnames:
-            return lc.select_flux(flux_1col)
-        else:
-            return None
-
-    if isinstance(flux_cols, str):
-        flux_cols = [flux_cols]
-
-    for flux_1col in flux_cols:
-        res = _to_lc_with_1flux(lc, flux_1col)
-        if res is not None:
-            return res
-    raise ValueError(f"'column {flux_cols}' not found")
-
-
 def _add_flux_origin_to_ylabel(ax, lc):
     # e.g., QLP uses sap_flux as the standard.
     # it needs to support other products too
@@ -546,7 +520,7 @@ def plot_n_annotate_lcf(
     if lcf is _cache_plot_n_annotate_lcf["lcf"] and flux_col == _cache_plot_n_annotate_lcf["flux_col"]:
         lc = _cache_plot_n_annotate_lcf["lc"]
     else:
-        lc = _normalize_to_percent_quiet(_to_lc_with_flux(lcf, flux_col))
+        lc = _normalize_to_percent_quiet(lke.select_flux(lcf, flux_col))
         _cache_plot_n_annotate_lcf["lcf"] = lcf
         _cache_plot_n_annotate_lcf["flux_col"] = flux_col
         _cache_plot_n_annotate_lcf["lc"] = lc
@@ -768,7 +742,7 @@ def plot_all(
         else:
             ax = ax_fn()
         lcf = lcf_coll[i]
-        lc = _to_lc_with_flux(lcf, flux_col)
+        lc = lke.select_flux(lcf, flux_col)
 
         lc = _normalize_to_percent_quiet(lc)
         if lc_tweak_fn is not None:
