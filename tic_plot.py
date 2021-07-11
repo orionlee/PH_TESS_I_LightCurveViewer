@@ -35,7 +35,8 @@ from IPython.display import display, HTML, Audio
 from ipywidgets import interactive, interactive_output, fixed
 import ipywidgets as widgets
 
-from lightkurve import LightCurveCollection, LightkurveWarning
+import lightkurve as lk
+from lightkurve import LightCurveCollection, LightkurveWarning, FoldedLightCurve
 from lightkurve.utils import TessQualityFlags
 from lightkurve_ext import of_sectors
 import lightkurve_ext as lke
@@ -1501,6 +1502,54 @@ def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(12, 6), title_extr
     plt.title(f"{lc.label} folded at 2X periods {title_extra}\nperiod={period:.4f} d")
 
     return ax, lc_folded
+
+
+def calc_cycles(lc: FoldedLightCurve):
+    cycle_epoch_start = lc.epoch_time - lc.epoch_phase - lc.period / 2
+    cycles = np.asarray(np.floor(((lc.time_original - cycle_epoch_start) / lc.period).value), dtype=int)
+    # the cycle where epoch is set as 0, adjust it so that the first cycle is 0
+    cycles = cycles - cycles.min()
+
+    return cycles
+
+
+def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, interval=1000):
+    def _update_anim(cycle, ax, lc, cycle_column):
+        ax.cla()
+        lc_of_cycle = lc[cycle_column == cycle]
+        lc_of_cycle.scatter(ax=ax)
+        ax.set_title(
+            f"""{lc.label} , cycle {cycle}, {lc_of_cycle.time_original.format.upper()} \
+{lc_of_cycle.time_original.min().value:.4f} - {lc_of_cycle.time_original.max().value:.4f}"""
+        )
+
+    if ax is None:
+        with plt.style.context(lk.MPLSTYLE):
+            ax = plt.figure(figsize=(15, 6)).gca()
+
+    cycle_column = calc_cycles(lc)
+    cycle_list = np.unique(cycle_column)
+    cycle_list.sort()
+
+    anim = animation.FuncAnimation(
+        ax.get_figure(),
+        _update_anim,
+        frames=cycle_list,
+        fargs=(ax, lc, cycle_column),
+        interval=interval,
+        blit=False,
+    )
+
+    if display:
+        # for inline display in jupyter
+        try:
+            from IPython.display import HTML
+            from IPython.display import display as iDisplay
+
+            return iDisplay(HTML(anim.to_jshtml(default_mode="once")))
+        except ImportError:
+            print("WARNING: animate_centroids() - inline display not possible Not in IPython environment.")
+            return anim
 
 
 #
