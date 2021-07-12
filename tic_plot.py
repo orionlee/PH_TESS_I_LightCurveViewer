@@ -1505,7 +1505,7 @@ def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(12, 6), title_extr
 
 
 def calc_cycles(lc: FoldedLightCurve):
-    cycle_epoch_start = lc.epoch_time - lc.epoch_phase - lc.period / 2
+    cycle_epoch_start = lc.epoch_time - lc.period / 2
     cycles = np.asarray(np.floor(((lc.time_original - cycle_epoch_start) / lc.period).value), dtype=int)
     # the cycle where epoch is set as 0, adjust it so that the first cycle is 0
     cycles = cycles - cycles.min()
