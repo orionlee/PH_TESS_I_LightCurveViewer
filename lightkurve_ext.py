@@ -6,10 +6,13 @@ import os
 import logging
 import math
 import json
+import re
 import warnings
 from collections import OrderedDict
 
 from astropy.io import fits
+from astropy.table import Table
+from astropy.time import Time
 import astropy.units as u
 import numpy as np
 from scipy.interpolate import UnivariateSpline
@@ -659,3 +662,48 @@ def select_flux(lc, flux_cols):
         if res is not None:
             return res
     raise ValueError(f"'column {flux_cols}' not found")
+
+
+#
+# Reader for ASAS-SN
+#
+
+
+def read_asas_sn_csv(url=None, asas_sn_uuid=None):
+    if url is None:
+        if asas_sn_uuid is not None:
+            url = f"https://asas-sn.osu.edu/variables/{asas_sn_uuid}/star_data/export?type=csv"
+        else:
+            raise ValueError("either url or asas_sn_uuid must be supplied")
+    else:
+        match = re.match(r".*asas-sn.osu.edu/variables/([^/]+)/star_data/export", url)
+        if match is not None:
+            asas_sn_uuid = match[1]
+
+    tab = Table.read(url, format="ascii")
+
+    # make columns follow Lightkurve convention
+    tab.rename_column("mag err", "mag_err")
+    tab.rename_column("flux (mJy)", "flux")
+    tab.rename_column("flux err", "flux_err")
+
+    tab.sort(keys="hjd")
+
+    tab["mag"].unit = u.mag
+    tab["mag_err"].unit = u.mag
+    # OPEN: unit of flux is actually mJy. I don't know what it means though
+    tab["flux"].unit = u.dimensionless_unscaled
+    tab["flux_err"].unit = u.dimensionless_unscaled
+
+    lc = lk.LightCurve(time=Time(tab["hjd"], format="jd", scale="tt"), data=tab)
+
+    lc.meta["FILEURL"] = url
+    if asas_sn_uuid is not None:
+        lc.meta["ASAS-SN_UUID"] = asas_sn_uuid
+        label = f"ASAS-SN {asas_sn_uuid}"
+        filters = np.unique(lc.filter)
+        if len(filters) > 1:
+            label += " , filters: {', '.join(np.unique(lc.filter))}"
+        lc.meta["LABEL"] = label
+
+    return lc
