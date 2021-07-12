@@ -1513,14 +1513,20 @@ def calc_cycles(lc: FoldedLightCurve):
     return cycles
 
 
-def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, interval=1000):
-    def _update_anim(cycle, ax, lc, cycle_column):
+def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, interval=1000):
+    def _update_anim(frame, ax, lc, cycle_column, cycle_list, num_cycles_per_plot):
+        cycle_list_subset = cycle_list[num_cycles_per_plot * frame : num_cycles_per_plot * (frame + 1)]
+
         ax.cla()
-        lc_of_cycle = lc[cycle_column == cycle]
-        lc_of_cycle.scatter(ax=ax)
+        lc_subset = lc[np.in1d(cycle_column, cycle_list_subset)]
+        lc_subset.scatter(ax=ax)
+        if len(cycle_list_subset) < 2:
+            cycle_list_subset_label = cycle_list_subset[0]
+        else:
+            cycle_list_subset_label = f"{np.min(cycle_list_subset)} - {np.max(cycle_list_subset)}"
         ax.set_title(
-            f"""{lc.label} , cycle {cycle}, {lc_of_cycle.time_original.format.upper()} \
-{lc_of_cycle.time_original.min().value:.4f} - {lc_of_cycle.time_original.max().value:.4f}"""
+            f"""{lc.label} , cycle {cycle_list_subset_label}, {lc_subset.time_original.format.upper()} \
+{lc_subset.time_original.min().value:.4f} - {lc_subset.time_original.max().value:.4f}"""
         )
 
     if ax is None:
@@ -1531,25 +1537,28 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, interval=1000):
     cycle_list = np.unique(cycle_column)
     cycle_list.sort()
 
+    num_cycles_per_plot = int(np.ceil(len(cycle_list) / num_frames))
+    num_frames = int(np.ceil(len(cycle_list) / num_cycles_per_plot))
+
+    cycle_idxs = list(range(0, num_frames))
     anim = animation.FuncAnimation(
         ax.get_figure(),
         _update_anim,
-        frames=cycle_list,
-        fargs=(ax, lc, cycle_column),
+        frames=cycle_idxs,
+        fargs=(ax, lc, cycle_column, cycle_list, num_cycles_per_plot),
         interval=interval,
         blit=False,
     )
 
-    if display:
-        # for inline display in jupyter
-        try:
-            from IPython.display import HTML
-            from IPython.display import display as iDisplay
+    # for inline display in jupyter
+    try:
+        from IPython.display import HTML
+        from IPython.display import display as iDisplay
 
-            return iDisplay(HTML(anim.to_jshtml(default_mode="once")))
-        except ImportError:
-            print("WARNING: animate_centroids() - inline display not possible Not in IPython environment.")
-            return anim
+        return iDisplay(HTML(anim.to_jshtml(default_mode="once")))
+    except ImportError:
+        print("WARNING: animate_folded_lightcurve() - display not possible in non-IPython environment.")
+        return anim
 
 
 #
