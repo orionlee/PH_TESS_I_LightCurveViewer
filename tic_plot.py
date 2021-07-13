@@ -658,6 +658,10 @@ def plot_transit(lcf, ax, t0, duration, surround_time, **kwargs):
 
 def plot_transits(lcf_coll, transit_specs, ax_fn=lambda: lcf_fig().gca(), **kwargs):
     """Helper to plot transits zoomed-in."""
+    flux_col = kwargs.get("flux_col", "flux")
+    if not isinstance(flux_col, str) or flux_col.lower() not in ["flux", "pdcsap_flux"]:
+        display(HTML(f"""<span style="background-color: yellow"> Note: </span> Not standard flux is plotted: {flux_col}"""))
+
     axs = []
     for spec in transit_specs:
         for lcf in of_sectors(lcf_coll, spec["sector"]):  # in case we have multiple lcf per sector
