@@ -511,6 +511,7 @@ def plot_n_annotate_lcf(
     t0_label_suffix=None,
     lc_tweak_fn=None,
     ax_tweak_fn=None,
+    legend_kwargs=dict(),
 ):
     if lcf is None:
         print("Warning: lcf is None. Plot skipped")
@@ -621,7 +622,7 @@ def plot_n_annotate_lcf(
                     f"dip ~= {as_4decimal(flux_dip)}%{r_obj_msg}{transit_duration_msg}"
                 )
         ax.set_title(title_text, {"fontsize": title_fontsize})
-    ax.legend()
+    ax.legend(**legend_kwargs)
 
     _add_flux_origin_to_ylabel(ax, lc)
 
@@ -1016,6 +1017,8 @@ def _update_plot_transit_interactive(
             flux_col=flux_col,
             moving_avg_window=moving_avg_window,
             t0mark_ymax=t0mark_ymax,
+            # fix legend to upper left to avoid clashing with the notebook nav at the upper right
+            legend_kwargs=dict(loc="upper left"),
         )
         codes_text += f"""
 #   transit parameters - t0: BTJD {t0}, duration: {duration_hr} hours, period: {period} days
