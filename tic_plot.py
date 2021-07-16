@@ -1527,6 +1527,12 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
         ax.cla()
         lc_subset = lc[np.in1d(cycle_column, cycle_list_subset)]
         lc_subset.scatter(ax=ax)
+
+        # ensure all plots have the same scale
+        ax.set_xlim(lc.time.min().value, lc.time.max().value)
+        ax.set_ylim(lc.flux.min().value, lc.flux.max().value)
+
+        # set title
         if len(cycle_list_subset) < 2:
             cycle_list_subset_label = cycle_list_subset[0]
         else:
@@ -1536,6 +1542,7 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
 {lc_subset.time_original.min().value:.4f} - {lc_subset.time_original.max().value:.4f}"""
         )
 
+    lc = lc.remove_nans()  # remove any potential empty frames with no flux
     if ax is None:
         with plt.style.context(lk.MPLSTYLE):
             ax = plt.figure(figsize=(15, 6)).gca()
