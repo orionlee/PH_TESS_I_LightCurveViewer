@@ -638,6 +638,20 @@ def tess_flux_to_mag(flux):
         return res_raw
 
 
+def mag_to_tess_flux(mag):
+    """Convert magnitude to flux in TESS observation."""
+    if isinstance(mag, u.Quantity):
+        mag_raw = mag.to(u.mag).value
+    else:
+        mag_raw = mag
+
+    flux_raw = (10 ** ((10 - mag_raw) / 2.5)) * 15000
+    if isinstance(mag, u.Quantity):
+        return flux_raw * ((u.electron / u.second))
+    else:
+        return flux_raw
+
+
 def select_flux(lc, flux_cols):
     """Return a Lightcurve object with the named column as the flux column.
 
