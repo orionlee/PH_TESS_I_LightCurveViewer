@@ -1303,6 +1303,123 @@ def mark_transit_times(
     return ax, tt_list
 
 
+def break_vals_to_intervals(vals, min_v_diff):
+    v_diff = np.diff(vals, prepend=vals[0])
+    break_idxs = np.where(v_diff > min_v_diff)[0]
+    # add begin to the indices
+    break_idxs = np.concatenate(([0], break_idxs))
+
+    def to_interval(i):
+        i_start = break_idxs[i]
+        if i < len(break_idxs) - 1:
+            i_stop = break_idxs[i + 1]
+        else:
+            i_stop = len(vals)
+        return (vals[i_start], vals[i_stop - 1])
+
+    return np.array([to_interval(i) for i in np.arange(0, len(break_idxs))])
+
+
+def intervals_to_ratio(intervals):
+    def width(a_pair):
+        res = a_pair[1] - a_pair[0]
+        return res if res > 0 else 0.1  # ensure width is positive
+
+    return np.array([width(a_pair) for a_pair in intervals])
+
+
+def plot_skip_data_gap(lc, wspace=0.2, figsize=(16, 4), data_gap_min_days=10, **kwargs):
+    """Plot a lightcurve, but compress large time gap.
+    Use cases: for a lc stitched from multiple sectors, there are often huge data gap.
+    This plot compresses the data gap.
+    """
+
+    # derived from broken axis example
+    # https://matplotlib.org/stable/gallery/subplots_axes_and_figures/broken_axis.html
+
+    # break the lc into a a few where there is a data gap between them
+    # each is represented by an interval [time_start, time_stop_inclusive]
+    intervals = break_vals_to_intervals(lc.time.value, min_v_diff=data_gap_min_days)
+    width_ratio = intervals_to_ratio(intervals)
+
+    num_plots = len(intervals)
+    with plt.style.context(lk.MPLSTYLE):
+        figsize = kwargs.pop("figsize", figsize)
+        fig, axs = plt.subplots(1, num_plots, sharey=True, figsize=figsize, gridspec_kw={"width_ratios": width_ratio})
+
+    # compress vertical spaces between plots
+    fig.subplots_adjust(wspace=wspace)
+
+    xlabel_text = ""
+    for i, (ax, interval) in enumerate(zip(axs, intervals)):
+        lc.truncate(interval[0], interval[1] + 0.0001).scatter(ax=ax, **kwargs)
+
+        # hide the spines between axs
+        if 0 < i < num_plots - 1:
+            ax.spines["left"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+        elif i == 0:
+            ax.spines["right"].set_visible(False)
+        else:
+            ax.spines["left"].set_visible(False)
+
+        # hide the axis/and ticks
+        if i > 0:
+            ax.yaxis.set_visible(False)
+
+        # Now, let's turn towards the cut-out slanted lines.
+        # We create line objects in axes coordinates, in which (0,0), (0,1),
+        # (1,0), and (1,1) are the four corners of the axes.
+        # The slanted lines themselves are markers at those locations, such that the
+        # lines keep their angle and position, independent of the axes size or scale
+        # Finally, we need to disable clipping.
+
+        d = 0.5  # proportion of vertical to horizontal extent of the slanted line
+        marker_kwargs = dict(
+            marker=[(-1, -d), (1, d)],
+            markersize=12,
+            linestyle="none",
+            color="darkgray",
+            alpha=0.4,
+            mec="k",
+            mew=1,
+            clip_on=False,
+        )
+        if i < num_plots - 1:
+            ax.plot(1, 0, transform=ax.transAxes, **marker_kwargs)  # the right bottom mark
+            ax.plot(1, 1, transform=ax.transAxes, **marker_kwargs)  # the right top mark
+        if i > 0:
+            ax.plot(0, 0, transform=ax.transAxes, **marker_kwargs)  # the left bottom mark
+            ax.plot(0, 1, transform=ax.transAxes, **marker_kwargs)  # the left top mark
+
+        # 1 xlabel for entire plot that will be constructed later
+        xlabel_text = ax.get_xlabel()
+        ax.set_xlabel("")
+
+        # 1 legend for entire plot
+        if i < num_plots - 1:
+            ax.legend().remove()
+        else:
+            ax.legend(loc="upper right")
+
+    # use a special text object for the single xlabel
+    # so that it can be positioned at the center
+    custom_xlabel_text_obj = fig.text(0.5, 0, xlabel_text, ha="center")
+    # propagagate the text properties from the native xlabel to our custom oe
+    for prop in ["color", "fontsize", "fontproperties", "fontfamily", "fontname", "fontstyle", "fontweight", "fontvariant"]:
+        # generalized version of: custom_xlabel_text_obj.set_fontsize(axs[0].xaxis.get_label().get_fontsize())
+        getattr(custom_xlabel_text_obj, f"set_{prop}")(getattr(axs[0].xaxis.get_label(), f"get_{prop}")())
+
+    # OPEN: create a wrapper over the axs, say, `HorizontalAxesCollection`, such that users have convenience plot methods
+    # as if it is a single plot object, e.g.,
+    # - axvline(): find the right ax to forward the call
+    # - get/set_xlabel(): forward to the custom xlabel text object `custom_xlabel_text_obj`
+    # - get/set_ylabel(): forward to axs[0]
+    # - set_title(): use figure
+
+    return axs
+
+
 def scatter_centroids(
     lcf,
     fig=None,
