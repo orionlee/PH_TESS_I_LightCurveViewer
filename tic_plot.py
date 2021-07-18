@@ -18,6 +18,7 @@ from types import SimpleNamespace
 from memoization import cached
 import xmltodict
 
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter, AutoMinorLocator
 import matplotlib.animation as animation
@@ -1346,6 +1347,9 @@ def plot_skip_data_gap(lc, wspace=0.2, figsize=(16, 4), data_gap_min_days=10, **
     with plt.style.context(lk.MPLSTYLE):
         figsize = kwargs.pop("figsize", figsize)
         fig, axs = plt.subplots(1, num_plots, sharey=True, figsize=figsize, gridspec_kw={"width_ratios": width_ratio})
+        if isinstance(axs, matplotlib.axes.Axes):
+            # case it returns a single Axes object
+            axs = [axs]
 
     # compress vertical spaces between plots
     fig.subplots_adjust(wspace=wspace)
