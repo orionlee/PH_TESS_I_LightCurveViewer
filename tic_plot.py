@@ -1354,9 +1354,40 @@ def plot_skip_data_gap(lc, wspace=0.2, figsize=(16, 4), data_gap_min_days=10, **
     # compress vertical spaces between plots
     fig.subplots_adjust(wspace=wspace)
 
+    def create_tstart_sector_list(lc):
+        res = []
+        header_dict = lc.meta.get("HEADERS_ORIGINAL", {})  # a sector: meta dict
+        for sector in header_dict:
+            meta = header_dict[sector]
+            tstart = meta.get("TSTART", None)
+            if tstart is not None:
+                res.append((tstart, sector))
+        return res
+
+    # to be consumed (and eventually emptied) in the for loop
+    tstart_sector_list = create_tstart_sector_list(lc)
+
     xlabel_text = ""
     for i, (ax, interval) in enumerate(zip(axs, intervals)):
         lc.truncate(interval[0], interval[1] + 0.0001).scatter(ax=ax, **kwargs)
+
+        # add sector start marker(s) to the current ax when in range
+        while len(tstart_sector_list) > 0:
+            tstart = tstart_sector_list[0][0]
+            if interval[0] - 1 <= tstart <= interval[1]:
+                # the current chunk is in range, mark tstart on graph
+                ax.axvline(tstart, c="gray", alpha=0.4, linestyle="--")
+                ax.text(  # annotate the line
+                    tstart,
+                    0.99,
+                    f" S{tstart_sector_list[0][1]}",
+                    transform=ax.get_xaxis_transform(),
+                    va="top",
+                    c="gray",
+                )
+                del tstart_sector_list[0]
+            else:
+                break
 
         # hide the spines between axs
         if 0 < i < num_plots - 1:

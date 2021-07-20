@@ -565,6 +565,46 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
         return transit_times
 
 
+def stitch(lcf_coll, **kwargs):
+    """Wrapper over native stitch(), and tweak the metadata so that it behaves like a typical single-sector lightcurve."""
+
+    def update_meta_if_exists_in(lc_src, keys):
+        for key in keys:
+            val = lc_src.meta.get(key, None)
+            if val is not None:
+                lc_stitched.meta[key] = val
+
+    def safe_del_meta(key):
+        if lc_stitched.meta.get(key, None) is not None:
+            del lc_stitched.meta[key]
+
+    lc_stitched = lcf_coll.stitch(**kwargs)
+
+    # now update the metadata
+
+    lc_stitched.meta["STITCHED"] = True
+
+    # update observation start/stop dates
+    update_meta_if_exists_in(lcf_coll[0], ("TSTART", "DATE-OBS"))
+    update_meta_if_exists_in(lcf_coll[-1], ("TSTOP", "DATE-END"))
+
+    # TODO: recalculate TELAPSE, LIVETIME, DEADC (which is LIVETIME / TELAPSE)
+
+    safe_del_meta("FILENAME")  # don't associate it with a file anymore
+
+    # record the sectors stitched and the associated metadata
+    sector_list = [lc.meta.get("SECTOR") for lc in lcf_coll if lc.meta.get("SECTOR") is not None]
+    meta_list = [lc.meta for lc in lcf_coll if lc.meta.get("SECTOR") is not None]
+    if len(sector_list) > 0:
+        lc_stitched.meta["SECTORS"] = sector_list
+        meta_dict = dict()
+        for sector, meta in zip(sector_list, meta_list):
+            meta_dict[sector] = meta.copy()
+        lc_stitched.meta["HEADERS_ORIGINAL"] = meta_dict
+
+    return lc_stitched
+
+
 def to_window_length_for_2min_cadence(length_day):
     """Helper for LightCurve.flatten().
     Return a `window_length` for the given number of days, assuming the data has 2-minute cadence."""
