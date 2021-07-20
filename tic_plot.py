@@ -488,8 +488,12 @@ def _add_flux_origin_to_ylabel(ax, lc):
         "PATHOS": "psf_flux_cor",
     }
 
+    def make_italic(text):
+        # convert the text to latex italic expression
+        return r"$\it{" + text.replace("_", r"\_") + "}$"
+
     if lc.flux_origin is not None and lc.flux_origin != standard_flux_col_map.get(lc.author, None):
-        ax.yaxis.set_label_text(ax.yaxis.get_label_text().replace("Flux", lc.flux_origin))
+        ax.yaxis.set_label_text(ax.yaxis.get_label_text().replace("Flux", make_italic(lc.flux_origin)))
 
 
 _cache_plot_n_annotate_lcf = dict(lcf=None, flux_col=None, lc=None)
