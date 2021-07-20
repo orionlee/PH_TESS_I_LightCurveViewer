@@ -603,7 +603,14 @@ def plot_n_annotate_lcf(
         )
 
     if set_title:
-        title_text = f"{lc.label}, sector {lcfh['SECTOR']}"
+        title_text = lc.label
+        if lcfh.get("SECTORS") is not None:
+            sector_text = f"""{lcfh.get("SECTORS")[0]} - {lcfh.get("SECTORS")[1]}"""
+        else:
+            sector_text = lcfh.get("SECTOR", None)
+        if sector_text is not None:
+            title_text += f", sector {sector_text}"
+
         if lc.author is not None and lc.author != "SPOC":
             title_text += f", by {lc.author}"
         if t0 is not None:
