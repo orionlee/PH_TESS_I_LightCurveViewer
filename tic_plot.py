@@ -1315,6 +1315,23 @@ def mark_transit_times(
     return ax, tt_list
 
 
+def normalize_lc_across_collection(lc, lcf_coll, **kwargs):
+    """Normalize the given lightcurve across the collection of lightcurves."""
+
+    # TODO: check the flux have the same unit, reject or convert if they don't have the same unit
+
+    # calling np.nanmedain() directly over an array of fluxes does not work
+    # np.nanmedain requires all flux object has the same length (thus forming a normal 2D array)
+    median_all = np.nanmedian(np.concatenate([a_lc.flux.value for a_lc in lcf_coll]))
+    median_lc = np.nanmedian(lc.flux.value)
+
+    res = lc.normalize(**kwargs)
+    res.flux = res.flux * (median_lc / median_all)
+    res.flux_err = res.flux_err * (median_lc / median_all)
+
+    return res;
+
+
 def break_vals_to_intervals(vals, min_v_diff):
     v_diff = np.diff(vals, prepend=vals[0])
     break_idxs = np.where(v_diff > min_v_diff)[0]
