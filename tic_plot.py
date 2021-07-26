@@ -1072,7 +1072,7 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux"):
         description=r"$t_{epoch}$, -1 for unspecified",
         style=desc_style,
     )
-    duration_hr = widgets.FloatText(value=1, step=0.01, description="duration (hours)", style=desc_style)
+    duration_hr = widgets.FloatText(value=1, step=0.1, description="duration (hours)", style=desc_style)
     period = widgets.FloatText(value=999, step=0.01, description="period (days)", style=desc_style)
     step = widgets.IntText(value=0, description=r"cycle (0 for transit at $t_{epoch}$)", style=desc_style)
     surround_time = widgets.FloatText(value=7, step=0.5, description="padding (days)", style=desc_style)
@@ -1329,7 +1329,7 @@ def normalize_lc_across_collection(lc, lcf_coll, **kwargs):
     res.flux = res.flux * (median_lc / median_all)
     res.flux_err = res.flux_err * (median_lc / median_all)
 
-    return res;
+    return res
 
 
 def break_vals_to_intervals(vals, min_v_diff):
