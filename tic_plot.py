@@ -608,8 +608,8 @@ def plot_n_annotate_lcf(
 
     if set_title:
         title_text = lc.label
-        if lcfh.get("SECTORS") is not None:
-            sector_text = f"""{lcfh.get("SECTORS")[0]} - {lcfh.get("SECTORS")[1]}"""
+        if len(lcfh.get("SECTORS", [])) > 1:
+            sector_text = f"""{lcfh.get("SECTORS")[0]} - {lcfh.get("SECTORS")[-1]}"""
         else:
             sector_text = lcfh.get("SECTOR", None)
         if sector_text is not None:
