@@ -236,6 +236,12 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
         return res if res is not None else default_val
 
     html = f"""
+<div id="tic_metadata_ctr">
+<div id="tic_metadata_ctl">
+    <span id="float_expand_toggle" title="Toggle whether the metadata is shown or not"></span>
+    <span id="float_fixed_toggle" title="Toggle whether the metadata is shown in a floating box or a regular cell"></span>
+</div>
+<div id="tic_metadata_body">
 <h3>TIC {tic_id}</h3>
 """
     html += "&emsp;" + link("ExoFOP", f"https://exofop.ipac.caltech.edu/tess/target.php?id={tic_id}")
@@ -318,6 +324,78 @@ period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}"
     html += "</tbody></table>\n"
 
     # TODO: check if there is a TOI?!
+    html += """
+</div> <!-- id="tic_metadata_body" -->
+</div> <!-- id="tic_metadata_ctr" -->
+<style>
+    #tic_metadata_ctr.float {
+        position: fixed;
+        bottom: 12px;
+        right: 36px;
+        z-index: 999;
+        background-color: rgba(255, 255, 0, 0.3);
+        padding: 6px;
+    }
+
+    #tic_metadata_ctl {
+        margin-left: 12em; /* make it roughly to the left of TIC heading */
+    }
+    #tic_metadata_ctr.float #tic_metadata_ctl {
+        margin-left: 0;
+        float: right;
+    }
+
+    #float_fixed_toggle {
+        cursor: pointer;
+        padding: 6px;
+        font-size: 16px;
+        font-weight: normal;
+    }
+    #float_fixed_toggle:before {
+        content: "[To float >]";
+    }
+    #tic_metadata_ctr.float #float_fixed_toggle:before {
+        content: "[X]";
+    }
+
+    #float_expand_toggle {
+        cursor: pointer;
+        padding: 6px;
+        font-size: 16px;
+        font-weight: normal;
+        margin-left: 10px;
+    }
+
+    #tic_metadata_ctr.float #float_expand_toggle:before {
+        content: "<<";
+    }
+
+    #tic_metadata_ctr.float.expand #float_expand_toggle:before {
+        content: ">>";
+    }
+
+    #tic_metadata_ctr.float #tic_metadata_body {
+        display: none;
+    }
+
+    #tic_metadata_ctr.float.expand #tic_metadata_body {
+        display: block;
+    }
+
+</style>
+<script>
+    document.getElementById("float_fixed_toggle").onclick = function(evt) {
+        const ctr = document.getElementById("tic_metadata_ctr");
+        ctr.classList.toggle("float");
+        if (ctr.classList.contains("float")) {
+            ctr.classList.add("expand");
+        }
+};
+    document.getElementById("float_expand_toggle").onclick = function(evt) {
+        document.getElementById("tic_metadata_ctr").classList.toggle("expand");
+};
+</script>
+"""
 
     return html
 
@@ -1060,22 +1138,31 @@ ax.set_ylim({ymin_to_use}, {ymax_to_use})
     return None
 
 
-def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux"):
+def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=None):
     desc_style = {"description_width": "25ch"}
 
     # Add a second output for textual
     widget_out2 = widgets.Output()
 
+    if defaults is None:
+        defaults = {}
+
     t0 = widgets.FloatText(
-        value=-1,
+        value=defaults.get("epoch", -1),
         step=0.01,
         description=r"$t_{epoch}$, -1 for unspecified",
         style=desc_style,
     )
-    duration_hr = widgets.FloatText(value=1, step=0.1, description="duration (hours)", style=desc_style)
-    period = widgets.FloatText(value=999, step=0.01, description="period (days)", style=desc_style)
-    step = widgets.IntText(value=0, description=r"cycle (0 for transit at $t_{epoch}$)", style=desc_style)
-    surround_time = widgets.FloatText(value=7, step=0.5, description="padding (days)", style=desc_style)
+    duration_hr = widgets.FloatText(
+        value=defaults.get("duration_hr", 1), step=0.1, description="duration (hours)", style=desc_style
+    )
+    period = widgets.FloatText(value=defaults.get("period", 999), step=0.01, description="period (days)", style=desc_style)
+    step = widgets.IntText(
+        value=defaults.get("step", 0), description=r"cycle (0 for transit at $t_{epoch}$)", style=desc_style
+    )
+    surround_time = widgets.FloatText(
+        value=defaults.get("surround_time", 7), step=0.5, description="padding (days)", style=desc_style
+    )
     moving_avg_window = widgets.Dropdown(
         options=[
             ("None", None),
@@ -1086,7 +1173,7 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux"):
             ("2 hours", "2h"),
             ("4 hours", "4h"),
         ],
-        value="20min",
+        value=defaults.get("moving_avg_window", "20min"),
         description="moving average window",
         style=desc_style,
     )
