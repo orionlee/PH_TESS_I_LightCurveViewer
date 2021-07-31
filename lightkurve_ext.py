@@ -11,16 +11,17 @@ import warnings
 from collections import OrderedDict
 
 from astropy.io import fits
+from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy.time import Time
 import astropy.units as u
+
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 
 from IPython.display import display, HTML
 
 import lightkurve as lk
-from lightkurve.search import SearchResult
 
 import asyncio_compat
 
@@ -716,6 +717,26 @@ def select_flux(lc, flux_cols):
         if res is not None:
             return res
     raise ValueError(f"'column {flux_cols}' not found")
+
+
+def coordinate_like_id_to_coordinate(id, style="decimal"):
+    """Given an identifier that describes the target's coordinate, return the cooridnate in string or `SkyCoord` object.
+    The type of IDs supported are in the form of '<prefix-of-catalog> J<ra><dec>'.
+    Catalogs that adopts such form of ids include PTF1, ASASSN-V, WISE, WISEA, 1SWASP, etc.
+
+    """
+    # e.g.,
+    # PTF1 J2219+3135 (the shorterned form often found in papers)
+    # PTF1 J221910.09+313523.1  (the actual id, with higher precision)
+    result = re.findall(r"^.{2,}\s*J(\d{2})(\d{2})([0-9.]*)([+-])(\d{2})(\d{2})([0-9.]*)\s*$", id)
+    if len(result) < 1:
+        return None
+    [ra_hh, ra_mm, ra_ss, dec_sign, dec_deg, dec_min, dec_ss] = result[0]
+    coord = SkyCoord(f"{ra_hh} {ra_mm} {ra_ss} {dec_sign} {dec_deg} {dec_min} {dec_ss}", unit=(u.hourangle, u.deg))
+    if style is None:
+        return coord
+    else:
+        return coord.to_string(style=style)
 
 
 #
