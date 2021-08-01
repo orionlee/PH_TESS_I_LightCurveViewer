@@ -212,6 +212,67 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
     return res
 
 
+def _tce_info_to_html(tce_info_list):
+    if len(tce_info_list) < 1:
+        return ""
+
+    def link(link_text, url):
+        return f"""<a href="{url}" target="_blank">{link_text}</a>"""
+
+    def row(*args):
+        return "<tr>" + "".join(f"<td>{v}</td>" for v in args) + "</tr>"
+
+    html = ""
+    header = [
+        ("TCE", ""),
+        ("Reports", ""),
+        ("R<sub>p</sub>", "R<sub>j</sub>"),
+        ("Epoch", "BTJD"),
+        ("Duration", "hr"),
+        ("Period", "day"),
+        ("Depth", "%"),
+        ("Impact P.", "<i>b</i>"),
+        ("Codes", ""),
+    ]
+    html += """<br>TCEs: <table>
+<thead>"""
+    html += "<tr>"
+    html += " ".join([f"<th>{h[0]}</th>" for h in header])
+    html += "</tr>\n"
+    html += "<tr>"
+    html += " ".join([f"<th>{h[1]}</th>" for h in header])
+    html += "</tr>\n"
+    html += """
+</thead>
+<tbody>
+"""
+    R_EARTH_TO_R_JUPITER = 6378.1 / 71492
+    for info in tce_info_list:
+        exomast_url = f'https://exo.mast.stsci.edu/exomast_planet.html?planet={info.get("tce_id")}'
+        dvs_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
+        dvr_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvr_dataURI")}'
+        p_i = info.get("planet", {})
+        html += row(
+            link(info.get("tce_id_short"), exomast_url),
+            f"""{link("dvs", dvs_url)},&emsp;{link("full", dvr_url)}""",
+            f'{p_i.get("planetRadiusEarthRadii", 0) * R_EARTH_TO_R_JUPITER:.3f}',
+            f'{p_i.get("transitEpochBtjd", 0):.4f}',
+            f'{p_i.get("transitDurationHours", 0):.4f}',
+            f'{p_i.get("orbitalPeriodDays", 0):.6f}',
+            f'{p_i.get("transitDepthPpm", 0) / 10000:.4f}',
+            f'{p_i.get("minImpactParameter", 0):.2f}',
+            # code fragments to so that users can easily use a TCE as an entry in transit_specs
+            f"""\
+<input type="text" style="margin-left: 3ch; font-size: 90%; color: #666; width: 10ch;"
+    value='epoch={p_i.get("transitEpochBtjd", 0):.4f}, duration_hr={p_i.get("transitDurationHours", 0):.4f}, \
+period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}",'>""",
+        )
+        html += "\n"
+
+    html += "</tbody></table>\n"
+    return html
+
+
 def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
     # This function does not do the actual display,
     # so that the caller can call it in background
@@ -221,9 +282,6 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
 
     def prop(prop_name, prop_value):
         return f"""    <tr><td>{prop_name}</td><td>{prop_value}</td></tr>\n"""
-
-    def row(*args):
-        return "<tr>" + "".join(f"<td>{v}</td>" for v in args) + "</tr>"
 
     # main logic
     m = lc.meta
@@ -267,67 +325,19 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
     html += prop("T_eff (in K)", safe_m_get("TEFF", 0))
     html += "</table>\n"
 
-    # TODO: For TCE, query MAST download / parse results (the _dvr.xml), tho show
+    # For TCE, query MAST download / parse results (the _dvr.xml), then show:
     # - basic planet parameters and orbital info
-    # - red flags in vetting report
+    # - TODO: red flags in vetting report
     # see: https://archive.stsci.edu/missions-and-data/tess/data-products
     tce_info_list = get_tce_infos_of_tic(tic_id, download_dir=download_dir)
-    if len(tce_info_list) < 1:
-        return html
-
-    header = [
-        ("TCE", ""),
-        ("Reports", ""),
-        ("R<sub>p</sub>", "R<sub>j</sub>"),
-        ("Epoch", "BTJD"),
-        ("Duration", "hr"),
-        ("Period", "day"),
-        ("Depth", "%"),
-        ("Impact P.", "<i>b</i>"),
-        ("Codes", ""),
-    ]
-    html += """<br>TCEs: <table>
-<thead>"""
-    html += "<tr>"
-    html += " ".join([f"<th>{h[0]}</th>" for h in header])
-    html += "</tr>\n"
-    html += "<tr>"
-    html += " ".join([f"<th>{h[1]}</th>" for h in header])
-    html += "</tr>\n"
-    html += """
-</thead>
-<tbody>
-"""
-    R_EARTH_TO_R_JUPITER = 6378.1 / 71492
-    for info in tce_info_list:
-        exomast_url = f'https://exo.mast.stsci.edu/exomast_planet.html?planet={info.get("tce_id")}'
-        dvs_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
-        dvr_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvr_dataURI")}'
-        p_i = info.get("planet", {})
-        html += row(
-            link(info.get("tce_id_short"), exomast_url),
-            f"""{link("dvs", dvs_url)},&emsp;{link("full", dvr_url)}""",
-            f'{p_i.get("planetRadiusEarthRadii", 0) * R_EARTH_TO_R_JUPITER:.3f}',
-            f'{p_i.get("transitEpochBtjd", 0):.4f}',
-            f'{p_i.get("transitDurationHours", 0):.4f}',
-            f'{p_i.get("orbitalPeriodDays", 0):.6f}',
-            f'{p_i.get("transitDepthPpm", 0) / 10000:.4f}',
-            f'{p_i.get("minImpactParameter", 0):.2f}',
-            # code fragments to so that users can easily use a TCE as an entry in transit_specs
-            f"""\
-<input type="text" style="margin-left: 3ch; font-size: 90%; color: #666; width: 10ch;"
-       value='epoch={p_i.get("transitEpochBtjd", 0):.4f}, duration_hr={p_i.get("transitDurationHours", 0):.4f}, \
-period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}",'>""",
-        )
-        html += "\n"
-
-    html += "</tbody></table>\n"
+    html += _tce_info_to_html(tce_info_list)
 
     # TODO: check if there is a TOI?!
+
     html += """
 </div> <!-- id="tic_metadata_body" -->
-</div> <!-- id="tic_metadata_ctr" -->
-<style>
+</div> <!--  id="tic_metadata_ctr" -->
+<style id="tic_metadata_out_style">
     #tic_metadata_ctr.float {
         position: fixed;
         bottom: 12px;
@@ -398,7 +408,6 @@ period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}"
 };
 </script>
 """
-
     return html
 
 
