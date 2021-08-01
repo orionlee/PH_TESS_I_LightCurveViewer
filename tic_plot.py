@@ -335,6 +335,8 @@ period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}"
         z-index: 999;
         background-color: rgba(255, 255, 0, 0.3);
         padding: 6px;
+        max-height: 75vh;  /* ensure for TIC with large number of TCEs, the floating box won't fill up too much space */
+        overflow-y: scroll;
     }
 
     #tic_metadata_ctl {
