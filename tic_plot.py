@@ -1798,13 +1798,13 @@ def calc_cycles(lc: FoldedLightCurve):
     return cycles
 
 
-def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, interval=1000):
-    def _update_anim(frame, ax, lc, cycle_column, cycle_list, num_cycles_per_plot):
+def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, interval=1000, plot_kwargs={}):
+    def _update_anim(frame, ax, lc, cycle_column, cycle_list, num_cycles_per_plot, plot_kwargs):
         cycle_list_subset = cycle_list[num_cycles_per_plot * frame : num_cycles_per_plot * (frame + 1)]
 
         ax.cla()
         lc_subset = lc[np.in1d(cycle_column, cycle_list_subset)]
-        lc_subset.scatter(ax=ax)
+        lc_subset.scatter(ax=ax, **plot_kwargs)
 
         # ensure all plots have the same scale
         ax.set_xlim(lc.time.min().value, lc.time.max().value)
@@ -1837,7 +1837,7 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
         ax.get_figure(),
         _update_anim,
         frames=cycle_idxs,
-        fargs=(ax, lc, cycle_column, cycle_list, num_cycles_per_plot),
+        fargs=(ax, lc, cycle_column, cycle_list, num_cycles_per_plot, plot_kwargs),
         interval=interval,
         blit=False,
     )
