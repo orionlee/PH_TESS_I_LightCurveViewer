@@ -1,3 +1,4 @@
+import contextlib
 import logging
 from time import time_ns
 from types import SimpleNamespace
@@ -27,27 +28,52 @@ def _flatten(lc, flatten_kwargs):
     return lc.flatten(**flatten_kwargs)
 
 
-def run_tls(lc, pg_kwargs={}, flatten_kwargs=None, plot_pg=True, plot_lc_model=True, plot_transit_depth=True):
-    lc = lc.remove_nans().normalize()
-    lc = _flatten(lc, flatten_kwargs)
-    time_b = _current_time_millis()
-    pg = lke_tls.TransitLeastSquaresPeriodogram.from_lightcurve(lc, **pg_kwargs)
-    time_e = _current_time_millis()
-    pg.elapsed_time = time_e - time_b
+def _remove_fig_title(*ax_args):
+    # Used to remove the extra title in %matplotlib widget mode
+    # alternative would be disbale them globally, see
+    # https://github.com/matplotlib/ipympl/issues/229#issuecomment-633430427
+    for ax in ax_args:
+        if ax is not None:
+            ax.get_figure().canvas.header_visible = False
+            ax.get_figure().canvas.footer_visible = False
+            # ax.get_figure().canvas.toolbar_visible = False
+            # ax.get_figure().canvas.resizable = False
 
-    lke_pg.validate_tls_n_report(pg)
 
-    ax_pg = None
-    if plot_pg:
-        ax_pg = lke_pg.plot_pg_n_mark_max(pg)
+def run_tls(
+    lc, pg_kwargs={}, flatten_kwargs=None, plot_pg=True, plot_lc_model=True, plot_transit_depth=True, display_context=None
+):
+    if display_context is None:
+        # note : nullcontext() requires Python 3.7
+        ctx_validate, ctx_plot = contextlib.nullcontext(), contextlib.nullcontext()
+    else:
+        ctx_validate, ctx_plot = display_context["validate"], display_context["plot"]
 
-    ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = None, None, None
-    if plot_lc_model:
-        ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = lke_pg.plot_lc_with_model(lc, pg)
+    with ctx_validate:
+        lc = lc.remove_nans().normalize()
+        lc = _flatten(lc, flatten_kwargs)
+        time_b = _current_time_millis()
+        pg = lke_tls.TransitLeastSquaresPeriodogram.from_lightcurve(lc, **pg_kwargs)
+        time_e = _current_time_millis()
+        pg.elapsed_time = time_e - time_b
 
-    ax_tt_depth = None
-    if plot_transit_depth:
-        ax_tt_depth = lke_pg.errorbar_transit_depth(pg)
+        lke_pg.validate_tls_n_report(pg)
+
+    with ctx_plot:
+        ax_pg = None
+        if plot_pg:
+            ax_pg = lke_pg.plot_pg_n_mark_max(pg)
+            _remove_fig_title(ax_pg)
+
+        ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = None, None, None
+        if plot_lc_model:
+            ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = lke_pg.plot_lc_with_model(lc, pg)
+            _remove_fig_title(ax_lc_model_1, ax_lc_model_2, ax_lc_model_f)
+
+        ax_tt_depth = None
+        if plot_transit_depth:
+            ax_tt_depth = lke_pg.errorbar_transit_depth(pg)
+            _remove_fig_title(ax_tt_depth)
 
     return SimpleNamespace(
         pg=pg,
@@ -60,31 +86,40 @@ def run_tls(lc, pg_kwargs={}, flatten_kwargs=None, plot_pg=True, plot_lc_model=T
     )
 
 
-def run_bls(lc, pg_kwargs={}, flatten_kwargs=None, plot_pg=True, plot_lc_model=True):
-    lc = lc.remove_nans().normalize()
-    lc = _flatten(lc, flatten_kwargs)
-    time_b = _current_time_millis()
-    pg = lc.to_periodogram(method="bls", **pg_kwargs)
-    time_e = _current_time_millis()
-    pg.elapsed_time = time_e - time_b
+def run_bls(lc, pg_kwargs={}, flatten_kwargs=None, plot_pg=True, plot_lc_model=True, display_context=None):
+    if display_context is None:
+        ctx_validate, ctx_plot = contextlib.nullcontext(), contextlib.nullcontext()
+    else:
+        ctx_validate, ctx_plot = display_context["validate"], display_context["plot"]
 
-    lke_pg.validate_bls_n_report(pg)
+    with ctx_validate:
+        lc = lc.remove_nans().normalize()
+        lc = _flatten(lc, flatten_kwargs)
+        time_b = _current_time_millis()
+        pg = lc.to_periodogram(method="bls", **pg_kwargs)
+        time_e = _current_time_millis()
+        pg.elapsed_time = time_e - time_b
 
-    ax_pg = None
-    if plot_pg:
-        ax_pg = lke_pg.plot_pg_n_mark_max(pg)
-    ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = None, None, None
+        lke_pg.validate_bls_n_report(pg)
 
-    if plot_lc_model:
-        with warnings.catch_warnings():
-            # avoid warnings about using max power values
-            warnings.filterwarnings("ignore", message=".*Using.*")
-            logger = logging.getLogger("lightkurve.periodogram")
-            logger.setLevel(logging.ERROR)
-            ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = lke_pg.plot_lc_with_model(lc, pg)
+    with ctx_plot:
+        ax_pg = None
+        if plot_pg:
+            ax_pg = lke_pg.plot_pg_n_mark_max(pg)
+            _remove_fig_title(ax_pg)
 
-    ax_tt_depth = None
-    # ax_tt_depth = lke_pg.errorbar_transit_depth(pg) # bls has no info directly
+        ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = None, None, None
+        if plot_lc_model:
+            with warnings.catch_warnings():
+                # avoid warnings about using max power values
+                warnings.filterwarnings("ignore", message=".*Using.*")
+                logger = logging.getLogger("lightkurve.periodogram")
+                logger.setLevel(logging.ERROR)
+                ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = lke_pg.plot_lc_with_model(lc, pg)
+                _remove_fig_title(ax_lc_model_1, ax_lc_model_2, ax_lc_model_f)
+
+        ax_tt_depth = None
+        # ax_tt_depth = lke_pg.errorbar_transit_depth(pg) # bls has no info directly
 
     return SimpleNamespace(
         pg=pg,
@@ -106,15 +141,34 @@ def run_bls_n_tls(lc, plot_pg=True, plot_lc_model=True, plot_transit_depth=True,
     #
     # sometimes it crashes the browsers (possibly too many interactive figures?!)
 
-    out_bls = widgets.Output(layout={"border": "1px solid lightgray"})
-    out_tls = widgets.Output(layout={"border": "1px solid lightgray"})
+    out_bls_validate = widgets.Output(layout={"border": "0px solid lightgray"})
+    out_bls_plot = widgets.Output(layout={"border": "0px solid lightgray"})
+    out_tls_validate = widgets.Output(layout={"border": "0px solid lightgray"})
+    out_tls_plot = widgets.Output(layout={"border": "0px solid lightgray"})
     ctr = widgets.GridBox(
-        children=[out_bls, out_tls],
+        children=[out_bls_validate, out_tls_validate, out_bls_plot, out_tls_plot],
         layout=widgets.Layout(width="auto", grid_template_rows="auto", grid_template_columns="50% 50%", grid_gap="5px 10px"),
     )
 
-    with out_bls:
-        run_bls(lc, bls_pg_kwargs, plot_pg=plot_pg, plot_lc_model=plot_lc_model)
-    with out_tls:
-        run_tls(lc, tls_pg_kwargs, plot_pg=plot_pg, plot_lc_model=plot_lc_model, plot_transit_depth=plot_transit_depth)
+    run_bls(
+        lc,
+        bls_pg_kwargs,
+        plot_pg=plot_pg,
+        plot_lc_model=plot_lc_model,
+        display_context=dict(validate=out_bls_validate, plot=out_bls_plot),
+    )
+
+    run_tls(
+        lc,
+        tls_pg_kwargs,
+        plot_pg=plot_pg,
+        plot_lc_model=plot_lc_model,
+        plot_transit_depth=plot_transit_depth,
+        display_context=dict(validate=out_tls_validate, plot=out_tls_plot),
+    )
+
+    # with out_bls:
+    #     run_bls(lc, bls_pg_kwargs, plot_pg=plot_pg, plot_lc_model=plot_lc_model)
+    # with out_tls:
+    #     run_tls(lc, tls_pg_kwargs, plot_pg=plot_pg, plot_lc_model=plot_lc_model, plot_transit_depth=plot_transit_depth)
     return display(ctr)
