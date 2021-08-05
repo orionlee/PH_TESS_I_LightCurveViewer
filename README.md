@@ -31,6 +31,14 @@ Instructions:
 
 ---
 
+## Others: TCE Finder
+
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/master/TCE_Finder.ipynb)
+
+[TCE_Finder.ipynb](TCE_Finder.ipynb) - a Jupyter notebook that can be used a web-based tool to look up TCEs. Useful when TCEs are not yet available on exo.mast.
+
+---
+
 ## Learn More
 
 - [About Planet Hunters TESS](https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/about/research)
