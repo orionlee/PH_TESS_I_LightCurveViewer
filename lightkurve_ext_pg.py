@@ -3,19 +3,30 @@
 import warnings
 
 from types import SimpleNamespace
+from lightkurve.periodogram import BoxLeastSquaresPeriodogram
 
 import numpy as np
 
-
 from IPython.display import display, HTML
 
+# for type annotation
+from numbers import Number
 
-def plot_pg_n_mark_max(pg, ax=None):
+
+def plot_pg_n_mark_max(pg, ax=None, max_period_factor=None):
     ax = pg.plot(ax=ax, view="period")
     ax.axvline(pg.period_at_max_power.value, c="blue", alpha=0.4)
-    max_text = f"Power: {pg.max_power:.2f}, Period: {pg.period_at_max_power:.4f}, Depth: {pg.depth_at_max_power:.6f}"
-    x, y = pg.period_at_max_power.value, pg.max_power * 0.9
-    x_mid = ((pg.period.max() - pg.period.min()) / 2 + pg.period.min()).value
+    max_text = f"Power: {pg.max_power:.2f}, Period: {pg.period_at_max_power:.4f}"
+    if hasattr(pg, "depth_at_max_power"):  # to accommodate LombScarglePeriodogram
+        max_text += f", Depth: {pg.depth_at_max_power:.6f}"
+
+    if max_period_factor is not None and ax.get_xlim()[1] > pg.period_at_max_power.value * max_period_factor:
+        ax.set_xlim(0 if ax.get_xlim()[0] < 0 else None, pg.period_at_max_power.value * max_period_factor)
+        display(HTML("""<span style="background-color: yellow;">Note:</span>Long potential periods truncated from the plot"""))
+
+    x, y = pg.period_at_max_power.value, pg.max_power.value * 0.9
+    x_min, x_max = ax.get_xlim()
+    x_mid = (x_max - x_min) / 2 + x_min
     horizontalalignment = "left" if x < x_mid else "right"
     ax.text(x, y, " " + max_text + " ", c="blue", horizontalalignment=horizontalalignment)
     return ax
@@ -75,6 +86,10 @@ def errorbar_transit_depth(pg):
 
     ax.legend()
     return ax
+
+
+def sde(pg: BoxLeastSquaresPeriodogram) -> Number:
+    return (pg.max_power - np.mean(pg.power)) / np.std(pg.power)
 
 
 def validate_bls_n_report(pg, to_display=True):
