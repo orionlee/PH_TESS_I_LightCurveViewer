@@ -299,6 +299,8 @@ class TransitLeastSquaresPeriodogram(Periodogram):
 
 def create_bls_pg_with_stellar_specific_search_grid(lc: LightCurve, **kwargs) -> BoxLeastSquaresPeriodogram:
     """Run BLS using the stellar-specific grid from TLS implementation."""
+    # See: https://github.com/hippke/tls/blob/master/tutorials/09%20Optimal%20period%20grid%20and%20optimal%20duration%20grid.ipynb
+    # for background
     try:
         from transitleastsquares import period_grid, duration_grid
     except ImportError:
@@ -312,6 +314,8 @@ def create_bls_pg_with_stellar_specific_search_grid(lc: LightCurve, **kwargs) ->
         # TODO: handle optional parameters, in particular, minimum_period and maximum_period
         period = period_grid(radius, mass, (lc.time.max() - lc.time.min()).value)
         duration = duration_grid(period, shortest=None)  # shortest not used by implementation
+        # TODO: the duration_grid returned represents fractions of period,
+        # astropy BLS implementation requires actual period. We need to do a conversion
         log.debug(
             f"""\
 To Run BLS with grid: period: ({len(period)}){period[0]} - {period[-1]}  ; \
