@@ -302,20 +302,35 @@ def create_bls_pg_with_stellar_specific_search_grid(lc: LightCurve, **kwargs) ->
     # See: https://github.com/hippke/tls/blob/master/tutorials/09%20Optimal%20period%20grid%20and%20optimal%20duration%20grid.ipynb
     # for background
     try:
-        from transitleastsquares import period_grid, duration_grid
+        from transitleastsquares import period_grid, duration_grid, tls_constants
     except ImportError:
         raise Exception(
             "This feature requires the `transitleastsquares` package. "
             "You can install it using `pip install transitleastsquares`."
         )
 
+    def _to_absolute(duration_in_fraction, period, log_step=tls_constants.DURATION_GRID_STEP):
+        duration_min, duration_max = duration_in_fraction[0] * period[0], duration_in_fraction[-1] * period[-1]
+        # redoing what TLS duration_grid() does to create the grid given min, max
+        # - essentially creating a geometric space, with the log_step as the multiple
+        durations = [duration_min]
+        current_depth = duration_min
+        while current_depth * log_step < duration_max:
+            current_depth = current_depth * log_step
+            durations.append(current_depth)
+        durations.append(duration_max)  # Append endpoint. Not perfectly spaced.
+        return durations
+
     ab, mass, mass_min, mass_max, radius, radius_min, radius_max = _catalog_info(lc)
     if mass is not None:
         # TODO: handle optional parameters, in particular, minimum_period and maximum_period
         period = period_grid(radius, mass, (lc.time.max() - lc.time.min()).value)
-        duration = duration_grid(period, shortest=None)  # shortest not used by implementation
-        # TODO: the duration_grid returned represents fractions of period,
-        # astropy BLS implementation requires actual period. We need to do a conversion
+        duration_in_fraction = duration_grid(period, shortest=None)  # shortest not used by implementation
+        # convert the duration grid, in fraction of period, to one with absolute value.
+        # It is less accurate, because for a given triad period, the duration grid is the same
+        # (rather than specific to the period).
+        # But astropy BLS does not support expressing duration in fractions of periods
+        duration = _to_absolute(duration_in_fraction, period)
         log.debug(
             f"""\
 To Run BLS with grid: period: ({len(period)}){period[0]} - {period[-1]}  ; \
