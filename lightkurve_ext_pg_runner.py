@@ -86,7 +86,15 @@ def run_tls(
     )
 
 
-def run_bls(lc, pg_kwargs={}, flatten_kwargs=None, plot_pg=True, plot_lc_model=True, display_context=None):
+def run_bls(
+    lc,
+    use_stellar_specific_search_grid=False,
+    pg_kwargs={},
+    flatten_kwargs=None,
+    plot_pg=True,
+    plot_lc_model=True,
+    display_context=None,
+):
     if display_context is None:
         ctx_validate, ctx_plot = contextlib.nullcontext(), contextlib.nullcontext()
     else:
@@ -96,7 +104,10 @@ def run_bls(lc, pg_kwargs={}, flatten_kwargs=None, plot_pg=True, plot_lc_model=T
         lc = lc.remove_nans().normalize()
         lc = _flatten(lc, flatten_kwargs)
         time_b = _current_time_millis()
-        pg = lc.to_periodogram(method="bls", **pg_kwargs)
+        if use_stellar_specific_search_grid:
+            pg = lke_tls.create_bls_pg_with_stellar_specific_search_grid(lc, **pg_kwargs)
+        else:
+            pg = lc.to_periodogram(method="bls", **pg_kwargs)
         time_e = _current_time_millis()
         pg.elapsed_time = time_e - time_b
 
@@ -132,7 +143,15 @@ def run_bls(lc, pg_kwargs={}, flatten_kwargs=None, plot_pg=True, plot_lc_model=T
     )
 
 
-def run_bls_n_tls(lc, plot_pg=True, plot_lc_model=True, plot_transit_depth=True, bls_pg_kwargs={}, tls_pg_kwargs={}):
+def run_bls_n_tls(
+    lc,
+    use_stellar_specific_search_grid_for_bls=False,
+    plot_pg=True,
+    plot_lc_model=True,
+    plot_transit_depth=True,
+    bls_pg_kwargs={},
+    tls_pg_kwargs={},
+):
     # Run TLS and BLS and have their results displayed side-by-side.
     #
     # For the matplotlib figures to be displayed inside the respective boxes in Jupyter, magic
@@ -152,7 +171,8 @@ def run_bls_n_tls(lc, plot_pg=True, plot_lc_model=True, plot_transit_depth=True,
 
     run_bls(
         lc,
-        bls_pg_kwargs,
+        use_stellar_specific_search_grid=use_stellar_specific_search_grid_for_bls,
+        pg_kwargs=bls_pg_kwargs,
         plot_pg=plot_pg,
         plot_lc_model=plot_lc_model,
         display_context=dict(validate=out_bls_validate, plot=out_bls_plot),
