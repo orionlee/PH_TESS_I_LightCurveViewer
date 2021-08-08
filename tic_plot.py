@@ -264,6 +264,7 @@ def _tce_info_to_html(tce_info_list):
             # code fragments to so that users can easily use a TCE as an entry in transit_specs
             f"""\
 <input type="text" style="margin-left: 3ch; font-size: 90%; color: #666; width: 10ch;"
+    onclick="this.select();" readonly
     value='epoch={p_i.get("transitEpochBtjd", 0):.4f}, duration_hr={p_i.get("transitDurationHours", 0):.4f}, \
 period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}",'>""",
         )
