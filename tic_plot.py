@@ -1360,10 +1360,21 @@ class TransitTimeSpecList(list):
 
 
 def mark_transit_times(
-    lc, tt_specs, axvline_kwargs_specs=None, skip_no_transit_plot=False, lc_plot_func_name="scatter", ax=None
+    lc,
+    tt_specs,
+    axvline_kwargs_specs=None,
+    skip_no_transit_plot=False,
+    mark_data_gap=False,
+    legend_loc=None,
+    lc_plot_func_name="scatter",
+    ax=None,
 ):
     """Plot the given LC, and mark the transit times based on `tt_specs`."""
-    tt_list = [lke.get_transit_times_in_lc(lc, a_spec["epoch"], a_spec["period"]) for a_spec in tt_specs]
+    break_tolerance = 5 if not mark_data_gap else 1e7
+    tt_list = [
+        lke.get_transit_times_in_lc(lc, a_spec["epoch"], a_spec["period"], break_tolerance=break_tolerance)
+        for a_spec in tt_specs
+    ]
 
     # skip if no transit found
     # (tt_list is a list of list, so it needs to be flattend for counting)
@@ -1402,7 +1413,7 @@ def mark_transit_times(
             axvline_kwargs = axvline_kwargs.copy()  # as we might need to modify them locally
             ymin, ymax = axvline_kwargs.pop("ymin", 0), axvline_kwargs.pop("ymax", 0.1)
             ax.axvline(transit_times[0], ymin, ymax, **axvline_kwargs)
-    ax.legend()
+    ax.legend(loc=legend_loc)
 
     for (transit_times, axvline_kwargs) in zip(tt_list, axvline_kwargs_specs):
         if axvline_kwargs is not None:

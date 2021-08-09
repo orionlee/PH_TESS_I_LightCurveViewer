@@ -556,7 +556,7 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
 
     lc = lc.remove_nans()  # exclude cadences with no flux.
     # break up the times to exclude times in gap
-    times_list = get_segment_times(lc.time)
+    times_list = get_segment_times(lc.time, **kwargs)
     transit_times = []
     for start, end in times_list:
         transit_times.extend(get_transit_times_in_range(t0, period, start, end))
