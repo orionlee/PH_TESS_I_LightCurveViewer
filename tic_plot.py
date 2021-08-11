@@ -586,7 +586,7 @@ def _add_flux_origin_to_ylabel(ax, lc):
         ax.yaxis.set_label_text(ax.yaxis.get_label_text().replace("Flux", make_italic(lc.flux_origin)))
 
 
-_cache_plot_n_annotate_lcf = dict(lcf=None, flux_col=None, lc=None)
+_cache_plot_n_annotate_lcf = dict(lcf=None, flux_col=None, normalize=None, lc=None)
 
 
 def plot_n_annotate_lcf(
@@ -604,6 +604,7 @@ def plot_n_annotate_lcf(
     show_r_obj_estimate=True,
     title_fontsize=18,
     t0_label_suffix=None,
+    normalize=True,
     lc_tweak_fn=None,
     ax_tweak_fn=None,
     legend_kwargs=dict(),
@@ -614,12 +615,19 @@ def plot_n_annotate_lcf(
 
     # cache lc to speed up plots repeatedly over the same lcf
     global _cache_plot_n_annotate_lcf
-    if lcf is _cache_plot_n_annotate_lcf["lcf"] and flux_col == _cache_plot_n_annotate_lcf["flux_col"]:
+    if (
+        lcf is _cache_plot_n_annotate_lcf["lcf"]
+        and flux_col == _cache_plot_n_annotate_lcf["flux_col"]
+        and normalize == _cache_plot_n_annotate_lcf["normalize"]
+    ):
         lc = _cache_plot_n_annotate_lcf["lc"]
     else:
-        lc = _normalize_to_percent_quiet(lke.select_flux(lcf, flux_col))
+        lc = lke.select_flux(lcf, flux_col)
+        if normalize:
+            lc = _normalize_to_percent_quiet(lc)
         _cache_plot_n_annotate_lcf["lcf"] = lcf
         _cache_plot_n_annotate_lcf["flux_col"] = flux_col
+        _cache_plot_n_annotate_lcf["normalize"] = normalize
         _cache_plot_n_annotate_lcf["lc"] = lc
 
     if lc_tweak_fn is not None:
