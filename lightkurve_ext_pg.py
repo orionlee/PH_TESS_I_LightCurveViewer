@@ -32,24 +32,39 @@ def plot_pg_n_mark_max(pg, ax=None, max_period_factor=None):
     return ax
 
 
+def _model(pg, lc):
+    if hasattr(pg, "get_transit_model"):  # case BLS pg
+        return pg.get_transit_model()
+    else:  # case LS pg
+        return pg.model(lc.time, pg.frequency_at_max_power)
+
+
 def plot_lc_with_model(lc, pg):
     # with plt.style.context(lk.MPLSTYLE):
     #     ax = plt.figure(figsize=(15, 6)).gca()
     ax1 = lc.scatter()
-    lc[pg.get_transit_mask()].scatter(ax=ax1, c="orange", marker="x", s=9, label="in transits")
+    if hasattr(pg, "get_transit_mask"):
+        lc[pg.get_transit_mask()].scatter(ax=ax1, c="orange", marker="x", s=9, label="in transits")
+
+    lc_model = _model(pg, lc)
 
     ax2 = lc.scatter()
-    pg.get_transit_model().plot(ax=ax2, c="red", alpha=0.9, linewidth=2)
+    lc_model.plot(ax=ax2, c="red", alpha=0.9, linewidth=2)
 
     # folded, zoom -in
     period = pg.period_at_max_power
-    epoch_time = pg.transit_time_at_max_power
+    if hasattr(pg, "transit_time_at_max_power"):
+        epoch_time = pg.transit_time_at_max_power
+    else:
+        epoch_time = None
     lc_f = lc.fold(epoch_time=epoch_time, period=period)
-    lc_model_f = pg.get_transit_model().fold(epoch_time=epoch_time, period=period)
+    lc_model_f = lc_model.fold(epoch_time=epoch_time, period=period)
 
     ax_f = lc_f.scatter()
     lc_model_f.scatter(ax=ax_f, c="red")
-    ax_f.set_xlim(-pg.duration_at_max_power.value, pg.duration_at_max_power.value)
+    if hasattr(pg, "duration_at_max_power"):
+        # zoom in for BLS model:
+        ax_f.set_xlim(-pg.duration_at_max_power.value, pg.duration_at_max_power.value)
 
     return ax1, ax2, ax_f
 
