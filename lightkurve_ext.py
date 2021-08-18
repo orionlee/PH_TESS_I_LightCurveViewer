@@ -719,6 +719,35 @@ def select_flux(lc, flux_cols):
     raise ValueError(f"'column {flux_cols}' not found")
 
 
+#
+# TargetPixelFile helpers
+#
+
+
+def truncate(tpf: lk.targetpixelfile.TargetPixelFile, before: float, after: float) -> lk.targetpixelfile.TargetPixelFile:
+    return tpf[(tpf.time.value >= before) & (tpf.time.value <= after)]
+
+
+def to_lightcurve_with_custom_aperture(tpf, aperture_mask, background_mask):
+    """Create a lightcurve from the given TargetPixelFile, with suppplied aperture and background"""
+    n_aperture_pixels = aperture_mask.sum()
+    aperture_lc = tpf.to_lightcurve(aperture_mask=aperture_mask)  # aperture + background
+
+    n_background_pixels = background_mask.sum()
+    background_lc_per_pixel = tpf.to_lightcurve(aperture_mask=background_mask) / n_background_pixels
+    background_lc = background_lc_per_pixel * n_aperture_pixels
+
+    corrected_lc = aperture_lc - background_lc
+    # OPEN: consider filling in lc metadata, label, etc.
+
+    return corrected_lc, aperture_lc, background_lc
+
+
+#
+# Others
+#
+
+
 def coordinate_like_id_to_coordinate(id, style="decimal"):
     """Given an identifier that describes the target's coordinate, return the cooridnate in string or `SkyCoord` object.
     The type of IDs supported are in the form of '<prefix-of-catalog> J<ra><dec>'.
