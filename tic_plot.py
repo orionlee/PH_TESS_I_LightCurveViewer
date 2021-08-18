@@ -1955,3 +1955,19 @@ document.querySelector('#outStarInfo').value = summary;
 """
         )
     )
+
+
+def plot_with_aperture_n_background(
+    tpf: lk.targetpixelfile.TargetPixelFile, aperture_mask=None, background_mask=None, ax=None, title_extra=""
+) -> matplotlib.axes.Axes:
+    """Plot the given targetpixel file, with  aperture mask and background_mask."""
+    if aperture_mask is None:
+        aperture_mask = tpf.pipeline_mask
+
+    if background_mask is None:
+        background_mask = tpf.background_mask
+
+    ax = tpf.plot(ax=ax, aperture_mask=aperture_mask)
+    ax = tpf.plot(ax=ax, aperture_mask=background_mask, mask_color="white", show_colorbar=False)
+    ax.set_title(f"{getattr(tpf, 'targetid', '')}{title_extra}")
+    return ax
