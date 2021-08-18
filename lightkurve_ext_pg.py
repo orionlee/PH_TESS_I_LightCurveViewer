@@ -3,9 +3,11 @@
 import warnings
 
 from types import SimpleNamespace
-from lightkurve.periodogram import BoxLeastSquaresPeriodogram
+from memoization import cached
 
 import numpy as np
+
+from lightkurve.periodogram import BoxLeastSquaresPeriodogram
 
 from IPython.display import display, HTML
 
@@ -101,6 +103,82 @@ def errorbar_transit_depth(pg):
 
     ax.legend()
     return ax
+
+
+@cached
+def idx_bin_peaks_by_half_power(x, y):
+    """Bin a power spectrum `(x, y)`, such that for each peak,
+    the surrounding values which  are more than half the peak are removed.
+    """
+    idx_kept = np.ones_like(y, dtype=int) * -1
+    num_kept = 0
+
+    idx_sorted = np.flip(np.argsort(y))
+
+    y_working_copy = np.array(y, dtype=float)
+    for i in idx_sorted:
+        cur_peak = y_working_copy[i]
+        #         print('X1', i, cur_peak, ' -- ', y_working_copy)
+        if np.isnan(cur_peak):
+            continue
+
+        #         print('X1a keeping ', i, cur_peak)
+
+        # case keep the peak
+        idx_kept[num_kept] = i
+        num_kept += 1
+        y_working_copy[i] = np.nan  # mark is as counted
+
+        # now remove adjacent signals, if the value (y) is more than half of current peak
+        threshold_for_removal = cur_peak / 2
+        j = i + 1
+        while True:
+            if j >= len(y_working_copy) or j < 0:
+                break
+            if np.isnan(y_working_copy[j]) or y_working_copy[j] < threshold_for_removal:
+                #                 print('X2', cur_peak, y_working_copy[j],  threshold_for_removal)
+                break
+            y_working_copy[j] = np.nan
+            j = j + 1
+        j = i - 1
+        while True:
+            if j >= len(y_working_copy) or j < 0:
+                break
+            if np.isnan(y_working_copy[j]) or y_working_copy[j] < threshold_for_removal:
+                break
+            y_working_copy[j] = np.nan
+            j = j - 1
+
+    #     print('X3', num_kept, idx_kept)
+    idx_kept = idx_kept[:num_kept]
+
+    # idx_kept is used to select x / y, without changing the order, so I need to sort it again
+    return np.sort(idx_kept)
+
+
+def plot_pg_n_top_frequencies(pg, num_top, freq_filter_func=lambda f: True):
+    """Plot a periodogram and its top frequencies"""
+    # condense values surrounding peaks to peaks themselves,
+    # so that the top frequencies returned would be more meaningful
+    # (they won't be just those surrounding the global peak)
+    idx_peaks = idx_bin_peaks_by_half_power(pg.frequency.value, pg.power.value)
+    # OPEN: the peaks identified are still too frequent in many cases
+    # consider to further reduce them, e.g., consolidating a peak with those within 3 sigma
+    # with half width to half power treated as 1 sigma
+
+    frequency_b, power_b = pg.frequency[idx_peaks], pg.power[idx_peaks]
+
+    ax = pg.plot(view="frequency")
+    #     ax = lk_ax()
+    #     ax.scatter(frequency_b.value, power_b.value, marker=".", s=4)
+
+    # plot top pulsating frequency (set a cutoff point to be 450 upon the periodogram)
+    idx_sorted = np.flip(np.argsort(power_b))
+    top_frequencies = [f.value for f in frequency_b[idx_sorted] if freq_filter_func(f)][:num_top]
+    ymin, ymax = ax.get_ylim()
+    ax.vlines(top_frequencies, ymin=ymin, ymax=ymax, linestyle="dashed", alpha=0.5, linewidth=0.5)
+
+    return ax, top_frequencies
 
 
 def sde(pg: BoxLeastSquaresPeriodogram) -> Number:
