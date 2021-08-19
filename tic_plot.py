@@ -600,6 +600,7 @@ def plot_n_annotate_lcf(
     t_end=None,
     moving_avg_window="30min",
     t0mark_ymax=0.3,
+    mark_momentum_dumps=True,
     set_title=True,
     show_r_obj_estimate=True,
     title_fontsize=18,
@@ -703,6 +704,9 @@ def plot_n_annotate_lcf(
             linestyle="--",
             label=label_vline,
         )
+
+    if mark_momentum_dumps:
+        _plot_momentum_dumps(lc, ax)
 
     if set_title:
         title_text = lc.label
@@ -812,6 +816,54 @@ def print_data_range(lcf_coll):
         html += f"   (cam {lc.meta.get('CAMERA')})   {lc.time.min()} - {lc.time.max()}" + "\n"
     html += "</details></summary></pre>"
     display(HTML(html))
+
+
+def get_momentum_dump_times(lcf):
+    def momentum_dump_times_from_file():
+        # Note: momentum_dump signals are by default masked out in LightCurve objects.
+        # To access times marked as such, I need to access the raw LightCurveFile directly.
+        with fits.open(lcf.filename) as hdu:
+            if "TIME" not in hdu[1].columns.names:
+                # case the file has no TIME column, typically non SPOC-produced ones, e.g., CDIPS,
+                # the logic of finding momentum dump would not apply to such files anyway.
+                return []
+
+            # normal flow
+            time = hdu[1].data["TIME"]
+            mom_dumps_mask = np.bitwise_and(hdu[1].data["QUALITY"], TessQualityFlags.Desat) >= 1
+            time_mom_dumps = time[mom_dumps_mask]
+            return time_mom_dumps
+
+    # main logic
+    time_mom_dumps = lcf.meta.get("momentum_dumps", None)
+    if time_mom_dumps is None:
+        time_mom_dumps = momentum_dump_times_from_file()
+        lcf.meta["momentum_dumps"] = time_mom_dumps
+
+    # in case the lcf has been truncated, we preserve the truncation
+    return time_mom_dumps[(lcf.time.min().value <= time_mom_dumps) & (time_mom_dumps <= lcf.time.max().value)]
+
+
+def _plot_momentum_dumps(lcf, ax, use_relative_time=False):
+    time_mom_dumps = get_momentum_dump_times(lcf)
+    if len(time_mom_dumps) < 1:
+        return ax
+    # case have data to plot
+    if use_relative_time:
+        t_start = lcf.meta.get("TSTART")
+        time_mom_dumps = time_mom_dumps - t_start
+
+    ybottom, ytop = ax.get_ylim()
+    ax.vlines(
+        time_mom_dumps,
+        ymin=ybottom,
+        ymax=ybottom + 0.15 * (ytop - ybottom),
+        color="red",
+        linewidth=1,
+        linestyle="-.",
+        label="Momentum dumps",
+    )
+    return ax
 
 
 # Do the actual plots
@@ -964,31 +1016,7 @@ def plot_all(
                 )
 
         if mark_momentum_dumps:
-            # Note: momentum_dump signals are by default masked out in LightCurve objects.
-            # To access times marked as such, I need to access the raw LightCurveFile directly.
-            with fits.open(lcf.filename) as hdu:
-                if "TIME" in hdu[1].columns.names:
-                    time = hdu[1].data["TIME"]
-                    if use_relative_time:
-                        t_start = lcf.meta.get("TSTART")
-                        time = time - t_start
-                    mom_dumps_mask = np.bitwise_and(hdu[1].data["QUALITY"], TessQualityFlags.Desat) >= 1
-                    time_mom_dumps = time[mom_dumps_mask]
-                    if len(time_mom_dumps) > 0:
-                        ybottom, ytop = ax.get_ylim()
-                        ax.vlines(
-                            time_mom_dumps,
-                            ymin=ybottom,
-                            ymax=ybottom + 0.15 * (ytop - ybottom),
-                            color="red",
-                            linewidth=1,
-                            linestyle="-.",
-                            label="Momentum dumps",
-                        )
-                else:
-                    # case the file has no TIME column, typically non SPOC-produced ones, e.g., CDIPS,
-                    # the logic of finding momentum dump would not apply to such files anyway.
-                    pass
+            _plot_momentum_dumps(lcf, ax, use_relative_time=use_relative_time)
 
         ax.legend()
         axs.append(ax)
