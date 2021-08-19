@@ -587,7 +587,8 @@ def _add_flux_origin_to_ylabel(ax, lc):
         # convert the text to latex italic expression
         return r"$\it{" + text.replace("_", r"\_") + "}$"
 
-    if lc.flux_origin is not None and lc.flux_origin != standard_flux_col_map.get(lc.author, None):
+    flux_origin = lc.meta.get("FLUX_ORIGIN", None)
+    if flux_origin is not None and flux_origin != standard_flux_col_map.get(lc.meta.get("AUTHOR", None), None):
         ax.yaxis.set_label_text(ax.yaxis.get_label_text().replace("Flux", make_italic(lc.flux_origin)))
 
 
@@ -696,8 +697,8 @@ def plot_n_annotate_lcf(
         t0_rel_text = ""
         if t_lc_start is not None:
             t0_rel = t0 - t_lc_start
-            t0_rel_text = f" ({as_4decimal(t0_rel)})"
-        label_vline = f"t0 ~= {t0}{t0_rel_text}"
+            t0_rel_text = f" ({t0_rel:.3f})"
+        label_vline = f"t0 ~= {t0:.3f}{t0_rel_text}"
         if t0_label_suffix is not None:
             label_vline = f"{label_vline}\n{t0_label_suffix}"
         ax.axvline(
@@ -722,8 +723,9 @@ def plot_n_annotate_lcf(
         if sector_text is not None:
             title_text += f", sector {sector_text}"
 
-        if lc.author is not None and lc.author != "SPOC":
-            title_text += f", by {lc.author}"
+        author = lc.meta.get("AUTHOR", None)
+        if author is not None and author != "SPOC":
+            title_text += f", by {author}"
         if t0 is not None:
             transit_duration_msg = ""
             if t_start is not None and t_end is not None:
