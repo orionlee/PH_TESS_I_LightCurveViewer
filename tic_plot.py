@@ -1122,48 +1122,42 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col="flux"):
     return w
 
 
-_lcf_4_plot_transit_interactive = None
-
-
-def _update_plot_transit_interactive(
-    figsize,
-    flux_col,
-    t0,
-    duration_hr,
-    period,
-    step,
-    surround_time,
-    moving_avg_window,
-    t0mark_ymax,
-    ymin,
-    ymax,
-    widget_out2,
-):
-    # a clumsy way to pass lcf, without using fixed(lcf), which is very slow in lkv2
-    global _cache_plot_n_annotate_lcf
-    lcf = _lcf_4_plot_transit_interactive
-
-    ax = lk_ax(figsize=figsize)
-    codes_text = "# Snippets to generate the plot"
-    moving_avg_window_for_codes = "None" if moving_avg_window is None else f"'{moving_avg_window}'"
-    if t0 < 0:
-        plot_n_annotate_lcf(lcf, ax, flux_col=flux_col, moving_avg_window=moving_avg_window)
-        codes_text += f"\nplot_n_annotate_lcf(lcf, ax, moving_avg_window={moving_avg_window_for_codes})"
-    else:
-        t0_to_use = t0 + step * period
-        plot_transit(
-            lcf,
-            ax,
-            t0_to_use,
-            duration_hr / 24,
-            surround_time,
-            flux_col=flux_col,
-            moving_avg_window=moving_avg_window,
-            t0mark_ymax=t0mark_ymax,
-            # fix legend to upper left to avoid clashing with the notebook nav at the upper right
-            legend_kwargs=dict(loc="upper left"),
-        )
-        codes_text += f"""
+def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=None):
+    def _update_plot_transit_interactive(
+        flux_col,
+        t0,
+        duration_hr,
+        period,
+        step,
+        surround_time,
+        moving_avg_window,
+        t0mark_ymax,
+        ymin,
+        ymax,
+        widget_out2,
+    ):
+        # for typical inline matplotlib backend, the figure needs to be recreated every time.
+        ax = lk_ax(figsize=figsize)
+        codes_text = "# Snippets to generate the plot"
+        moving_avg_window_for_codes = "None" if moving_avg_window is None else f"'{moving_avg_window}'"
+        if t0 < 0:
+            plot_n_annotate_lcf(lcf, ax, flux_col=flux_col, moving_avg_window=moving_avg_window)
+            codes_text += f"\nplot_n_annotate_lcf(lcf, ax, moving_avg_window={moving_avg_window_for_codes})"
+        else:
+            t0_to_use = t0 + step * period
+            plot_transit(
+                lcf,
+                ax,
+                t0_to_use,
+                duration_hr / 24,
+                surround_time,
+                flux_col=flux_col,
+                moving_avg_window=moving_avg_window,
+                t0mark_ymax=t0mark_ymax,
+                # fix legend to upper left to avoid clashing with the notebook nav at the upper right
+                legend_kwargs=dict(loc="upper left"),
+            )
+            codes_text += f"""
 #   transit parameters - t0: BTJD {t0}, duration: {duration_hr} hours, period: {period} days
 plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, \
 moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
@@ -1174,24 +1168,24 @@ transit_specs = TransitTimeSpecList(
          sector={lcf.meta.get('SECTOR')}, steps_to_show=[{step}],
         ),
     defaults=dict(surround_time={surround_time})
-    )
+)
 """
 
-    ymin_to_use = ymin if ymin >= 0 else None
-    ymax_to_use = ymax if ymax >= 0 else None
-    if (ymin_to_use is not None) or (ymax_to_use is not None):
-        ax.set_ylim(ymin_to_use, ymax_to_use)
-        codes_text += f"""
+        ymin_to_use = ymin if ymin >= 0 else None
+        ymax_to_use = ymax if ymax >= 0 else None
+        if (ymin_to_use is not None) or (ymax_to_use is not None):
+            ax.set_ylim(ymin_to_use, ymax_to_use)
+            codes_text += f"""
 # Zoom in on flux
 ax.set_ylim({ymin_to_use}, {ymax_to_use})
 """
-    widget_out2.clear_output()
-    with widget_out2:
-        print(codes_text)
-    return None
+        widget_out2.clear_output()
+        with widget_out2:
+            print(codes_text)
+        return None
 
+    # Construct the UI
 
-def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=None):
     desc_style = {"description_width": "25ch"}
 
     # Add a second output for textual
@@ -1250,21 +1244,9 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
         ]
     )
 
-    # pass lcf via a global, as fixed(lcf) is very slow with lkv2
-    #
-    # import warnings
-    # with warnings.catch_warnings():
-    #     # lkv2 workaround: to suppress astropy table warning, stating that the semantics of == will be changed in the future.
-    #     warnings.filterwarnings("ignore", category=FutureWarning)
-    #     fixed_lcf = fixed(lcf)
-    global _lcf_4_plot_transit_interactive
-    _lcf_4_plot_transit_interactive = lcf
-
     w = interactive_output(
         _update_plot_transit_interactive,
         dict(
-            figsize=fixed(figsize),
-            # lcf=fixed_lcf,
             flux_col=fixed(flux_col),
             t0=t0,
             duration_hr=duration_hr,
