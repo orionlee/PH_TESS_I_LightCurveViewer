@@ -486,8 +486,13 @@ def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window="30min"
     return ax
 
 
-def lcf_fig():
-    return plt.figure(figsize=(15, 6))
+def lk_ax(*args, **kwargs):
+    """Create a matplotlib figure, and return its Axes object (`gca()`) with Lightkurve style."""
+    with plt.style.context(lk.MPLSTYLE):
+        # MUST return the Axes object, rather than just the Figure object
+        # if only the Figure object is returned, it will have Lightkurve's default figsize
+        # but its style won't be used in actual plot
+        return plt.figure(*args, **kwargs).gca()
 
 
 def flux_near(lc, time):
@@ -675,7 +680,7 @@ def plot_n_annotate_lcf(
         ax.plot(
             lc.time.value,
             mask_gap(lc.time, df["flux_mavg"], 2 / 24),
-            c="black",
+            c="#3AF",
             label=f"Moving average ({moving_avg_window})",
         )
     else:
@@ -771,7 +776,7 @@ def plot_transit(lcf, ax, t0, duration, surround_time, **kwargs):
     )
 
 
-def plot_transits(lcf_coll, transit_specs, ax_fn=lambda: lcf_fig().gca(), **kwargs):
+def plot_transits(lcf_coll, transit_specs, ax_fn=lambda: lk_ax(), **kwargs):
     """Helper to plot transits zoomed-in."""
     flux_col = kwargs.get("flux_col", "flux")
     if not isinstance(flux_col, str) or flux_col.lower() not in ["flux", "pdcsap_flux"]:
@@ -906,7 +911,7 @@ def plot_all(
     axs = []
     for i in range(0, len(lcf_coll)):
         if ax_fn is None:
-            ax = lcf_fig().gca()
+            ax = lk_ax()
         else:
             ax = ax_fn()
         lcf = lcf_coll[i]
@@ -951,7 +956,7 @@ def plot_all(
             ax.plot(
                 lc.time.value,
                 mask_gap(lc.time, df["flux_mavg"], 2 / 24),
-                c="black",
+                c="#3AF",
                 label=f"Moving average ({moving_avg_window})",
             )
 
@@ -960,7 +965,7 @@ def plot_all(
             title_extras = "\nLC tweaked, e.g., outliers removed"
 
         if set_title:
-            ax.set_title(f"{label_long} {title_extras}", {"fontsize": 36})
+            ax.set_title(f"{label_long} {title_extras}")  # {"fontsize": 18}
         if use_relative_time:
             ax.xaxis.set_label_text("Time - relative")
             # restore original time after plot is done
@@ -1031,7 +1036,7 @@ def _update_plot_lcf_interactive(figsize, flux_col, xrange, moving_avg_window, y
     global _lcf_4_plot_interactive
     lcf = _lcf_4_plot_interactive
 
-    ax = plt.figure(figsize=figsize).gca()
+    ax = lk_ax(figsize=figsize)
     plot_n_annotate_lcf(
         lcf,
         ax,
@@ -1138,7 +1143,7 @@ def _update_plot_transit_interactive(
     global _cache_plot_n_annotate_lcf
     lcf = _lcf_4_plot_transit_interactive
 
-    ax = plt.figure(figsize=figsize).gca()
+    ax = lk_ax(figsize=figsize)
     codes_text = "# Snippets to generate the plot"
     moving_avg_window_for_codes = "None" if moving_avg_window is None else f"'{moving_avg_window}'"
     if t0 < 0:
@@ -1421,8 +1426,7 @@ def mark_transit_times(
     # base plot
     #
     if ax is None:
-        #         ax = plt.figure(figsize=(30, 10)).gca()
-        ax = plt.figure(figsize=(15, 5)).gca()
+        ax = lk_ax(figsize=(12, 4))
     ax = getattr(lc, lc_plot_func_name)(ax=ax, color="black", label=f"{lc.label} s.{getattr(lc, 'sector', 'N/A')}")
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.tick_params(axis="x", which="minor", length=4)
@@ -1789,10 +1793,10 @@ def markTimes(ax, times, **kwargs):
         ax.axvline(t, **axvline_kwargs)
 
 
-def fold_and_plot_odd_even(lc, period, epoch_time, figsize=(12, 6), title_extra=""):
+def fold_and_plot_odd_even(lc, period, epoch_time, figsize=(10, 5), title_extra=""):
     lc_folded = lc.fold(period=period, epoch_time=epoch_time, epoch_phase=0)
 
-    ax = plt.figure(figsize=figsize).gca()
+    ax = lk_ax(figsize=figsize)
     lc_f_odd = lc_folded[lc_folded.odd_mask]
     lc_f_odd.scatter(ax=ax, c="r", label="odd", marker=".", s=4)
     lc_f_even = lc_folded[lc_folded.even_mask]
@@ -1822,10 +1826,10 @@ def fold_and_plot_odd_even(lc, period, epoch_time, figsize=(12, 6), title_extra=
     return ax, lc_folded
 
 
-def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(12, 6), title_extra=""):
+def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(10, 5), title_extra=""):
     lc_folded = lc.fold(period=period * 2, epoch_time=epoch_time, epoch_phase=period / 2)
 
-    ax = plt.figure(figsize=figsize).gca()
+    ax = lk_ax(figsize=figsize)
     lc_folded.scatter(ax=ax)
 
     ax.legend()
@@ -1870,8 +1874,7 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
 
     lc = lc.remove_nans()  # remove any potential empty frames with no flux
     if ax is None:
-        with plt.style.context(lk.MPLSTYLE):
-            ax = plt.figure(figsize=(15, 6)).gca()
+        ax = lk_ax()
 
     cycle_column = calc_cycles(lc)
     cycle_list = np.unique(cycle_column)
