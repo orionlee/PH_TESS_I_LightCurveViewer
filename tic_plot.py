@@ -1888,6 +1888,204 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
         return anim
 
 
+def interact(lc: lk.LightCurve, ylim_func=None, plot_height=490, plot_width=900, notebook_url="localhost:8888"):
+    from bokeh.plotting import ColumnDataSource, output_notebook, show
+    from bokeh.layouts import layout, row, column, Spacer
+    from bokeh.models import Button, Div, Span, TextInput, Dropdown
+    from bokeh.models.tools import BoxZoomTool
+    from astropy.table import Table
+
+    mark_list = []  # to be returned
+
+    def get_tool_of_class(toolbar_or_fig, cls):
+        if hasattr(toolbar_or_fig, "toolbar"):
+            tools = toolbar_or_fig.toolbar.tools
+        else:
+            tools = toolbar_or_fig.tools
+        for t in tools:
+            if isinstance(t, cls):
+                return t
+        return None
+
+    def create_interact_ui(doc):
+        lc_source = lk.interact.prepare_lightcurve_datasource(lc)
+        fig_lc, vertical_line = lk.interact.make_lightcurve_figure_elements(lc, lc_source, ylim_func=ylim_func)
+        fig_lc.plot_height = plot_height
+        fig_lc.plot_width = plot_width
+        fig_lc.toolbar.active_drag = get_tool_of_class(fig_lc, BoxZoomTool)
+        fig_lc.toolbar.active_inspect = None
+        vertical_line.visible = False
+
+        # define widgets
+        current_point_info_div = Div(style={"font-family": "monospace"}, width=150)
+        duration_label_div = Div(text="Duration from last mark:", visible=False)
+        duration_info_div = Div(style={"font-family": "monospace"})
+
+        rr_button = Button(label=">>", button_type="default", width=30)
+        ll_button = Button(label="<<", button_type="default", width=30)
+        pan_amount_input = TextInput(width=100, placeholder="default: plot width")
+
+        mark_btn = Button(label="Mark", button_type="default", width=100)
+        mark_label_input = TextInput(width=200, placeholder="Optional label for the mark")
+
+        select_mark_dropdown = Dropdown(label="Select mark", disabled=True, width=200)
+        out_div_default_text = "Marked times to be shown here"
+        out_div = Div(text=out_div_default_text)
+
+        # define callbacks (where a bokeh server is needed, for Python callback)
+        def jump_to_lightcurve_position(attr, old, new):
+            if new == []:
+                return
+
+            time = lc_source.data["time"][new[0]]
+            vertical_line.update(location=time)
+            vertical_line.visible = True
+            lc_source.selected.indices = [new[0]]
+
+            # pan/zoom to the selected mark if it's out of range
+            if time < fig_lc.x_range.start or time > fig_lc.x_range.end:
+                fig_lc.x_range.start = time - 1.5
+                fig_lc.x_range.end = time + 1.5
+
+            flux = lc_source.data["flux"][new[0]]
+            current_point_info_div.text = f"({time:.3f}, {flux:.3f})"
+
+            if len(mark_list) > 0:
+                duration = abs(time - mark_list[-1]["time"])
+                duration_info_text = f"{duration:.5f} d"
+            else:
+                duration_info_text = ""
+
+            duration_info_div.text = duration_info_text
+            duration_label_div.visible = duration_info_text != ""
+
+            update_mark_btn_ui()
+
+        lc_source.selected.on_change("indices", jump_to_lightcurve_position)
+
+        def update_mark_btn_ui():
+            idx_in_mark_list = idx_of_selected_in_mark_list()
+            if idx_in_mark_list < 0:
+                mark_btn.label = "Mark"
+                mark_label_input.disabled = False
+            else:
+                mark_btn.label = "Un-mark"
+                mark_label_input.disabled = True
+
+        def update_select_mark_dropdown_ui():
+            time = [mark["time"] for mark in mark_list]
+            select_mark_dropdown.menu = [(f"{t:.3f}", str(i)) for i, t in enumerate(time)]
+            select_mark_dropdown.disabled = True if len(time) < 1 else False
+
+        def on_select_mark_from_dropdown(event):
+            idx_of_in_mark_list = int(event.item)
+            mark = mark_list[idx_of_in_mark_list]
+            idx_of_mark_in_lc_source = mark["idx"]
+            lc_source.selected.indices = [idx_of_mark_in_lc_source]
+
+        select_mark_dropdown.on_click(on_select_mark_from_dropdown)
+
+        mark_ui_list = []
+
+        def create_mark_ui(time):
+            # Vertical line to indicate the cadence
+            mark_line = Span(
+                location=time,
+                dimension="height",
+                line_color="red",
+                line_dash="dashed",
+                line_width=4,
+                line_alpha=0.7,
+            )
+            mark_ui_list.append(mark_line)
+            fig_lc.add_layout(mark_line)
+
+        def idx_of_selected_in_mark_list():
+            if len(lc_source.selected.indices) < 1:
+                return -1
+            idx = lc_source.selected.indices[0]
+            selected_time = lc_source.data["time"][idx]
+            match_indices = [i for i, mark in enumerate(mark_list) if mark["time"] == selected_time]
+            if len(match_indices) < 1:
+                return -1
+            return match_indices[0]
+
+        def toggle_selected_mark():
+            if len(lc_source.selected.indices) < 1:
+                return
+            idx_in_mark_list = idx_of_selected_in_mark_list()
+            if idx_in_mark_list < 0:
+                idx = lc_source.selected.indices[0]
+                mark = dict(time=lc_source.data["time"][idx], flux=lc_source.data["flux"][idx], idx=idx)
+                label = mark_label_input.value
+                if label != "":
+                    mark["label"] = label
+                mark_list.append(mark)
+                create_mark_ui(mark["time"])
+            else:
+                del mark_list[idx_in_mark_list]
+                mark_ui_existing = mark_ui_list[idx_in_mark_list]
+                mark_ui_existing.visible = False
+                del mark_ui_list[idx_in_mark_list]
+
+            update_mark_btn_ui()
+            update_select_mark_dropdown_ui()
+
+            out_div.text = Table(mark_list)._repr_html_() if len(mark_list) > 0 else out_div_default_text
+
+        mark_btn.on_click(toggle_selected_mark)
+
+        def get_pan_width():
+            try:
+                return float(pan_amount_input.value)
+            except ValueError:
+                # case empty string (or any invalid value for now)
+                return fig_lc.x_range.end - fig_lc.x_range.start
+
+        def pan_left():
+            width = get_pan_width()
+            fig_lc.x_range.start = fig_lc.x_range.start - width
+            fig_lc.x_range.end = fig_lc.x_range.end - width
+
+        ll_button.on_click(pan_left)
+
+        def pan_right():
+            width = get_pan_width()
+            fig_lc.x_range.start = fig_lc.x_range.start + width
+            fig_lc.x_range.end = fig_lc.x_range.end + width
+
+        rr_button.on_click(pan_right)
+
+        doc_layout = row(
+            column(
+                fig_lc,
+                row(
+                    current_point_info_div,
+                    duration_label_div,
+                    duration_info_div,
+                    Spacer(width=30),
+                    ll_button,
+                    rr_button,
+                    pan_amount_input,
+                    Spacer(width=30),
+                    mark_btn,
+                    mark_label_input,
+                    align="end",
+                ),
+            ),
+            Spacer(width=30),
+            column(select_mark_dropdown, out_div),
+        )
+
+        doc.add_root(doc_layout)
+
+    # main logic
+    output_notebook(verbose=False, hide_banner=True)
+    show(create_interact_ui, notebook_url=notebook_url)
+    # Use a namespace rather than just returning a mark_list, to give flexibility in case more information is to be returned
+    return SimpleNamespace(mark_list=mark_list)
+
+
 #
 # TargetPixelFile helpers
 #
