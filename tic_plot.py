@@ -37,10 +37,15 @@ from ipywidgets import interactive, interactive_output, fixed
 import ipywidgets as widgets
 
 import lightkurve as lk
-from lightkurve import LightCurveCollection, LightkurveWarning, FoldedLightCurve
+from lightkurve import LightCurve, LightCurveCollection, LightkurveWarning, FoldedLightCurve
 from lightkurve.utils import TessQualityFlags
 from lightkurve_ext import of_sectors
 import lightkurve_ext as lke
+
+# typing
+from typing import Callable, Optional, Tuple
+
+LC_Ylim_Func_Type = Callable[[LightCurve], Tuple[float, float]]
 
 
 def parse_dvs_filename(filename):
@@ -1888,7 +1893,13 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
         return anim
 
 
-def interact(lc: lk.LightCurve, ylim_func=None, plot_height=490, plot_width=900, notebook_url="localhost:8888"):
+def interact(
+    lc: LightCurve,
+    ylim_func: Optional(LC_Ylim_Func_Type) = None,
+    plot_height: float = 490,
+    plot_width: float = 900,
+    notebook_url: str = "localhost:8888",
+) -> SimpleNamespace:
     from bokeh.plotting import ColumnDataSource, output_notebook, show
     from bokeh.layouts import layout, row, column, Spacer
     from bokeh.models import Button, Div, Span, TextInput, Dropdown
