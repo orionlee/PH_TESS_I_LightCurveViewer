@@ -1893,20 +1893,63 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
         return anim
 
 
+from bokeh.plotting import ColumnDataSource
+
+
+class MarkListUiModel(object):
+    def __init__(self, mark_list, plot_height, upper_fraction=0.2, lower_fraction=0, data_source_attr_list=["time"]):
+        self._mark_list = mark_list
+        self._data_source_attr_list = data_source_attr_list
+        self.plot_height = plot_height
+        self.upper_fraction = upper_fraction
+        self.lower_fraction = lower_fraction
+        # it needs to be initialized last
+        self._source = ColumnDataSource(data=self._to_dict())
+
+    def _to_dict(self, attr_list=None):
+        if attr_list is None:
+            attr_list = self._data_source_attr_list
+        res = dict()
+        for attr in attr_list:
+            res[attr] = [m.get(attr, None) for m in self._mark_list]
+
+        # upper/lower is needed for UI, in screen unit
+        upper = self.plot_height * self.upper_fraction
+        lower = self.plot_height * self.lower_fraction
+        res["upper"] = [upper for i in range(0, len(self._mark_list))]
+        res["lower"] = [lower for i in range(0, len(self._mark_list))]
+
+        return res
+
+    def append(self, mark):
+        self._mark_list.append(mark)
+        # could possibly be optimized by using stream()
+        self._source.data = self._to_dict()
+
+    def del_by_idx(self, idx):
+        del self._mark_list[idx]
+        self._source.data = self._to_dict()
+
+    @property
+    def source(self):
+        return self._source
+
+
 def interact(
     lc: LightCurve,
     ylim_func: Optional(LC_Ylim_Func_Type) = None,
     plot_height: float = 490,
     plot_width: float = 900,
+    show_line: bool = False,
     notebook_url: str = "localhost:8888",
 ) -> SimpleNamespace:
     from bokeh.plotting import ColumnDataSource, output_notebook, show
     from bokeh.layouts import layout, row, column, Spacer
-    from bokeh.models import Button, Div, Span, TextInput, Dropdown
+    from bokeh.models import Button, Div, Whisker, TextInput, Dropdown
     from bokeh.models.tools import BoxZoomTool
     from astropy.table import Table
 
-    mark_list = []  # to be returned
+    mark_list = []  # to be returned, so it needs to be deined at the top
 
     def get_tool_of_class(toolbar_or_fig, cls):
         if hasattr(toolbar_or_fig, "toolbar"):
@@ -1921,10 +1964,26 @@ def interact(
     def create_interact_ui(doc):
         lc_source = lk.interact.prepare_lightcurve_datasource(lc)
         fig_lc, vertical_line = lk.interact.make_lightcurve_figure_elements(lc, lc_source, ylim_func=ylim_func)
+
+        # customize the plot to make it more suitable for our purpose
+        # hack: assume the renderers are in specific order
+        #       can be avoided if the renderers have name when they are created.
+        # r_lc_step = [r for r in fig_lc.renderers if r.name == "lc_step"][0]
+        r_lc_step = fig_lc.renderers[0]
+        r_lc_step.visible = show_line
+
+        # r_lc_circle = [r for r in fig_lc.renderers if r.name == "lc_circle"][0]
+        r_lc_circle = fig_lc.renderers[1]
+        r_lc_circle.glyph.fill_color = "gray"
+        r_lc_circle.glyph.fill_alpha = 1.0
+        r_lc_circle.nonselection_glyph.fill_color = "gray"
+        r_lc_circle.nonselection_glyph.fill_alpha = 1.0
+
         fig_lc.plot_height = plot_height
         fig_lc.plot_width = plot_width
         fig_lc.toolbar.active_drag = get_tool_of_class(fig_lc, BoxZoomTool)
         fig_lc.toolbar.active_inspect = None
+
         vertical_line.visible = False
 
         # define widgets
@@ -1996,20 +2055,24 @@ def interact(
 
         select_mark_dropdown.on_click(on_select_mark_from_dropdown)
 
-        mark_ui_list = []
-
-        def create_mark_ui(time):
-            # Vertical line to indicate the cadence
-            mark_line = Span(
-                location=time,
-                dimension="height",
-                line_color="red",
-                line_dash="dashed",
-                line_width=4,
-                line_alpha=0.7,
-            )
-            mark_ui_list.append(mark_line)
-            fig_lc.add_layout(mark_line)
+        # UI for marks
+        marks_ui_model = MarkListUiModel(mark_list, fig_lc.plot_height, lower_fraction=0, upper_fraction=0.2)
+        marks_whisker = Whisker(
+            base="time",
+            upper="upper",
+            lower="lower",
+            upper_units="screen",
+            lower_units="screen",
+            dimension="height",
+            source=marks_ui_model.source,
+            level="annotation",
+            upper_head=None,
+            lower_head=None,
+            line_color="red",
+            line_width=4,
+            line_dash="dashed",
+        )
+        fig_lc.add_layout(marks_whisker)
 
         def idx_of_selected_in_mark_list():
             if len(lc_source.selected.indices) < 1:
@@ -2031,13 +2094,10 @@ def interact(
                 label = mark_label_input.value
                 if label != "":
                     mark["label"] = label
-                mark_list.append(mark)
-                create_mark_ui(mark["time"])
+
+                marks_ui_model.append(mark)
             else:
-                del mark_list[idx_in_mark_list]
-                mark_ui_existing = mark_ui_list[idx_in_mark_list]
-                mark_ui_existing.visible = False
-                del mark_ui_list[idx_in_mark_list]
+                marks_ui_model.del_by_idx(idx_in_mark_list)
 
             update_mark_btn_ui()
             update_select_mark_dropdown_ui()
