@@ -1964,6 +1964,7 @@ def interact(
     def create_interact_ui(doc):
         lc_source = lk.interact.prepare_lightcurve_datasource(lc)
         fig_lc, vertical_line = lk.interact.make_lightcurve_figure_elements(lc, lc_source, ylim_func=ylim_func)
+        fig_lc.output_backend = "webgl"  # use GPU accelerated graphics when possible
 
         # customize the plot to make it more suitable for our purpose
         # hack: assume the renderers are in specific order
