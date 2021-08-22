@@ -2003,6 +2003,31 @@ def interact(
         out_div = Div(text=out_div_default_text)
 
         # define callbacks (where a bokeh server is needed, for Python callback)
+
+        def update_mark_btn_ui(attr, old, new):
+            # don't care about attr, old, new, but needed to work as bokeh callback
+            idx_in_mark_list = idx_of_selected_in_mark_list()
+            if idx_in_mark_list < 0:
+                mark_btn.label = "Mark"
+                mark_label_input.disabled = False
+            else:
+                mark_btn.label = "Un-mark"
+                mark_label_input.disabled = True
+
+        def update_select_mark_dropdown_ui(attr, old, new):
+            # don't care about attr, old, new, but needed to work as bokeh callback
+            time = [mark["time"] for mark in mark_list]
+            select_mark_dropdown.menu = [(f"{t:.3f}", str(i)) for i, t in enumerate(time)]
+            select_mark_dropdown.disabled = True if len(time) < 1 else False
+
+        def on_select_mark_from_dropdown(event):
+            idx_of_in_mark_list = int(event.item)
+            mark = mark_list[idx_of_in_mark_list]
+            idx_of_mark_in_lc_source = mark["idx"]
+            lc_source.selected.indices = [idx_of_mark_in_lc_source]
+
+        select_mark_dropdown.on_click(on_select_mark_from_dropdown)
+
         def jump_to_lightcurve_position(attr, old, new):
             if new == []:
                 return
@@ -2029,31 +2054,7 @@ def interact(
             duration_info_div.text = duration_info_text
             duration_label_div.visible = duration_info_text != ""
 
-            update_mark_btn_ui()
-
-        lc_source.selected.on_change("indices", jump_to_lightcurve_position)
-
-        def update_mark_btn_ui():
-            idx_in_mark_list = idx_of_selected_in_mark_list()
-            if idx_in_mark_list < 0:
-                mark_btn.label = "Mark"
-                mark_label_input.disabled = False
-            else:
-                mark_btn.label = "Un-mark"
-                mark_label_input.disabled = True
-
-        def update_select_mark_dropdown_ui():
-            time = [mark["time"] for mark in mark_list]
-            select_mark_dropdown.menu = [(f"{t:.3f}", str(i)) for i, t in enumerate(time)]
-            select_mark_dropdown.disabled = True if len(time) < 1 else False
-
-        def on_select_mark_from_dropdown(event):
-            idx_of_in_mark_list = int(event.item)
-            mark = mark_list[idx_of_in_mark_list]
-            idx_of_mark_in_lc_source = mark["idx"]
-            lc_source.selected.indices = [idx_of_mark_in_lc_source]
-
-        select_mark_dropdown.on_click(on_select_mark_from_dropdown)
+        lc_source.selected.on_change("indices", jump_to_lightcurve_position, update_mark_btn_ui)
 
         # UI for marks
         marks_ui_model = MarkListUiModel(mark_list, fig_lc.plot_height, lower_fraction=0, upper_fraction=0.2)
@@ -2073,6 +2074,8 @@ def interact(
             line_dash="dashed",
         )
         fig_lc.add_layout(marks_whisker)
+
+        marks_ui_model.source.on_change("data", update_mark_btn_ui, update_select_mark_dropdown_ui)
 
         def idx_of_selected_in_mark_list():
             if len(lc_source.selected.indices) < 1:
@@ -2098,9 +2101,6 @@ def interact(
                 marks_ui_model.append(mark)
             else:
                 marks_ui_model.del_by_idx(idx_in_mark_list)
-
-            update_mark_btn_ui()
-            update_select_mark_dropdown_ui()
 
             out_div.text = Table(mark_list)._repr_html_() if len(mark_list) > 0 else out_div_default_text
 
