@@ -1991,8 +1991,8 @@ def interact(
 
         # define widgets
         current_point_info_div = Div(style={"font-family": "monospace"}, width=150)
-        duration_label_div = Div(text="Duration from last mark:", visible=False)
-        duration_info_div = Div(style={"font-family": "monospace"})
+        delta_label_div = Div(text="Delta from last mark:", visible=False)
+        delta_info_div = Div(style={"font-family": "monospace"})
 
         rr_button = Button(label=">>", button_type="default", width=30)
         ll_button = Button(label="<<", button_type="default", width=30)
@@ -2050,12 +2050,13 @@ def interact(
 
             if len(mark_list) > 0:
                 duration = abs(time - mark_list[-1]["time"])
-                duration_info_text = f"{duration:.5f} d"
+                flux_delta = flux - mark_list[-1]["flux"]
+                delta_info_text = f"({duration:.3f}d, {flux_delta:.3f})"
             else:
-                duration_info_text = ""
+                delta_info_text = ""
 
-            duration_info_div.text = duration_info_text
-            duration_label_div.visible = duration_info_text != ""
+            delta_info_div.text = delta_info_text
+            delta_label_div.visible = delta_info_text != ""
 
         lc_source.selected.on_change("indices", jump_to_lightcurve_position, update_mark_btn_ui)
 
@@ -2135,8 +2136,8 @@ def interact(
                 fig_lc,
                 row(
                     current_point_info_div,
-                    duration_label_div,
-                    duration_info_div,
+                    delta_label_div,
+                    delta_info_div,
                     Spacer(width=30),
                     ll_button,
                     rr_button,
