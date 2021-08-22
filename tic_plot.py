@@ -1987,49 +1987,10 @@ def interact(
         fig_lc.toolbar.active_inspect = None
         fig_lc.add_tools(UndoTool(), RedoTool())
 
+        #
+        # UI to select a specific point (with vertical_line as the marker)
+        #
         vertical_line.visible = False
-
-        # define widgets
-        current_point_info_div = Div(style={"font-family": "monospace"}, width=150)
-        delta_label_div = Div(text="Delta from last mark:", visible=False)
-        delta_info_div = Div(style={"font-family": "monospace"})
-
-        rr_button = Button(label=">>", button_type="default", width=30)
-        ll_button = Button(label="<<", button_type="default", width=30)
-        pan_amount_input = TextInput(width=100, placeholder="default: plot width")
-
-        mark_btn = Button(label="Mark", button_type="default", width=100)
-        mark_label_input = TextInput(width=200, placeholder="Optional label for the mark")
-
-        select_mark_dropdown = Dropdown(label="Select mark", disabled=True, width=200)
-        out_div_default_text = "Marked times to be shown here"
-        out_div = Div(text=out_div_default_text)
-
-        # define callbacks (where a bokeh server is needed, for Python callback)
-
-        def update_mark_btn_ui(attr, old, new):
-            # don't care about attr, old, new, but needed to work as bokeh callback
-            idx_in_mark_list = idx_of_selected_in_mark_list()
-            if idx_in_mark_list < 0:
-                mark_btn.label = "Mark"
-                mark_label_input.disabled = False
-            else:
-                mark_btn.label = "Un-mark"
-                mark_label_input.disabled = True
-
-        def update_select_mark_dropdown_ui(attr, old, new):
-            # don't care about attr, old, new, but needed to work as bokeh callback
-            time = [mark["time"] for mark in mark_list]
-            select_mark_dropdown.menu = [(f"{t:.3f}", str(i)) for i, t in enumerate(time)]
-            select_mark_dropdown.disabled = True if len(time) < 1 else False
-
-        def on_select_mark_from_dropdown(event):
-            idx_of_in_mark_list = int(event.item)
-            mark = mark_list[idx_of_in_mark_list]
-            idx_of_mark_in_lc_source = mark["idx"]
-            lc_source.selected.indices = [idx_of_mark_in_lc_source]
-
-        select_mark_dropdown.on_click(on_select_mark_from_dropdown)
 
         def jump_to_lightcurve_position(attr, old, new):
             if new == []:
@@ -2058,9 +2019,23 @@ def interact(
             delta_info_div.text = delta_info_text
             delta_label_div.visible = delta_info_text != ""
 
-        lc_source.selected.on_change("indices", jump_to_lightcurve_position, update_mark_btn_ui)
+        lc_source.selected.on_change("indices", jump_to_lightcurve_position)
 
-        # UI for marks
+        #
+        # Mark-related Glyphs, widgets and callbacks
+        #
+        select_mark_dropdown = Dropdown(label="Select mark", disabled=True, width=200)
+        out_div_default_text = "Marked times to be shown here"
+        out_div = Div(text=out_div_default_text)
+
+        current_point_info_div = Div(style={"font-family": "monospace"}, width=150)
+        delta_label_div = Div(text="Delta from last mark:", visible=False)
+        delta_info_div = Div(style={"font-family": "monospace"})
+
+        mark_btn = Button(label="Mark", button_type="default", width=100)
+        mark_label_input = TextInput(width=200, placeholder="Optional label for the mark")
+
+        # UI(Glyph) and UI Model for marks
         marks_ui_model = MarkListUiModel(mark_list, fig_lc.plot_height, lower_fraction=0, upper_fraction=0.2)
         marks_whisker = Whisker(
             base="time",
@@ -2079,9 +2054,41 @@ def interact(
         )
         fig_lc.add_layout(marks_whisker)
 
-        marks_ui_model.source.on_change("data", update_mark_btn_ui, update_select_mark_dropdown_ui)
+        # define callbacks (where a bokeh server is needed, for Python callback)
+
+        def update_mark_btn_ui(attr, old, new):
+            # don't care about attr, old, new, but needed to work as bokeh callback
+            idx_in_mark_list = idx_of_selected_in_mark_list()
+            if idx_in_mark_list < 0:
+                mark_btn.label = "Mark"
+                mark_label_input.disabled = False
+            else:
+                mark_btn.label = "Un-mark"
+                mark_label_input.disabled = True
+
+        lc_source.selected.on_change("indices", update_mark_btn_ui)
+        marks_ui_model.source.on_change("data", update_mark_btn_ui)
+
+        def update_select_mark_dropdown_ui(attr, old, new):
+            # don't care about attr, old, new, but needed to work as bokeh callback
+            time = [mark["time"] for mark in mark_list]
+            select_mark_dropdown.menu = [(f"{t:.3f}", str(i)) for i, t in enumerate(time)]
+            select_mark_dropdown.disabled = True if len(time) < 1 else False
+
+        marks_ui_model.source.on_change("data", update_select_mark_dropdown_ui)
+
+        def on_select_mark_from_dropdown(event):
+            idx_of_in_mark_list = int(event.item)
+            mark = mark_list[idx_of_in_mark_list]
+            idx_of_mark_in_lc_source = mark["idx"]
+            lc_source.selected.indices = [idx_of_mark_in_lc_source]
+
+        select_mark_dropdown.on_click(on_select_mark_from_dropdown)
 
         def idx_of_selected_in_mark_list():
+            """Return the index of the selected point in `mark_list`, -1 if it is not in the list.
+            Used by `toggle_selected_mark()`
+            """
             if len(lc_source.selected.indices) < 1:
                 return -1
             idx = lc_source.selected.indices[0]
@@ -2110,6 +2117,13 @@ def interact(
 
         mark_btn.on_click(toggle_selected_mark)
 
+        #
+        # Pan-related widgets / callbacks
+        #
+        rr_button = Button(label=">>", button_type="default", width=30)
+        ll_button = Button(label="<<", button_type="default", width=30)
+        pan_amount_input = TextInput(width=100, placeholder="default: plot width")
+
         def get_pan_width():
             try:
                 return float(pan_amount_input.value)
@@ -2131,6 +2145,9 @@ def interact(
 
         rr_button.on_click(pan_right)
 
+        #
+        # Overall layout
+        #
         doc_layout = row(
             column(
                 fig_lc,
