@@ -1946,7 +1946,7 @@ def interact(
     from bokeh.plotting import ColumnDataSource, output_notebook, show
     from bokeh.layouts import layout, row, column, Spacer
     from bokeh.models import Button, Div, Whisker, TextInput, Dropdown
-    from bokeh.models.tools import BoxZoomTool
+    from bokeh.models.tools import BoxZoomTool, WheelZoomTool, UndoTool, RedoTool
     from astropy.table import Table
 
     mark_list = []  # to be returned, so it needs to be deined at the top
@@ -1983,7 +1983,9 @@ def interact(
         fig_lc.plot_height = plot_height
         fig_lc.plot_width = plot_width
         fig_lc.toolbar.active_drag = get_tool_of_class(fig_lc, BoxZoomTool)
+        fig_lc.toolbar.active_scroll = get_tool_of_class(fig_lc, WheelZoomTool)
         fig_lc.toolbar.active_inspect = None
+        fig_lc.add_tools(UndoTool(), RedoTool())
 
         vertical_line.visible = False
 
