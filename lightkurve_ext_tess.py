@@ -14,6 +14,7 @@ from memoization import cached
 import requests
 import numpy as np
 import pandas as pd
+from pandas.io.formats.style import Styler
 
 # for accessing / parsing TCEs from MAST
 from astroquery.exceptions import NoResultsWarning
@@ -26,7 +27,7 @@ import xmltodict
 
 R_earth = 6371000  # radius of the Earth [m]
 R_jup = 69911000  # radius of Jupiter [m]
-
+BTJD_REF = 2457000
 
 #
 # Generic file download, and CSV helper
@@ -127,13 +128,17 @@ class TOIAccessor:
     Headers = SimpleNamespace(
         TIC="TIC ID",
         TOI="TOI",
-        EPOCH="Epoch (BJD)",
+        MASTER_PRIORITY="Master",
+        EPOCH_BTJD="Epoch (BTJD)",
+        EPOCH_BJD="Epoch (BJD)",
         PERIOD="Period (days)",
         DURATION_HR="Duration (hours)",
         DEPTH_PPM="Depth (ppm)",
         DEPTH_PCT="Depth (percent)",  # derived
         PLANET_RADIUS_E="Planet Radius (R_Earth)",
         PLANET_RADIUS_J="Planet Radius (R_Jupiter)",  # derived
+        TESS_DISPOSITION="TESS Disposition",
+        TFOPWG_DISPOSITION="TFOPWG Disposition",
         COMMENTS="Comments",
     )
 
@@ -144,6 +149,7 @@ class TOIAccessor:
         filename = "tess_tois.csv"
         res = _get_csv(url, filename, download_dir, use_localfile_func=use_localfile_func, dtype={cls.Headers.TOI: str})
         # add dervied columns
+        res[cls.Headers.EPOCH_BTJD] = res[cls.Headers.EPOCH_BJD] - BTJD_REF
         res[cls.Headers.PLANET_RADIUS_J] = res[cls.Headers.PLANET_RADIUS_E] * R_earth / R_jup
         res[cls.Headers.DEPTH_PCT] = res[cls.Headers.DEPTH_PPM] / 10000
         return res
@@ -452,6 +458,82 @@ period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}"
     return html
 
 
+def add_codes_column_to_toi_df(df, headers):
+    h = headers
+    # string interpolation does not work. So use old-school concatenation
+    df["Codes"] = (
+        "epoch="
+        + df[h.EPOCH_BTJD].map("{:.4f}".format)
+        + ", duration_hr="
+        + df[h.DURATION_HR].map("{:.4f}".format)
+        + ", period="
+        + df[h.PERIOD].map("{:.6f}".format)
+        + ', label="TOI '
+        + df[h.TOI].astype(str)
+        + '",'
+    )
+    return df
+
+
+def _get_tois_in_html(tic, download_dir=None):
+    h = TOIAccessor.Headers
+    # Consider cache TOIAccessor in some module global (keyed by download_dir) to avoid
+    # repeated loading/parsing the underlying TOI csv
+    tois = TOIAccessor(download_dir=download_dir).of_tic(tic)
+    add_codes_column_to_toi_df(tois, h)
+    report_view = tois[
+        [
+            h.TOI,
+            h.MASTER_PRIORITY,
+            h.TFOPWG_DISPOSITION,
+            h.PLANET_RADIUS_J,
+            h.EPOCH_BTJD,
+            h.DURATION_HR,
+            h.PERIOD,
+            h.DEPTH_PCT,
+            h.COMMENTS,
+            "Codes",
+        ]
+    ]
+    # tweak output styling
+    styler = Styler(report_view, cell_ids=False)  # avoid unnecessary long cell ids
+    styler.hide_index()
+    styler.format(
+        formatter={
+            (h.PLANET_RADIUS_J): "{:.3f}",
+            (h.EPOCH_BTJD, h.DURATION_HR): "{:.4f}",
+            (h.PERIOD): "{:.6f}",
+            (h.DEPTH_PCT): "{:.4f}",
+        }
+    )
+    styler.set_table_styles(
+        [
+            # make the TOI table align (roughly) with the TCE table
+            {"selector": "td.col0", "props": [("padding-left", "10px")]},
+        ]
+    )
+
+    html = styler._repr_html_()
+
+    # make the headers to make them more compact
+    html = html.replace(h.MASTER_PRIORITY, "Master<br>priority", 1)
+    html = html.replace(h.TFOPWG_DISPOSITION, "TFOPWG<br>Dispo.", 1)
+    html = html.replace(h.PLANET_RADIUS_J, "R<sub>p</sub><br>R<sub>j</sub>", 1)
+    html = html.replace(h.EPOCH_BTJD, "Epoch<br>BTJD", 1)
+    html = html.replace(h.DURATION_HR, "Duration<br>hr", 1)
+    html = html.replace(h.PERIOD, "Period<br>day", 1)
+    html = html.replace(h.DEPTH_PCT, "Depth<br>%", 1)
+
+    # turn Codes column into html input element (easier to be selected)
+    html = re.sub(
+        r"<td([^>]+)>(epoch=.+,)</td>",
+        r"""<td\1><input  type="text" style="margin-left: 3ch; font-size: 90%; color: #666; width: 10ch;" onclick="this.select();" readonly="" value='\2'></td>""",
+        html,
+    )
+
+    return html
+
+
 def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
     # This function does not do the actual display,
     # so that the caller can call it in background
@@ -511,7 +593,9 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
     tce_info_list = get_tce_infos_of_tic(tic_id, download_dir=download_dir)
     html += _tce_info_to_html(tce_info_list)
 
-    # TODO: check if there is a TOI?!
+    # TOIs/CTOIs
+    html += "<p>TOIs / CTOIs:</p>"
+    html += _get_tois_in_html(tic_id, download_dir=download_dir)
 
     html += """
 </div> <!-- id="tic_metadata_body" -->
