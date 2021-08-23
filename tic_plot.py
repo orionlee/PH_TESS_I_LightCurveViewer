@@ -1808,7 +1808,7 @@ def fold_and_plot_odd_even(lc, period, epoch_time, figsize=(10, 5), title_extra=
     )
 
     ax.legend()
-    plt.title(f"{lc.label} folded {title_extra}")
+    plt.title(f"{lc.label} folded {title_extra}\nperiod={period:.4f} d")
 
     print("odd  0.1 percentile: ", pct01_odd)
     print("even 0.1 percentile: ", pct01_even)
