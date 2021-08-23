@@ -98,7 +98,6 @@ def _download_file_if_needed(url, filename=None, download_dir="", use_localfile_
     local_filename = _create_local_filename(url, filename, download_dir)
     if os.path.isfile(local_filename):
         if use_localfile_func is None or use_localfile_func(url, local_filename):
-            # TODO: add a parameter, force_download_fn=None, to let caller specify criteria to re download
             return local_filename
 
     return _download_file(url, filename, download_dir)
