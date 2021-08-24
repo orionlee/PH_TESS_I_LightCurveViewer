@@ -135,8 +135,8 @@ class TOIAccessor:
         TIC="TIC ID",
         TOI="TOI",
         MASTER_PRIORITY="Master",
-        EPOCH_BTJD="Epoch (BTJD)",
         EPOCH_BJD="Epoch (BJD)",
+        EPOCH_BTJD="Epoch (BTJD)",  # derived
         PERIOD="Period (days)",
         DURATION_HR="Duration (hours)",
         DEPTH_PPM="Depth (ppm)",
@@ -180,7 +180,8 @@ class CTOIAccessor:
         TIC="TIC ID",
         CTOI="CTOI",
         TOI="Promoted to TOI",
-        EPOCH="Epoch (BJD)",
+        EPOCH_BJD="Transit Epoch (BJD)",
+        EPOCH_BTJD="Transit Epoch (BTJD)",  # derived
         PERIOD="Period (days)",
         DURATION_HR="Duration (hrs)",
         DEPTH_PPM="Depth ppm",
@@ -202,6 +203,7 @@ class CTOIAccessor:
             dtype={cls.Headers.CTOI: str, cls.Headers.TOI: str},
         )
         # add dervied columns
+        res[cls.Headers.EPOCH_BTJD] = res[cls.Headers.EPOCH_BJD] - BTJD_REF
         res[cls.Headers.PLANET_RADIUS_J] = res[cls.Headers.PLANET_RADIUS_E] * R_earth / R_jup
         res[cls.Headers.DEPTH_PCT] = res[cls.Headers.DEPTH_PPM] / 10000
         return res
@@ -464,7 +466,7 @@ period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}"
     return html
 
 
-def add_codes_column_to_toi_df(df, headers):
+def add_transit_as_codes_column_to_df(df, headers, label_value_func):
     h = headers
     # string interpolation does not work. So use old-school concatenation
     df["Codes"] = (
@@ -474,8 +476,8 @@ def add_codes_column_to_toi_df(df, headers):
         + df[h.DURATION_HR].map("{:.4f}".format)
         + ", period="
         + df[h.PERIOD].map("{:.6f}".format)
-        + ', label="TOI '
-        + df[h.TOI].astype(str)
+        + ', label="'
+        + label_value_func(df)
         + '",'
     )
     return df
@@ -489,7 +491,7 @@ def _get_tois_in_html(tic, download_dir=None):
     if len(tois) < 1:
         return "<p>No TOIs.</p>"
 
-    add_codes_column_to_toi_df(tois, h)
+    add_transit_as_codes_column_to_df(tois, h, label_value_func=lambda df: "TOI " + df[h.TOI])
     report_view = tois[
         [
             h.TOI,
@@ -527,6 +529,71 @@ def _get_tois_in_html(tic, download_dir=None):
     # make the headers to make them more compact
     html = html.replace(h.MASTER_PRIORITY, "Master<br>priority", 1)
     html = html.replace(h.TFOPWG_DISPOSITION, "TFOPWG<br>Dispo.", 1)
+    html = html.replace(h.PLANET_RADIUS_J, "R<sub>p</sub><br>R<sub>j</sub>", 1)
+    html = html.replace(h.EPOCH_BTJD, "Epoch<br>BTJD", 1)
+    html = html.replace(h.DURATION_HR, "Duration<br>hr", 1)
+    html = html.replace(h.PERIOD, "Period<br>day", 1)
+    html = html.replace(h.DEPTH_PCT, "Depth<br>%", 1)
+
+    # turn Codes column into html input element (easier to be selected)
+    html = re.sub(
+        r"<td([^>]+)>(epoch=.+,)</td>",
+        r"""<td\1><input  type="text" style="margin-left: 3ch; font-size: 90%; color: #666; width: 10ch;" onclick="this.select();" readonly="" value='\2'></td>""",
+        html,
+    )
+
+    return html
+
+
+def _get_ctois_in_html(tic, download_dir=None):
+    # TODO: lots of codes similar to _get_tois_in_html(). factor them out
+
+    h = CTOIAccessor.Headers
+    # Consider cache TOIAccessor in some module global (keyed by download_dir) to avoid
+    # repeated loading/parsing the underlying TOI csv
+    ctois = CTOIAccessor(download_dir=download_dir).of_tic(tic)
+    if len(ctois) < 1:
+        return "<p>No CTOIs.</p>"
+
+    add_transit_as_codes_column_to_df(ctois, h, label_value_func=lambda df: "CTOI " + df[h.CTOI])
+    report_view = ctois[
+        [
+            h.CTOI,
+            h.TOI,
+            h.PLANET_RADIUS_J,
+            h.EPOCH_BTJD,
+            h.DURATION_HR,
+            h.PERIOD,
+            h.DEPTH_PCT,
+            h.COMMENTS,
+            "Codes",
+        ]
+    ]
+    # tweak output styling
+    styler = Styler(report_view, cell_ids=False)  # avoid unnecessary long cell ids
+    styler.hide_index()
+    styler.format(
+        formatter={
+            (h.PLANET_RADIUS_J): "{:.3f}",
+            (h.EPOCH_BTJD, h.DURATION_HR): "{:.4f}",
+            (h.PERIOD): "{:.6f}",
+            (h.DEPTH_PCT): "{:.4f}",
+        }
+    )
+    styler.set_table_styles(
+        [
+            # make the CTOI table align (roughly) with the TCE table
+            {"selector": "td.col0", "props": [("padding-left", "20px")]},
+            # min-width to ensure TOI column, often no value, are wide enough to hold typical TOI value
+            # so as to make alignment more consistent
+            {"selector": "td.col1", "props": [("min-width", "80px")]},
+        ]
+    )
+
+    html = styler._repr_html_()
+
+    # make the headers to make them more compact
+    html = html.replace(h.TOI, "TOI?", 1)
     html = html.replace(h.PLANET_RADIUS_J, "R<sub>p</sub><br>R<sub>j</sub>", 1)
     html = html.replace(h.EPOCH_BTJD, "Epoch<br>BTJD", 1)
     html = html.replace(h.DURATION_HR, "Duration<br>hr", 1)
@@ -605,6 +672,7 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
     # TOIs/CTOIs
     html += "<p>TOIs / CTOIs:</p>"
     html += _get_tois_in_html(tic_id, download_dir=download_dir)
+    html += _get_ctois_in_html(tic_id, download_dir=download_dir)
 
     html += """
 </div> <!-- id="tic_metadata_body" -->
