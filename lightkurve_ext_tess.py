@@ -81,7 +81,10 @@ def _create_local_filename(url, filename, download_dir):
     return os.path.join(download_dir, local_filename)
 
 
-def _download_file(url, filename=None, download_dir=""):
+def _download_file(url, filename=None, download_dir=None):
+    if download_dir is None:
+        download_dir = ""
+
     local_filename = _create_local_filename(url, filename, download_dir)
 
     with requests.get(url, stream=True) as response:
@@ -95,7 +98,10 @@ def _download_file(url, filename=None, download_dir=""):
     return local_filename
 
 
-def _download_file_if_needed(url, filename=None, download_dir="", use_localfile_func=None):
+def _download_file_if_needed(url, filename=None, download_dir=None, use_localfile_func=None):
+    if download_dir is None:
+        download_dir = ""
+
     local_filename = _create_local_filename(url, filename, download_dir)
     if os.path.isfile(local_filename):
         if use_localfile_func is None or use_localfile_func(url, local_filename):
@@ -144,7 +150,7 @@ class TOIAccessor:
 
     # TODO: in-memory cache (with @cached) needs to be redone to properly support use_localfile_func
     @classmethod
-    def get_all_tois(cls, download_dir="", use_localfile_func=None):
+    def get_all_tois(cls, download_dir=None, use_localfile_func=None):
         url = "https://exofop.ipac.caltech.edu/tess/download_toi.php?sort=toi&output=csv"
         filename = "tess_tois.csv"
         res = _get_csv(url, filename, download_dir, use_localfile_func=use_localfile_func, dtype={cls.Headers.TOI: str})
@@ -154,7 +160,7 @@ class TOIAccessor:
         res[cls.Headers.DEPTH_PCT] = res[cls.Headers.DEPTH_PPM] / 10000
         return res
 
-    def __init__(self, download_dir="", use_localfile_func=None):
+    def __init__(self, download_dir=None, use_localfile_func=None):
         self._all = self.get_all_tois(download_dir=download_dir, use_localfile_func=use_localfile_func)
 
     def all(self):
@@ -185,7 +191,7 @@ class CTOIAccessor:
     )
 
     @classmethod
-    def get_all_ctois(cls, download_dir="", use_localfile_func=None):
+    def get_all_ctois(cls, download_dir=None, use_localfile_func=None):
         url = "https://exofop.ipac.caltech.edu/tess/download_ctoi.php?sort=ctoi&output=csv"
         filename = "tess_ctois.csv"
         res = _get_csv(
@@ -200,7 +206,7 @@ class CTOIAccessor:
         res[cls.Headers.DEPTH_PCT] = res[cls.Headers.DEPTH_PPM] / 10000
         return res
 
-    def __init__(self, download_dir="", use_localfile_func=None):
+    def __init__(self, download_dir=None, use_localfile_func=None):
         self._all = self.get_all_ctois(download_dir=download_dir, use_localfile_func=use_localfile_func)
 
     def all(self):
