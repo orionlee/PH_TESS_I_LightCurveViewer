@@ -480,6 +480,9 @@ def _get_tois_in_html(tic, download_dir=None):
     # Consider cache TOIAccessor in some module global (keyed by download_dir) to avoid
     # repeated loading/parsing the underlying TOI csv
     tois = TOIAccessor(download_dir=download_dir).of_tic(tic)
+    if len(tois) < 1:
+        return "<p>No TOIs.</p>"
+
     add_codes_column_to_toi_df(tois, h)
     report_view = tois[
         [
