@@ -405,7 +405,7 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
 
 def _tce_info_to_html(tce_info_list):
     if len(tce_info_list) < 1:
-        return ""
+        return "No TCEs."
 
     def link(link_text, url):
         return f"""<a href="{url}" target="_blank">{link_text}</a>"""
@@ -425,7 +425,7 @@ def _tce_info_to_html(tce_info_list):
         ("Impact P.", "<i>b</i>"),
         ("Codes", ""),
     ]
-    html += """<br>TCEs: <table>
+    html += """<table>
 <thead>"""
     html += "<tr>"
     html += " ".join([f"<th>{h[0]}</th>" for h in header])
@@ -463,6 +463,15 @@ period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}"
 
     html += "</tbody></table>\n"
     return html
+
+
+def _get_tces_in_html(tic, download_dir=None):
+    # For TCEs, query MAST download / parse results (the _dvr.xml), then show:
+    # - basic planet parameters and orbital info
+    # - TODO: red flags in vetting report
+    # see: https://archive.stsci.edu/missions-and-data/tess/data-products
+    tce_info_list = get_tce_infos_of_tic(tic, download_dir=download_dir)
+    return _tce_info_to_html(tce_info_list)
 
 
 def add_transit_as_codes_column_to_df(df, headers, label_value_func):
@@ -655,18 +664,16 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
         # the sector is useful to be included so that users can easily locate the TCE matching the sector.
         html += f' (sector {safe_m_get("SECTOR", "")})'
     html += "<br>\n"
+
+    # stellar parameters
     html += "<table>\n"
     html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", f'{safe_m_get("RADIUS", 0):.3f}')
     html += prop("Magnitude (TESS)", f'{safe_m_get("TESSMAG", 0):.2f}')
     html += prop("T_eff (in K)", safe_m_get("TEFF", 0))
     html += "</table>\n"
 
-    # For TCE, query MAST download / parse results (the _dvr.xml), then show:
-    # - basic planet parameters and orbital info
-    # - TODO: red flags in vetting report
-    # see: https://archive.stsci.edu/missions-and-data/tess/data-products
-    tce_info_list = get_tce_infos_of_tic(tic_id, download_dir=download_dir)
-    html += _tce_info_to_html(tce_info_list)
+    html += "<p>TCEs:</p>"
+    html += _get_tces_in_html(tic_id, download_dir=download_dir)
 
     # TOIs/CTOIs
     html += "<p>TOIs / CTOIs:</p>"
