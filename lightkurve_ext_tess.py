@@ -543,6 +543,11 @@ def _get_tois_in_html(tic, download_dir=None):
     html = html.replace(h.PERIOD, "Period<br>day", 1)
     html = html.replace(h.DEPTH_PCT, "Depth<br>%", 1)
 
+    # render nan as -- (as nan is really no value in our case)
+    # - styler.format()'s na_rep option seems to fix some but not all, so we do it ourselves
+    # - replace the pattern of <td class="..." >nan</td>
+    html = html.replace(">nan</td>", ">--</td>")
+
     # turn Codes column into html input element (easier to be selected)
     html = re.sub(
         r"<td([^>]+)>(epoch=.+,)</td>",
@@ -607,6 +612,11 @@ def _get_ctois_in_html(tic, download_dir=None):
     html = html.replace(h.DURATION_HR, "Duration<br>hr", 1)
     html = html.replace(h.PERIOD, "Period<br>day", 1)
     html = html.replace(h.DEPTH_PCT, "Depth<br>%", 1)
+
+    # render nan as -- (as nan is really no value in our case)
+    # - styler.format()'s na_rep option seems to fix some but not all, so we do it ourselves
+    # - replace the pattern of <td class="..." >nan</td>
+    html = html.replace(">nan</td>", ">--</td>")
 
     # turn Codes column into html input element (easier to be selected)
     html = re.sub(
