@@ -268,7 +268,6 @@ def parse_dvr_filename(filename):
     return dict(sector_range=sector_range, tic_id=tic_id, file_type=file_type)
 
 
-@cached
 def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None):
     # Based on:
     # - https://outerspace.stsci.edu/display/TESS/7.0+-+Tips+and+Tricks+to+Getting+TESS+Data+At+MAST
@@ -288,7 +287,6 @@ def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None
         return Observations.filter_products(data_products, productSubGroupDescription=productSubGroupDescription)
 
 
-@cached
 def parse_dvr_xml(file_path):
     def as_list(data):
         """Wrap an item as a list, if it's not one.
@@ -340,6 +338,7 @@ def parse_dvr_xml(file_path):
     return planets_dict
 
 
+@cached
 def get_tce_infos_of_tic(tic_id, download_dir=None):
     def filter_by_dataURI_suffix(products, suffix):
         # Helper to filter products into summary, full report, full report xml using suffix.
