@@ -591,7 +591,9 @@ def plot_all(
             # which will likely overlap with the points given the sparse data
             ax = lc.scatter(ax=ax, s=16, marker="x")
         else:
-            ax = lc.scatter(ax=ax)
+            # for typical short cadence data, make dots smaller than the default (s=4)
+            # so that the output doesn't look overly dense
+            ax = lc.scatter(ax=ax, s=0.5)
 
         # convert to dataframe to add moving average
         if moving_avg_window is not None:
