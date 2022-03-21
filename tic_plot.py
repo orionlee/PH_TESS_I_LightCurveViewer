@@ -75,12 +75,16 @@ tweakCSS();
         )
     )
     # the actual beep
-    beep_url = "https://upload.wikimedia.org/wikipedia/commons/f/fb/NEC_PC-9801VX_ITF_beep_sound.ogg"
+    ## somehow ssl error
+    ## beep_url = "https://upload.wikimedia.org/wikipedia/commons/f/fb/NEC_PC-9801VX_ITF_beep_sound.ogg"
+    beep_url = "beep_sound.ogg"
     if int(re.sub(r"[.].+", "", IPython.__version__)) < 7:
         # compatibility with older older IPython (e.g., google colab)
-        audio = Audio(url=beep_url, autoplay=True, embed=True)
+        ## audio = Audio(url=beep_url, autoplay=True, embed=True)
+        audio = Audio(filename=beep_url, autoplay=True, embed=True)
     else:
-        audio = Audio(url=beep_url, autoplay=True, embed=True, element_id="beep")
+        ## audio = Audio(url=beep_url, autoplay=True, embed=True, element_id="beep")
+        audio = Audio(filename=beep_url, autoplay=True, embed=True, element_id="beep")
     display(audio)
 
 
