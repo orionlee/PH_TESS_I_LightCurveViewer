@@ -20,4 +20,8 @@ tmp/
 data/*.fits
 data/*/*
 
+# Elenaor-generated file
+/maxsector.py
+
+
 # output files
