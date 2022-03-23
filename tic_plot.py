@@ -604,6 +604,7 @@ def plot_all(
                 lc.time.value,
                 mask_gap(lc.time, df["flux_mavg"], 2 / 24),
                 c="#3AF",
+                lw=0.4,
                 label=f"Moving average ({moving_avg_window})",
             )
 
