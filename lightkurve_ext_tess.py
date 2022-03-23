@@ -186,8 +186,8 @@ class CTOIAccessor:
         DURATION_HR="Duration (hrs)",
         DEPTH_PPM="Depth ppm",
         DEPTH_PCT="Depth percent",  # derived
-        PLANET_RADIUS_E="Radius (R_Earth)",
-        PLANET_RADIUS_J="Radius (R_Jupiter)",  # derived
+        PLANET_RADIUS_E="Planet Radius (R_Earth)",
+        PLANET_RADIUS_J="Planet Radius (R_Jupiter)",  # derived
         COMMENTS="Notes",
     )
 
@@ -243,6 +243,9 @@ def parse_dvs_filename(filename):
     tce_id_short = f"{sector_range}:TCE{tce_num}"
 
     # tce_id is the format used on ExoMAT, e.g,  TIC142087638S0030S0030TCE1
+    # TODO: unclear on the format of the sector_range portion.
+    #       In those cases, there is dash "-" in the range, e.g, instead of
+    #       S0039S0039, it ie S0039-S0039
     tce_id = f"""TIC{tic_id}{re.sub("-", "", sector_range.upper())}TCE{tce_num}"""
 
     return dict(
