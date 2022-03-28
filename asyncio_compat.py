@@ -34,7 +34,7 @@ async def to_thread(func, *args, **kwargs):
     This is a backport that supports Python 3.6.
     """
     if hasattr(asyncio, "to_thread"):
-        return asyncio.to_thread(func, *args, **kwargs)
+        return await asyncio.to_thread(func, *args, **kwargs)
     # Otherwise fallback to our approximation
     loop = get_running_loop()
     import contextvars
