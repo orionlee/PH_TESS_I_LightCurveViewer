@@ -768,6 +768,100 @@ def coordinate_like_id_to_coordinate(id, style="decimal"):
         return coord.to_string(style=style)
 
 
+from astropy.coordinates import SkyCoord, Angle
+from astroquery.vizier import Vizier
+
+
+def search_nearby(
+    ra,
+    dec,
+    equinox="J2000.0",
+    catalog_name="I/350/gaiaedr3",
+    radius_arcsec=60,
+    magnitude_limit_column=None,
+    magnitude_lower_limit=None,
+    magnitude_upper_limit=None,
+):
+    """Stars around the given coordinate from Gaia DR2/EDR3, etc."""
+
+    c1 = SkyCoord(ra, dec, equinox=equinox, frame="icrs", unit="deg")
+    Vizier.ROW_LIMIT = -1
+    columns = ["*"]
+    if catalog_name == "I/350/gaiaedr3":
+        columns = ["*", "epsi", "sepsi"]  # add astrometric excess noise to the output (see if a star wobbles)
+
+    result = Vizier(columns=columns).query_region(
+        c1,
+        catalog=[catalog_name],
+        radius=Angle(radius_arcsec, "arcsec"),
+    )
+    if len(result) < 1:  # handle no search result case
+        return None
+    result = result[catalog_name]
+
+    if magnitude_lower_limit is not None:
+        result = result[magnitude_lower_limit <= result[magnitude_limit_column]]
+
+    if magnitude_upper_limit is not None:
+        result = result[result[magnitude_limit_column] <= magnitude_upper_limit]
+
+    return result
+
+
+def search_gaiaedr3_of_lc(
+    lc, radius_arcsec=15, magnitude_range=2.5, compact_columns=True, also_return_html=True, verbose_html=True
+):
+    """Locate the lightcurve target's correspond entry in GaiaEDR3.
+    The match is by an heuristics based on coordinate and magnitude.
+    """
+    ra, dec, equinox = lc.meta.get("RA"), lc.meta.get("DEC"), lc.meta.get("EQUINOX")
+    tess_mag = lc.meta.get("TESSMAG")
+    lower_limit, upper_limit = tess_mag - magnitude_range, tess_mag + magnitude_range
+
+    result = search_nearby(
+        ra,
+        dec,
+        equinox=f"J{equinox}",
+        radius_arcsec=radius_arcsec,
+        magnitude_limit_column="RPmag",
+        magnitude_lower_limit=lower_limit,
+        magnitude_upper_limit=upper_limit,
+    )
+
+    if result is None:
+        if also_return_html:
+            return None, ""
+        else:
+            return None
+
+    if compact_columns:  # select the most useful columns
+        # prefer RA/DEC in Epoch 2000 as they can be compared more easily with those those in TESS LC metadata
+        result = result[
+            "RAJ2000",
+            "DEJ2000",
+            "RPmag",
+            "Gmag",
+            "BPmag",
+            "Tefftemp",
+            "RUWE",
+            "sepsi",
+            "epsi",
+            "Plx",
+            "pmRA",
+            "pmDE",
+            "Source",
+        ]
+    if also_return_html:
+        # OPEN: additional UI tweak, e.g., link back to Vizier, etc.
+        html = ""
+        if verbose_html:
+            html = f"<p>TIC {lc.targetid} - TESS mag: {tess_mag} ; coordinate: {ra}, {dec}</p>\n"
+        html = html + result._repr_html_()
+        return result, html
+    else:
+        return result
+
+
 #
 # Reader for ASAS-SN
 #
