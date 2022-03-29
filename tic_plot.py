@@ -472,11 +472,15 @@ def get_momentum_dump_times(lcf):
     def momentum_dump_times_from_file():
         # Note: momentum_dump signals are by default masked out in LightCurve objects.
         # To access times marked as such, I need to access the raw LightCurveFile directly.
-        with fits.open(lcf.filename) as hdu:
+        filename = lcf.meta.get("filename", None)
+        if filename is None:
+            warnings.warn("get_momentum_dump_times(): No-Op, because there is the LightCurve object has no backing FITS file.")
+            return np.array([])
+        with fits.open(filename) as hdu:
             if "TIME" not in hdu[1].columns.names:
                 # case the file has no TIME column, typically non SPOC-produced ones, e.g., CDIPS,
                 # the logic of finding momentum dump would not apply to such files anyway.
-                return []
+                return np.array([])
 
             # normal flow
             time = hdu[1].data["TIME"]
