@@ -840,9 +840,25 @@ def search_gaiaedr3_of_lc(
         else:
             return None
 
+    # flag entries (that could indicate binary systems, etc.)
+    flag_column_values = []
+    for row in result:
+        flag = ""
+        # RUWE > 1.4 cutoff source:
+        # https://gea.esac.esa.int/archive/documentation/GDR2/Gaia_archive/chap_datamodel/sec_dm_main_tables/ssec_dm_ruwe.html
+        if row["RUWE"] > 1.4:
+            flag += "!"
+        # astrometric excess noise sig > 2 cutoff source
+        # https://gea.esac.esa.int/archive/documentation/GDR2/Gaia_archive/chap_datamodel/sec_dm_main_tables/ssec_dm_gaia_source.html
+        if row["sepsi"] > 2:
+            flag += "!"
+        flag_column_values.append(flag)
+    result.add_column(flag_column_values, name="flag")
+
     if compact_columns:  # select the most useful columns
         # prefer RA/DEC in Epoch 2000 as they can be compared more easily with those those in TESS LC metadata
         result = result[
+            "flag",
             "RAJ2000",
             "DEJ2000",
             "RPmag",
