@@ -524,7 +524,7 @@ def _get_tois_in_html(tic, download_dir=None):
     ]
     # tweak output styling
     styler = Styler(report_view, cell_ids=False)  # avoid unnecessary long cell ids
-    styler.hide_index()
+    styler.hide(axis="index")
     styler.format(
         formatter={
             (h.PLANET_RADIUS_J): "{:.3f}",
@@ -592,7 +592,7 @@ def _get_ctois_in_html(tic, download_dir=None):
     ]
     # tweak output styling
     styler = Styler(report_view, cell_ids=False)  # avoid unnecessary long cell ids
-    styler.hide_index()
+    styler.hide(axis="index")
     styler.format(
         formatter={
             (h.PLANET_RADIUS_J): "{:.3f}",
