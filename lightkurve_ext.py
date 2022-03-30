@@ -879,6 +879,18 @@ def search_gaiaedr3_of_lc(
         if verbose_html:
             html = f"<p>TIC {lc.targetid} - TESS mag: {tess_mag} ; coordinate: {ra}, {dec}</p>\n"
         html = html + result._repr_html_()
+
+        # linkify Gaia EDR3 ID
+        for id in result["Source"]:
+            html = html.replace(
+                f">{id}<",
+                f"><a target='vizier_gaia_edr3' href='https://vizier.u-strasbg.fr/viz-bin/VizieR-S?Gaia%20EDR3%20{id}'>{id}</a><",
+            )
+
+        # remove the Table length=n message
+        result_len = len(result)
+        html = html.replace(f"<i>Table length={result_len}</i>", "")
+
         return result, html
     else:
         return result
