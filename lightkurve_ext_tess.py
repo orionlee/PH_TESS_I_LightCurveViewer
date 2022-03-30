@@ -2,6 +2,7 @@
 # Helpers to download TESS-specific non-lightcurve data: TOIs, TCEs, etc.
 #
 
+import logging
 import os
 from pathlib import Path
 import re
@@ -343,6 +344,10 @@ def parse_dvr_xml(file_path):
 
 @cached
 def get_tce_infos_of_tic(tic_id, download_dir=None):
+    # recent astroquery emits INFO messages by default, e.g., in downloading cached dvr xml files
+    # suppress them
+    logging.getLogger("astroquery").setLevel(logging.WARNING)
+
     def filter_by_dataURI_suffix(products, suffix):
         # Helper to filter products into summary, full report, full report xml using suffix.
         # It replaces the logic to filter by "description" column, as description is sometimes unreliable
