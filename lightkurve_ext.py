@@ -10,6 +10,7 @@ import re
 import warnings
 from collections import OrderedDict
 
+import astropy
 from astropy.io import fits
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
@@ -790,11 +791,16 @@ def search_nearby(
     if catalog_name == "I/350/gaiaedr3":
         columns = ["*", "epsi", "sepsi"]  # add astrometric excess noise to the output (see if a star wobbles)
 
-    result = Vizier(columns=columns).query_region(
-        c1,
-        catalog=[catalog_name],
-        radius=Angle(radius_arcsec, "arcsec"),
-    )
+    with warnings.catch_warnings():
+        # suppress useless warning.  https://github.com/astropy/astroquery/issues/2352
+        warnings.filterwarnings(
+            "ignore", category=astropy.units.UnitsWarning, message="Unit 'e' not supported by the VOUnit standard"
+        )
+        result = Vizier(columns=columns).query_region(
+            c1,
+            catalog=[catalog_name],
+            radius=Angle(radius_arcsec, "arcsec"),
+        )
     if len(result) < 1:  # handle no search result case
         return None
     result = result[catalog_name]
