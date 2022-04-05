@@ -1,6 +1,6 @@
 # TESS Target (TIC) Vetting
 
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/master/TIC_Vetting.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/main/TIC_Vetting.ipynb)
 
 [TIC_Vetting.ipynb](TIC_Vetting.ipynb) - a Jupyter notebook that can be used a template for vetting / inspecting a particular TIC.
 
@@ -17,8 +17,8 @@
 
 ## Others: Interactive Subject Lightcurve Viewer
 
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/master/PH_TESS_I_LightCurveViewer.ipynb)
-  [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/orionlee/PH_TESS_I_LightCurveViewer/master?filepath=PH_TESS_I_LightCurveViewer.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/main/PH_TESS_I_LightCurveViewer.ipynb)
+  [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/orionlee/PH_TESS_I_LightCurveViewer/main?filepath=PH_TESS_I_LightCurveViewer.ipynb)
 
 An interactive (but more limited) one that uses the data available on the Planet Hunters TESS subject page, without relying on MAST Portal.
 
@@ -33,7 +33,7 @@ Instructions:
 
 ## Others: TCE Finder
 
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/master/TCE_Finder.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/main/TCE_Finder.ipynb)
 
 [TCE_Finder.ipynb](TCE_Finder.ipynb) - a Jupyter notebook that can be used a web-based tool to look up TCEs. Useful when TCEs are not yet available on exo.mast.
 
