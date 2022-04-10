@@ -20,6 +20,9 @@ lightkurve = "^2.0.10"
 #  https://github.com/lightkurve/lightkurve/issues/990
 bokeh = ">=1.0, <2.3.0"
 matplotlib = ">=1.5.3"
+# lightkurve_ext_tess.py uses the new `styler.hide()`, replacing
+# the deprecated `styler.hide_index()` - it requires pandas 1.4.0
+pandas = ">=1.4.0"
 memoization = { version = ">=0.3.1", python = ">=3.6,<4.0" }
 xmltodict = "^0.12.0"
 jupyter = "^1.0.0"
