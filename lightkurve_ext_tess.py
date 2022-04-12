@@ -282,6 +282,8 @@ def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None
     exact_target_name = tic_id
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*No products to download.*")
+        # to filter WARNING: NoResultsWarning: Query returned no results. [astroquery.mast.discovery_portal]
+        warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*Query returned no results.*")
         obs_wanted = Observations.query_criteria(
             target_name=exact_target_name,
             dataproduct_type="timeseries",
