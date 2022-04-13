@@ -1,4 +1,4 @@
-# Input file for {tic}
+# Input file for {alias}
 
 # Light curve data file
 fname_tr = ["{fname_tr}"]
@@ -82,4 +82,4 @@ max_q2 = {e_q2}  # Standard deviation
 tr_xlabel = "BTJD - 2457000 (days)"
 
 
-# End of the input file for {tic}
+# End of the input file for {alias}

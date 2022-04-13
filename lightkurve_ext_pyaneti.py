@@ -12,9 +12,45 @@ import warnings
 
 from astropy.table import Table
 from astropy.time import Time
-from astropy import units as u
 import numpy as np
 import lightkurve as lk
+
+
+class PyanetiEnv:
+    """Define the directories used for 1 modeling session"""
+
+    def __init__(self, home_dir, alias, sector):
+        self.home_dir = Path(home_dir)
+        self.alias = alias
+        self.sector = sector
+
+    @property
+    def base_in_dir(self):
+        """The base directory for all modeling input of the Pyaneti installation"""
+        return Path(self.home_dir, "inpy")
+
+    @property
+    def base_out_dir(self):
+        """The base directory for all modeling output of the Pyaneti installation"""
+        return Path(self.home_dir, "outpy")
+
+    @property
+    def target_in_dir(self):
+        return Path(self.base_in_dir, self.alias)
+
+    @property
+    def target_out_dir(self):
+        return Path(self.base_out_dir, f"{self.alias}_out")
+
+    @property
+    def lc_dat_filename(self):
+        sector_str = to_sector_str(self.sector)
+        return f"{self.alias}_lc_s{sector_str}.dat"
+
+    @property
+    def lc_dat_filepath(self):
+        return Path(self.target_in_dir, self.lc_dat_filename)
+
 
 #
 # Prepare and export `LightCurve` to Pyaneti input data
@@ -69,10 +105,12 @@ def truncate_lc_to_around_transits(lc, transit_specs):
     return lc[mask]
 
 
-def to_pyaneti_dat(lc, out_path, transit_specs, return_processed_lc=False):
+def to_pyaneti_dat(lc, transit_specs, pyaneti_env, return_processed_lc=False):
     "Output lc data to a file readable by Pyaneti, with lc pre-processed to be suitable for Pyaneti modeling"
     if transit_specs is not None:
         lc = truncate_lc_to_around_transits(lc, transit_specs)
+
+    out_path = pyaneti_env.lc_dat_filepath
 
     # finally write to output
     #  lc["time", "flux", "flux_err"]  # somehow "time" is causing problem
@@ -80,7 +118,9 @@ def to_pyaneti_dat(lc, out_path, transit_specs, return_processed_lc=False):
     _create_dir_if_needed(out_path)
     lc1.write(out_path, format="ascii.commented_header", overwrite=True)
     if return_processed_lc:
-        return lc
+        return out_path, lc
+    else:
+        return out_path
 
 
 def catalog_info_TIC(tic_id):
@@ -94,16 +134,6 @@ def catalog_info_TIC(tic_id):
 
     result_tab = Catalogs.query_criteria(catalog="Tic", ID=tic_id)
     return {c: result_tab[0][c] for c in result_tab[0].colnames}
-    # result = result_obj.as_array()
-    # Teff = result[0][64]
-    # logg = result[0][66]
-    # radius = result[0][70]
-    # radius_max = result[0][71]
-    # radius_min = result[0][71]
-    # mass = result[0][72]
-    # mass_max = result[0][73]
-    # mass_min = result[0][73]
-    # return Teff, logg, radius, radius_min, radius_max, mass, mass_min, mass_max, result_obj
 
 
 def get_limb_darkening_params(tic_meta):
@@ -192,8 +222,8 @@ def estimate_orbital_distance_in_r_star(tic_meta):
 def create_input_fit(
     template_name,
     tic,
-    pyaneti_target_in_dir,
-    lc_pyaneti_dat_filename,
+    alias,
+    pti_env,
     transit_specs,
     meta,
     q1_q2,
@@ -203,13 +233,17 @@ def create_input_fit(
     return_content=False,
 ):
     """Output parts of Pyaneti `input_fit.py` based on the specification included"""
-    template = Path(rf"pyaneti_templates\{template_name}.py").read_text()
+    template = Path("pyaneti_templates", f"input_{template_name}.py").read_text()
+
+    pyaneti_target_in_dir = pti_env.target_in_dir
+    lc_pyaneti_dat_filename = pti_env.lc_dat_filename
 
     mapping = meta.copy()
     mapping.update(q1_q2)
     mapping.update(r_planet_dict)
     mapping.update(a_planet_dict)
     mapping["tic"] = tic
+    mapping["alias"] = alias
     mapping["fname_tr"] = lc_pyaneti_dat_filename
 
     # map transit_specs to epoch_min/max, period_min/max
@@ -239,20 +273,33 @@ def create_input_fit(
         input_fit_filepath.write_text(result)
 
     if return_content:
-        return result
+        return input_fit_filepath, result
     else:
         return input_fit_filepath
 
 
-def display_pyaneti_instructions(tic):
+def display_pyaneti_input_py_location(input_fit_filepath):
+    from IPython.display import display, HTML
+
+    display(
+        HTML(
+            f"""
+    <a href="{input_fit_filepath}" target="_input_fit_py">{input_fit_filepath}</a>
+    """
+        )
+    )
+
+
+def display_pyaneti_instructions(pti_env):
     from IPython.display import display, Markdown
 
     display(
         Markdown(
             f"""
-At `Pyaneti` home directory, run:
+Run `Pyaneti` to do the modeling:
 ```
-python pyaneti.py  {tic}
+cd {pti_env.home_dir}
+python pyaneti.py  {pti_env.alias}
 ```
     """
         )
@@ -264,21 +311,40 @@ python pyaneti.py  {tic}
 #
 
 
-def display_model(pyaneti_out_dir, tic):
-    from IPython.display import display, Image, Markdown
+def display_model(
+    pti_env,
+    show_posterior=True,
+    show_transits=True,
+    show_lightcurve=True,
+    show_chains=False,
+):
+    from IPython.display import display, Image, HTML
 
-    target_out_dir = rf"{pyaneti_out_dir}\{tic}_out"
-    file_posterior = rf"{target_out_dir}\{tic}_posterior.png"
-    file_params = rf"{target_out_dir}\{tic}_params.dat"
+    target_out_dir = pti_env.target_out_dir
+    alias = pti_env.alias
+    file_params = Path(target_out_dir, f"{alias}_params.dat")
     url_params = f"file:///{file_params}".replace("\\", "/")
+    file_init = Path(target_out_dir, f"{alias}_init.dat")
+    url_init = f"file:///{file_init}".replace("\\", "/")
     display(
-        Markdown(
-            f"""### Model for {tic}:
-<a target="_params" href="{url_params}">Model params</a> - {url_params}
+        HTML(
+            f"""<h3>Model for {alias}:</h3>
+<ul>
+    <li><a target="_params" href="{url_params}">Model params</a> - {url_params}</li>
+    <li><a target="_init" href="{url_init}">Init params</a> - {url_init}</li>
+</ul>
+(Copy the link to open in a new tab if clicking them does not work.)
 """
         )
     )
-    display(Image(file_posterior))
+    if show_posterior:
+        display(Image(Path(target_out_dir, f"{alias}_posterior.png")))
+    if show_transits:
+        display(Image(Path(target_out_dir, f"{alias}b_tr.png")))  # TODO: handle multiple planets
+    if show_lightcurve:
+        display(Image(Path(target_out_dir, f"{alias}_lightcurve.png")))
+    if show_chains:
+        display(Image(Path(target_out_dir, f"{alias}_chains.png")))
 
 
 def read_pyaneti_lc_dat(filename, time_format="btjd", time_converter_func=None):
