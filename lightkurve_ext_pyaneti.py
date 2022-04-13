@@ -246,6 +246,12 @@ def create_input_fit(
     mapping["alias"] = alias
     mapping["fname_tr"] = lc_pyaneti_dat_filename
 
+    rho = mapping.get("rho")
+    e_rho = mapping.get("e_rho")
+    if rho is not None and e_rho is not None:
+        mapping["rho_min"] = rho - e_rho
+        mapping["rho_max"] = rho + e_rho
+
     # map transit_specs to epoch_min/max, period_min/max
     # TODO: handle multiple transit_specs
     epoch_error = transit_specs[0].get("epoch_error", None)
@@ -313,7 +319,9 @@ python pyaneti.py  {pti_env.alias}
 
 def display_model(
     pti_env,
+    show_params=True,
     show_posterior=True,
+    show_correlations=False,
     show_transits=True,
     show_lightcurve=True,
     show_chains=False,
@@ -322,23 +330,28 @@ def display_model(
 
     target_out_dir = pti_env.target_out_dir
     alias = pti_env.alias
-    file_params = Path(target_out_dir, f"{alias}_params.dat")
-    url_params = f"file:///{file_params}".replace("\\", "/")
-    file_init = Path(target_out_dir, f"{alias}_init.dat")
-    url_init = f"file:///{file_init}".replace("\\", "/")
-    display(
-        HTML(
-            f"""<h3>Model for {alias}:</h3>
-<ul>
-    <li><a target="_params" href="{url_params}">Model params</a> - {url_params}</li>
-    <li><a target="_init" href="{url_init}">Init params</a> - {url_init}</li>
+    display(HTML(f"<h3>Model for {alias}</h3>"))
+
+    if show_params:
+        file_params = Path(target_out_dir, f"{alias}_params.dat")
+        url_params = f"file:///{file_params}".replace("\\", "/")
+        file_init = Path(target_out_dir, f"{alias}_init.dat")
+        url_init = f"file:///{file_init}".replace("\\", "/")
+        display(
+            HTML(
+                f"""<ul>
+    <li><a target="_params" href="{url_params}">Model params</a> - {file_params}</li>
+    <li><a target="_init" href="{url_init}">Init params</a> - {file_init}</li>
 </ul>
 (Copy the link to open in a new tab if clicking them does not work.)
 """
+            )
         )
-    )
+
     if show_posterior:
         display(Image(Path(target_out_dir, f"{alias}_posterior.png")))
+    if show_correlations:
+        display(Image(Path(target_out_dir, f"{alias}_correlations.png")))
     if show_transits:
         display(Image(Path(target_out_dir, f"{alias}b_tr.png")))  # TODO: handle multiple planets
     if show_lightcurve:
