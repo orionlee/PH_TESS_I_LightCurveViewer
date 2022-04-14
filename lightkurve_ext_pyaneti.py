@@ -217,7 +217,7 @@ def estimate_planet_radius_in_r_star(r_star, depth):
 
 def estimate_orbital_distance_in_r_star(tic_meta):
     # TODO: possibly use Kepler third law for better constraints
-    return dict(a_min=2.0, a_max=30.0)
+    return dict(a_min=2.0, a_max=99.0)
 
 
 def create_input_fit(
