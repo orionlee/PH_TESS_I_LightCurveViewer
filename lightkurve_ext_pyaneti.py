@@ -351,9 +351,9 @@ def display_model(
 
     if show_params:
         file_params = Path(target_out_dir, f"{alias}_params.dat")
-        url_params = f"file:///{file_params}".replace("\\", "/")
+        url_params = file_params.as_uri()
         file_init = Path(target_out_dir, f"{alias}_init.dat")
-        url_init = f"file:///{file_init}".replace("\\", "/")
+        url_init = file_init.as_uri()
         display(
             HTML(
                 f"""<ul>
