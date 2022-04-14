@@ -86,7 +86,7 @@ max_q2 = {e_q2}  # Standard deviation
 # If True it creates a correlation plot
 is_plot_correlations = True
 
-tr_xlabel = "BTJD - 2457000 (days)"
+tr_xlabel = "{lc_time_label}"
 
 
 # End of the input file for {alias}

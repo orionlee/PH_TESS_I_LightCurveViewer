@@ -224,6 +224,7 @@ def create_input_fit(
     tic,
     alias,
     pti_env,
+    lc,
     transit_specs,
     meta,
     q1_q2,
@@ -266,7 +267,13 @@ def create_input_fit(
     mapping["period_min"] = transit_specs[0]["period"] - period_error
     mapping["period_max"] = transit_specs[0]["period"] + period_error
 
-    dict(tic=tic, fname_tr=lc_pyaneti_dat_filename)
+    lc_time_label = lc.time.format.upper()
+    if lc.time.format == "btjd":
+        lc_time_label = "BJD - 2457000 (BTJD days)"
+    elif lc.time.format == "bkjd":
+        lc_time_label = "BJD - 2454833 (BKJD days)"
+    mapping["lc_time_label"] = lc_time_label
+
     result = template
     for key, value in mapping.items():
         result = result.replace("{" + key + "}", str(value))
