@@ -347,7 +347,15 @@ def display_model(
 
     target_out_dir = pti_env.target_out_dir
     alias = pti_env.alias
-    display(HTML(f"<h3>Model for {alias}</h3>"))
+    display(
+        HTML(
+            f"""
+<h3>Model for {alias}&nbsp;
+<a href="https://github.com/oscaribv/pyaneti/wiki/Output-files" target="_doc_pti_out"
+   style="font-size: 75%; font-weight: normal;">(documentation)</a>
+</h3>"""
+        )
+    )
 
     if show_params:
         file_params = Path(target_out_dir, f"{alias}_params.dat")
