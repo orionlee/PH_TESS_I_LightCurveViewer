@@ -8,6 +8,7 @@ import os
 from os import path
 from pathlib import Path
 import re
+import shutil
 import warnings
 
 from astropy.table import Table
@@ -322,6 +323,15 @@ python pyaneti.py  {pti_env.alias}
 #
 # Read Pyaneti model output, lightcurve files, etc.
 #
+
+
+def save_params_as_txt_file(pti_env):
+    "Save the params `.dat` as `.txt` so that it can be easily viewed on Google Drive."
+    target_out_dir = pti_env.target_out_dir
+    alias = pti_env.alias
+    file_params = Path(target_out_dir, f"{alias}_params.dat")
+    file_params_txt = Path(target_out_dir, f"{alias}_params.txt")
+    shutil.copyfile(file_params, file_params_txt)
 
 
 def display_model(
