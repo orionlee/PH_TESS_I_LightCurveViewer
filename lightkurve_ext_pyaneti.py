@@ -220,6 +220,25 @@ def estimate_orbital_distance_in_r_star(tic_meta):
     return dict(a_min=2.0, a_max=99.0)
 
 
+def display_stellar_meta_links(meta, header=None):
+    from IPython.display import display, HTML
+
+    if header is not None:
+        display(HTML(header))
+    tic = meta["ID"]
+    exofop_html = f'<a target="_exofop" href="https://exofop.ipac.caltech.edu/tess/target.php?id={tic}">ExoFOP</a>'
+
+    gaia_id = meta.get("GAIA")
+    gaia_html = ""
+    if gaia_id is not None:
+        gaia_html = f"""
+<a target="_gaia_dr2" href="https://vizier.u-strasbg.fr/viz-bin/VizieR-S?Gaia%20DR2%20{gaia_id}">Gaia DR2</a><br>
+<a target="_gaia_edr3" href="https://vizier.u-strasbg.fr/viz-bin/VizieR-S?Gaia%20EDR3%20{gaia_id}">Gaia EDR3</a>
+<span style="font-size: 80%;">&nbsp;(if the Gaia ID is the same as DR2)</span><br>
+"""
+    display(HTML(f"{exofop_html}<br>{gaia_html}"))
+
+
 def create_input_fit(
     template_name,
     tic,
