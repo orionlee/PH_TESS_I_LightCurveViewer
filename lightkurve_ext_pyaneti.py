@@ -65,7 +65,7 @@ def to_sector_str(sector):
     if isinstance(sector, Iterable):
         return "_".join([format(i) for i in sector])
     else:
-        format(sector)
+        return format(sector)
 
 
 def _create_dir_if_needed(path):
