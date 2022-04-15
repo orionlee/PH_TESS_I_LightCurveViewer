@@ -138,7 +138,14 @@ def catalog_info_TIC(tic_id):
 
 
 def get_limb_darkening_params(tic_meta):
-    # derived from:
+    """Estimate Limb Darkening Quadratic Coefficients for TESS.
+    The data is from
+    [Claret et al. (2017)](https://ui.adsabs.harvard.edu/abs/2017A%26A...600A..30C/abstract),
+    specifically, the subset of model `PHOENIX-COND`, 	quasi-spherical type `q`.
+    The origial data is hosted at:
+    https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/A%2bA/600/A30/tableab
+    """
+    # Logic derived from:
     # https://github.com/hippke/tls/blob/v1.0.31/transitleastsquares/catalog.py
     logg, Teff, = (
         tic_meta["logg"],
@@ -169,15 +176,25 @@ def get_limb_darkening_params(tic_meta):
     idx_all_Teffs = np.where(ld["Teff"] == nearest_Teff)
     relevant_lds = np.copy(ld[idx_all_Teffs])
     idx_nearest = np.abs(relevant_lds["logg"] - logg).argmin()
-    q1 = relevant_lds["a"][idx_nearest]
-    q2 = relevant_lds["b"][idx_nearest]
+    # the `a`, `b` columns in the csv are the u1, u2 in Pyaneti,
+    # the coefficients in the quadratic model:
+    #   I(μ) = 1 − u1(1−μ) − u2(1−μ)^2
+    u1 = relevant_lds["a"][idx_nearest]
+    u2 = relevant_lds["b"][idx_nearest]
 
-    # Provide a rough guess on error for q1/q2
+    # Pyaneti prefers parametrization in q1 / q2, an optimal way to sample the parameter space
+    # see: https://github.com/oscaribv/pyaneti/wiki/Parametrizations#limb-darkening-coefficients
+    q1 = (u1 + u2) ** 2
+    q2 = u1 / (2 * (u1 + u2))
+
+    # Provide a rough guess on error for u1/u2/q1/q2
     # it's a rough heuristics that tried to be conservation (i.e, erred to be larger than actual)
+    e_u1 = np.ceil(u1 * 0.33 * 100) / 100
+    e_u2 = np.ceil(u2 * 0.33 * 100) / 100
     e_q1 = np.ceil(q1 * 0.33 * 100) / 100
     e_q2 = np.ceil(q2 * 0.33 * 100) / 100
 
-    return dict(q1=q1, q2=q2, e_q1=e_q1, e_q2=e_q2)
+    return dict(q1=q1, e_q1=e_q1, q2=q2, e_q2=e_q2, u1=u1, e_u1=e_u1, u2=u2, e_u2=e_u2)
 
 
 def _round_n_decimals(num, num_decimals):
