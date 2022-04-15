@@ -40,7 +40,7 @@ fit_b = ["u"]  # uniform prior for b
 # an useful constraint if there are reliable, independent rho* available
 # see:  https://github.com/oscaribv/pyaneti/wiki/Parametrizations#stellar-density
 sample_stellar_density = True
-fit_a = ["u"]  # uniform prior for rho*  (a is used as rho*)
+fit_a = ["g"]  # gaussian prior for rho*  (a is used as rho*)
 fit_rp = ["u"]  # uniform prior for Rp/R*
 fit_q1 = "g"  # gaussian prior for q1
 fit_q2 = "g"  # gaussian prior for q2
@@ -66,9 +66,9 @@ max_w = [2 * np.pi]  # the upper limit is not important if we are fixing a varia
 # Minimum and maximum limits for b
 min_b = [0.0]
 max_b = [1.0]
-# Minimum and maximum limits for rho* , given sample_stellar_density = True
-min_a = [{rho_min}]
-max_a = [{rho_max}]
+# Gaussian priors for rho* , given sample_stellar_density = True
+min_a = [{rho}]  # Mean
+max_a = [{e_rho}]  # Standard deviation
 # Minimum and maximum limits for Rp/R*
 min_rp = [{r_planet_in_r_star_min}]
 max_rp = [{r_planet_in_r_star_max}]
