@@ -235,6 +235,7 @@ def display_stellar_meta_links(meta, header=None):
 <a target="_gaia_dr2" href="https://vizier.u-strasbg.fr/viz-bin/VizieR-S?Gaia%20DR2%20{gaia_id}">Gaia DR2</a><br>
 <a target="_gaia_edr3" href="https://vizier.u-strasbg.fr/viz-bin/VizieR-S?Gaia%20EDR3%20{gaia_id}">Gaia EDR3</a>
 <span style="font-size: 80%;">&nbsp;(if the Gaia ID is the same as DR2)</span><br>
+<a target="_gaia_esa" href="https://gea.esac.esa.int/archive/">Gaia Official Archive at ESA</a><br>
 """
     display(HTML(f"{exofop_html}<br>{gaia_html}"))
 
