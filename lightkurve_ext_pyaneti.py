@@ -262,12 +262,14 @@ def create_input_fit(
         else:
             return False
 
-    template = Path("pyaneti_templates", f"input_{template_name}.py").read_text()
+    template_filename = f"input_{template_name}.py"
+    template = Path("pyaneti_templates", template_filename).read_text()
 
     pyaneti_target_in_dir = pti_env.target_in_dir
     lc_pyaneti_dat_filename = pti_env.lc_dat_filename
 
     mapping = meta.copy()
+    mapping["template_filename"] = template_filename
     mapping.update(q1_q2)
     mapping.update(r_planet_dict)
     mapping.update(a_planet_dict)
