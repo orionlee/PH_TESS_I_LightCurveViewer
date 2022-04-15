@@ -254,6 +254,14 @@ def create_input_fit(
     return_content=False,
 ):
     """Output parts of Pyaneti `input_fit.py` based on the specification included"""
+
+    def set_if_None(map, key, value):
+        if map.get(key) is None:
+            map[key] = value
+            return True
+        else:
+            return False
+
     template = Path("pyaneti_templates", f"input_{template_name}.py").read_text()
 
     pyaneti_target_in_dir = pti_env.target_in_dir
@@ -270,29 +278,29 @@ def create_input_fit(
     rho = mapping.get("rho")
     e_rho = mapping.get("e_rho")
     if rho is not None and e_rho is not None:
-        mapping["rho_min"] = rho - e_rho
-        mapping["rho_max"] = rho + e_rho
+        set_if_None(mapping, "rho_min", rho - e_rho)
+        set_if_None(mapping, "rho_max", rho + e_rho)
 
     # map transit_specs to epoch_min/max, period_min/max
     # TODO: handle multiple transit_specs
     epoch_error = transit_specs[0].get("epoch_error", None)
     if epoch_error is None:
         epoch_error = transit_specs[0]["duration_hr"] * 0.05 / 24  # default to a +/- 5% of the duration
-    mapping["epoch_min"] = transit_specs[0]["epoch"] - epoch_error
-    mapping["epoch_max"] = transit_specs[0]["epoch"] + epoch_error
+    set_if_None(mapping, "epoch_min", transit_specs[0]["epoch"] - epoch_error)
+    set_if_None(mapping, "epoch_max", transit_specs[0]["epoch"] + epoch_error)
 
     period_error = transit_specs[0].get("period_error", None)
     if period_error is None:
         period_error = transit_specs[0]["period"] * 0.5  # deault to +/- 50% of the period
-    mapping["period_min"] = transit_specs[0]["period"] - period_error
-    mapping["period_max"] = transit_specs[0]["period"] + period_error
+    set_if_None(mapping, "period_min", transit_specs[0]["period"] - period_error)
+    set_if_None(mapping, "period_max", transit_specs[0]["period"] + period_error)
 
     lc_time_label = lc.time.format.upper()
     if lc.time.format == "btjd":
         lc_time_label = "BJD - 2457000 (BTJD days)"
     elif lc.time.format == "bkjd":
         lc_time_label = "BJD - 2454833 (BKJD days)"
-    mapping["lc_time_label"] = lc_time_label
+    set_if_None(mapping, "lc_time_label", lc_time_label)
 
     result = template
     for key, value in mapping.items():
