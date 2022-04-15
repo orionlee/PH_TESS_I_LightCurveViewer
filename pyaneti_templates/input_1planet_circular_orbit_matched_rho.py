@@ -1,4 +1,5 @@
 # Input file for {alias}
+# template: {template_filename}
 
 # Light curve data file
 fname_tr = ["{fname_tr}"]
@@ -85,6 +86,8 @@ max_q2 = {e_q2}  # Standard deviation
 
 # If True it creates a correlation plot
 is_plot_correlations = True
+
+plot_binned_data = True
 
 tr_xlabel = "{lc_time_label}"
 
