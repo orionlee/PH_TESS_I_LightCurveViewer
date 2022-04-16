@@ -44,6 +44,11 @@ fit_ew1 = ["{type_ew}"]
 fit_ew2 = ["{type_ew}"]
 
 fit_b = ["u"]  # TODO:
+# sampling stellar density: if True
+# - fit_a would fit rho* instead of a/R* (aka matched_rho),
+# - an useful constraint if there are reliable, independent rho* available
+# - see:  https://github.com/oscaribv/pyaneti/wiki/Parametrizations#stellar-density
+sample_stellar_density = {sample_stellar_density}
 fit_a = ["{type_a}"]  # {comment_a}
 fit_rp = ["{type_rp}"]  # Rp/R*
 fit_q1 = "{type_q1}"
@@ -70,7 +75,7 @@ max_ew2 = [{val2_ew2}]
 # Minimum and maximum limits for b
 min_b = [0.0]
 max_b = [1.0]
-# {comment_a} prior type: {type_a} # TODO: handle fit rho
+# {comment_a} prior type: {type_a}
 min_a = [{val1_a}]
 max_a = [{val2_a}]
 # Rp/R* prior type: {type_rp}

@@ -419,8 +419,19 @@ def create_input_fit(
         else:
             raise ValueError(f"Unsupported orbit type: {template.orbit_type}")
 
-    pyaneti_target_in_dir = pti_env.target_in_dir
-    lc_pyaneti_dat_filename = pti_env.lc_dat_filename
+    def process_fit_type(map):
+        if template.fit_type == "orbital_distance":
+            process_priors(map, "a", map)
+            map["comment_a"] = "a/R*"
+            map["sample_stellar_density"] = False
+        elif template.fit_type == "rho":
+            process_priors(map, "a", map, key_prior_src="rho")
+            map["comment_a"] = "rho*"
+            map["sample_stellar_density"] = True
+        elif template.fit_type == "single_transit":
+            raise ValueError("TODO")
+        else:
+            raise ValueError(f"Unsupported fit_type: {template.fit_type}")
 
     # First process and combine all the given parameters
     # into a mapping table, which will be used to instantiate
@@ -434,14 +445,13 @@ def create_input_fit(
     mapping.update(mcmc_controls)
     mapping["tic"] = tic
     mapping["alias"] = alias
-    mapping["fname_tr"] = lc_pyaneti_dat_filename
+    mapping["fname_tr"] = pti_env.lc_dat_filename
 
     process_orbit_type(mapping)
     # TODO: handle multiple planets
     process_priors(mapping, "epoch", transit_specs[0], fraction_base_func=lambda spec: spec["duration_hr"] / 24)
     process_priors(mapping, "period", transit_specs[0])
-    process_priors(mapping, "a", mapping)
-    mapping["comment_a"] = "a/R*"
+    process_fit_type(mapping)
     process_priors(mapping, "rp", mapping, "r_planet_in_r_star")
     process_priors(mapping, "q1", mapping)
     process_priors(mapping, "q2", mapping)
@@ -463,7 +473,7 @@ def create_input_fit(
     if re.search(r"{[^}]+}", result):
         warnings.warn("create_input_fit(): the created `input_fit.py` still has values not yet defined.")
 
-    input_fit_filepath = Path(pyaneti_target_in_dir, "input_fit.py")
+    input_fit_filepath = Path(pti_env.target_in_dir, "input_fit.py")
     if write_to_file:
         input_fit_filepath.write_text(result)
 
