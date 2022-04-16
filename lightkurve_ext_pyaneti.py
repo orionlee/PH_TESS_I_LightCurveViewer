@@ -274,6 +274,10 @@ def estimate_orbital_distance_in_r_star(tic_meta):
     return dict(min_a=2.0, max_a=99.0)
 
 
+def define_impact_parameter():
+    return dict(min_b=0.0, max_b=1.0)
+
+
 def define_mcmc_controls(thin_factor=1, niter=500, nchains=100):
     return dict(mcmc_thin_factor=thin_factor, mcmc_niter=niter, mcmc_nchains=nchains)
 
@@ -340,6 +344,7 @@ def create_input_fit(
     pti_env,
     lc,
     transit_specs,
+    impact_parameter,
     meta,
     q1_q2,
     r_planet_dict,
@@ -449,6 +454,7 @@ def create_input_fit(
     mapping.update(q1_q2)
     mapping.update(r_planet_dict)
     mapping.update(a_planet_dict)
+    mapping.update(impact_parameter)
     mapping.update(mcmc_controls)
     mapping["tic"] = tic
     mapping["alias"] = alias
@@ -458,6 +464,7 @@ def create_input_fit(
     # TODO: handle multiple planets
     process_priors(mapping, "epoch", transit_specs[0], fraction_base_func=lambda spec: spec["duration_hr"] / 24)
     process_priors(mapping, "period", transit_specs[0])
+    process_priors(mapping, "b", mapping)
     process_fit_type(mapping)
     process_priors(mapping, "rp", mapping, "r_planet_in_r_star")
     process_priors(mapping, "q1", mapping)

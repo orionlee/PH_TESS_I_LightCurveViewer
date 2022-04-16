@@ -37,10 +37,11 @@ is_single_transit = {is_single_transit}
 
 
 # Specify which kind of priors we want
-# For a transit fit of a single planet with eccentric orbit
-# we fit only for time of minimum conjunction T0, period P, impact parameter b, scaled semi-major axis (a)
+# we fit only for time of minimum conjunction T0, period P, impact parameter b,
+# scaled semi-major axis (a) or stellar density (rho, which would be used as a)
 # scaled planet radius rp, and limb darkening coefficients q1 and q2
-# We let MCMC pick eccentricity e, and angle of periastron w (with uniform priors on full range)
+# For circular orbit, eccentricity / angle of periastron  ew1, ew2 are fixed
+# For eccentric orbit, eccentricity / angle of periastron  ew1, ew2 will be fitted (with uniform priors on full range)
 fit_t0 = ["{type_epoch}"]
 fit_P = ["{type_period}"]
 
@@ -52,7 +53,7 @@ is_ew = True
 fit_ew1 = ["{type_ew}"]
 fit_ew2 = ["{type_ew}"]
 
-fit_b = ["u"]  # TODO:
+fit_b = ["{type_b}"]
 # sampling stellar density: if True
 # - fit_a would fit rho* instead of a/R* (aka matched_rho),
 # - an useful constraint if there are reliable, independent rho* available
@@ -64,7 +65,6 @@ fit_q1 = "{type_q1}"
 fit_q2 = "{type_q2}"
 
 # Set the prior ranges
-# here we use a rough range based on the estimated T0 , P
 
 # T0 prior type: {type_epoch}
 min_t0 = [{val1_epoch}]  # {time_format}
@@ -81,9 +81,9 @@ max_ew1 = [{val2_ew1}]
 min_ew2 = [{val1_ew2}]
 max_ew2 = [{val2_ew2}]
 
-# Minimum and maximum limits for b
-min_b = [0.0]
-max_b = [1.0]
+# Impact parameter b prior type: {type_b}
+min_b = [{val1_b}]
+max_b = [{val2_b}]
 # {comment_a} prior type: {type_a}
 min_a = [{val1_a}]
 max_a = [{val2_a}]
