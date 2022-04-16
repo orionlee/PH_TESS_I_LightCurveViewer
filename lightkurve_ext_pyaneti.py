@@ -53,6 +53,13 @@ class PyanetiEnv:
         return Path(self.target_in_dir, self.lc_dat_filename)
 
 
+class Fraction:
+    """Represent a fraction. It is used to specify `window_` parameters, as a fraction of some other value."""
+
+    def __init__(self, value):
+        self.value = value
+
+
 #
 # Prepare and export `LightCurve` to Pyaneti input data
 #
@@ -142,7 +149,7 @@ def get_limb_darkening_params(tic_meta):
     The data is from
     [Claret et al. (2017)](https://ui.adsabs.harvard.edu/abs/2017A%26A...600A..30C/abstract),
     specifically, the subset of model `PHOENIX-COND`, 	quasi-spherical type `q`.
-    The origial data is hosted at:
+    The original data is hosted at:
     https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/A%2bA/600/A30/tableab
     """
     # Logic derived from:
@@ -295,25 +302,25 @@ def create_input_fit(
     mapping["alias"] = alias
     mapping["fname_tr"] = lc_pyaneti_dat_filename
 
-    rho = mapping.get("rho")
-    e_rho = mapping.get("e_rho")
-    if rho is not None and e_rho is not None:
-        set_if_None(mapping, "rho_min", rho - e_rho)
-        set_if_None(mapping, "rho_max", rho + e_rho)
-
     # map transit_specs to epoch_min/max, period_min/max
     # TODO: handle multiple transit_specs
-    epoch_error = transit_specs[0].get("epoch_error", None)
-    if epoch_error is None:
-        epoch_error = transit_specs[0]["duration_hr"] * 0.05 / 24  # default to a +/- 5% of the duration
-    set_if_None(mapping, "epoch_min", transit_specs[0]["epoch"] - epoch_error)
-    set_if_None(mapping, "epoch_max", transit_specs[0]["epoch"] + epoch_error)
+    window_epoch = transit_specs[0].get("window_epoch")
+    if isinstance(window_epoch, Fraction):
+        window_epoch = transit_specs[0]["duration_hr"] * window_epoch.value / 24
+    if window_epoch is not None:
+        set_if_None(mapping, "epoch_min", transit_specs[0]["epoch"] - window_epoch / 2)
+        set_if_None(mapping, "epoch_max", transit_specs[0]["epoch"] + window_epoch / 2)
 
-    period_error = transit_specs[0].get("period_error", None)
-    if period_error is None:
-        period_error = transit_specs[0]["period"] * 0.5  # deault to +/- 50% of the period
-    set_if_None(mapping, "period_min", transit_specs[0]["period"] - period_error)
-    set_if_None(mapping, "period_max", transit_specs[0]["period"] + period_error)
+    if transit_specs[0].get("min_period") is not None and transit_specs[0].get("max_period") is not None:
+        set_if_None(mapping, "period_min", transit_specs[0].get("min_period"))
+        set_if_None(mapping, "period_max", transit_specs[0].get("max_period"))
+    else:  # users does not specify min/max, so we deduce one if window_period is specified
+        window_period = transit_specs[0].get("window_period", None)
+        if isinstance(window_period, Fraction):
+            window_period = transit_specs[0]["period"] * window_period.value
+        if window_period is not None:
+            set_if_None(mapping, "period_min", transit_specs[0]["period"] - window_period / 2)
+            set_if_None(mapping, "period_max", transit_specs[0]["period"] + window_period / 2)
 
     lc_time_label = lc.time.format.upper()
     if lc.time.format == "btjd":
