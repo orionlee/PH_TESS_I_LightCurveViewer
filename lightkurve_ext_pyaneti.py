@@ -305,7 +305,11 @@ def create_input_fit(
     # map transit_specs to epoch_min/max, period_min/max
     # TODO: handle multiple transit_specs
     window_epoch = transit_specs[0].get("window_epoch")
-    if isinstance(window_epoch, Fraction):
+    # check for `value` attribute rather than testing against Fraction instance
+    # so that the codes would work even if users have reloaded the module after
+    # fraction is defined initially in `transit_specs`.
+    # if isinstance(window_epoch, Fraction):
+    if hasattr(window_epoch, "value"):
         window_epoch = transit_specs[0]["duration_hr"] * window_epoch.value / 24
     if window_epoch is not None:
         set_if_None(mapping, "epoch_min", transit_specs[0]["epoch"] - window_epoch / 2)
@@ -316,7 +320,7 @@ def create_input_fit(
         set_if_None(mapping, "period_max", transit_specs[0].get("max_period"))
     else:  # users does not specify min/max, so we deduce one if window_period is specified
         window_period = transit_specs[0].get("window_period", None)
-        if isinstance(window_period, Fraction):
+        if hasattr(window_period, "value"):
             window_period = transit_specs[0]["period"] * window_period.value
         if window_period is not None:
             set_if_None(mapping, "period_min", transit_specs[0]["period"] - window_period / 2)
