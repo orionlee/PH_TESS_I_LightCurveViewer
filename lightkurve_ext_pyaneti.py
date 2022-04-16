@@ -60,6 +60,32 @@ class Fraction:
         self.value = value
 
 
+def init_notebook_js_utils():
+    """Define Javascript helper functions used in a notebook UI."""
+    from IPython.display import display, Javascript
+
+    display(
+        Javascript(
+            """
+async function copyTextToClipboard(text) {
+    const res = await navigator.clipboard.writeText(text);
+    console.debug(res);
+    alert(`Copied to clipboard:\n${text}`);
+}
+"""
+        )
+    )
+
+
+def html_a_of_file(file_url, a_text):
+    """Create an HTML `<a>` link for the given file url.
+    When users click the `<a>` link , the URL will be copied to the clipboard.
+    This is done because for security reasons, modern browsers do not let users open file urls
+    from http/https pages (includes typical Jupyter notebook URLs).
+    """
+    return f"""<a href="{file_url}" onclick="copyTextToClipboard(this.href); return false;" target="_blank">{a_text}</a>"""
+
+
 #
 # Prepare and export `LightCurve` to Pyaneti input data
 #
@@ -356,7 +382,7 @@ def display_pyaneti_input_py_location(input_fit_filepath):
     display(
         HTML(
             f"""
-    <a href="{input_fit_filepath}" target="_input_fit_py">{input_fit_filepath}</a>
+    {html_a_of_file(input_fit_filepath, input_fit_filepath)}
     """
         )
     )
@@ -430,8 +456,8 @@ def display_model(
         display(
             HTML(
                 f"""<ul>
-    <li><a target="_params" href="{url_params}">Model params</a> - {file_params}</li>
-    <li><a target="_init" href="{url_init}">Init params</a> - {file_init}</li>
+    <li>{html_a_of_file(url_params, "Model params")}: {file_params}</li>
+    <li>{html_a_of_file(url_init, "Init params")}: {file_init}</li>
 </ul>
 (Copy the link to open in a new tab if clicking them does not work.)
 """
