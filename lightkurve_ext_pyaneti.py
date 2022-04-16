@@ -16,6 +16,10 @@ from astropy.time import Time
 import numpy as np
 import lightkurve as lk
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PyanetiEnv:
     """Define the directories used for 1 modeling session"""
@@ -250,24 +254,28 @@ def estimate_planet_radius_in_r_star(r_star, depth):
     r_planet_in_r_star = r_planet / r_star
 
     # Provide some rough min / max estimate
-    r_planet_in_r_star_min = 0
+    min_r_planet_in_r_star = 0
     # a rough guess for max: 2 times of the above estimate, capped to the size of 2.5 R_jupiter
     max_r_planet_in_r_star = 2.5 * R_JUPITER_IN_R_SUN / r_star
-    r_planet_in_r_star_max = min(r_planet_in_r_star * 2, max_r_planet_in_r_star)
+    max_r_planet_in_r_star = min(r_planet_in_r_star * 2, max_r_planet_in_r_star)
 
     # somehow the number in full precision causes pyaneti to behave strangely
     # (getting invalid numeric number in calculation, results in `nan` in `T_full`, etc.
     # capped at 4 decimal, taking a cue from pyaneti output
     return dict(
         r_planet_in_r_star=_round_n_decimals(r_planet_in_r_star, 4),
-        r_planet_in_r_star_min=_round_n_decimals(r_planet_in_r_star_min, 4),
-        r_planet_in_r_star_max=_round_n_decimals(r_planet_in_r_star_max, 4),
+        min_r_planet_in_r_star=_round_n_decimals(min_r_planet_in_r_star, 4),
+        max_r_planet_in_r_star=_round_n_decimals(max_r_planet_in_r_star, 4),
     )
 
 
 def estimate_orbital_distance_in_r_star(tic_meta):
     # TODO: possibly use Kepler third law for better constraints
-    return dict(a_min=2.0, a_max=99.0)
+    return dict(min_a=2.0, max_a=99.0)
+
+
+def define_mcmc_controls(thin_factor=1, niter=500, nchains=100):
+    return dict(mcmc_thin_factor=thin_factor, mcmc_niter=niter, mcmc_nchains=nchains)
 
 
 def display_stellar_meta_links(meta, header=None):
@@ -290,8 +298,43 @@ def display_stellar_meta_links(meta, header=None):
     display(HTML(f"{exofop_html}<br>{gaia_html}"))
 
 
+class ModelTemplate:
+    FIT_TYPES = ["orbital_distance", "rho", "single_transit"]
+    _FIT_TYPES_ABBREV = {"orbital_distance": "fit_a", "rho": "fit_rho", "single_transit": "single_transit"}
+    ORBIT_TYPES = ["circular", "eccentric"]
+    _ORBIT_TYPES_ABBREV = {"circular": "circular", "eccentric": "eccentric"}
+    _ORBIT_TYPES_ABBREV2 = {"circular": "c", "eccentric": "e"}
+
+    def __init__(self, num_planets, orbit_type, fit_type) -> None:
+        self._validate_and_set(num_planets, [1], "num_planets")  # support 1 planet for now
+        self._validate_and_set(orbit_type, self.ORBIT_TYPES, "orbit_type")
+        self._validate_and_set(fit_type, self.FIT_TYPES, "fit_type")
+
+    def _validate_and_set(self, val, allowed_values, val_name):
+        self._validate(val, allowed_values, val_name)
+        setattr(self, val_name, val)
+
+    @property
+    def abbrev(self) -> str:
+        """A textual shorthand describing the type of template"""
+        orbit_abbrev = self._ORBIT_TYPES_ABBREV[self.orbit_type]
+        fit_abbrev = self._FIT_TYPES_ABBREV[self.fit_type]
+
+        return f"1planet_{orbit_abbrev}_orbit_{fit_abbrev}"
+
+    def default_alias(self, tic) -> str:
+        orbit_abbrev2 = self._ORBIT_TYPES_ABBREV2[self.orbit_type]
+        fit_abbrev = self._FIT_TYPES_ABBREV[self.fit_type]
+        return f"TIC{tic}_{orbit_abbrev2}_{fit_abbrev}"
+
+    @staticmethod
+    def _validate(val, allowed_values, val_name):
+        if val not in allowed_values:
+            raise ValueError(f"{val_name} 's value {val} is invalid. Options: {allowed_values}")
+
+
 def create_input_fit(
-    template_name,
+    template,
     tic,
     alias,
     pti_env,
@@ -301,6 +344,7 @@ def create_input_fit(
     q1_q2,
     r_planet_dict,
     a_planet_dict,
+    mcmc_controls,
     write_to_file=True,
     return_content=False,
 ):
@@ -313,44 +357,94 @@ def create_input_fit(
         else:
             return False
 
-    template_filename = f"input_{template_name}.py"
-    template = Path("pyaneti_templates", template_filename).read_text()
+    def process_priors(map, key_prior, src, key_prior_src=None, fraction_base_func=None):
+
+        if key_prior_src is None:
+            key_prior_src = key_prior
+
+        # keys for accessing the input in `src`
+        key_prior_src_error = f"e_{key_prior_src}"
+        key_prior_src_window = f"window_{key_prior_src}"
+        key_prior_src_min = f"min_{key_prior_src}"
+        key_prior_src_max = f"max_{key_prior_src}"
+
+        # keys for the output to the `map`
+        key_prior_type = f"type_{key_prior}"
+        key_prior_val1 = f"val1_{key_prior}"
+        key_prior_val2 = f"val2_{key_prior}"
+        if src.get(key_prior_src) is not None and src.get(key_prior_src_error) is not None:
+            logger.info(f"Prior {key_prior}: resolved to Gaussian")
+            map[key_prior_type] = "g"  # Gaussian Prior
+            map[key_prior_val1] = src.get(key_prior_src)  # Mean
+            map[key_prior_val2] = src.get(key_prior_src_error)  # Standard Deviation
+        elif src.get(key_prior_src_min) is not None and src.get(key_prior_src_max) is not None:
+            logger.info(f"Prior {key_prior}: resolved to Uniform")
+            map[key_prior_type] = "u"  # Uniform Prior
+            map[key_prior_val1] = src.get(key_prior_src_min)  # Minimum
+            map[key_prior_val2] = src.get(key_prior_src_max)  # Maximum
+        elif src.get(key_prior_src) is not None and src.get(key_prior_src_window) is not None:
+            logger.info(f"Prior {key_prior}: resolved to Uniform (by mean and window)")
+            window = src.get(key_prior_src_window)
+            # check for `value` attribute rather than testing against Fraction instance
+            # so that the codes would work even if users have reloaded the module after
+            # fraction is defined initially in `transit_specs`.
+            # if isinstance(window, Fraction):
+            if hasattr(window, "value"):  # i.e, a Fraction type
+                fraction_base = src.get(key_prior_src) if fraction_base_func is None else fraction_base_func(src)
+                window = fraction_base * window.value
+            map[key_prior_type] = "u"  # Uniform Prior
+            map[key_prior_val1] = src.get(key_prior_src) - window / 2  # Minimum
+            map[key_prior_val2] = src.get(key_prior_src) + window / 2  # Maximum
+        elif src.get(key_prior_src) is not None:
+            logger.info(f"Prior {key_prior}: resolved to Fixed")
+            map[key_prior_type] = "f"  # Fixed Prior
+            map[key_prior_val1] = src.get(key_prior_src)  # Fixed value
+            map[key_prior_val2] = src.get(key_prior_src)  # does not matter for fixed value
+        else:
+            raise ValueError(f"Prior {key_prior} is not defined or only partly defined.")
+
+    def process_orbit_type(map):
+        if template.orbit_type == "circular":
+            map["type_ew"] = "f"  # Fixed
+            map["val1_ew1"] = 0.0
+            map["val2_ew1"] = 0.0
+            map["val1_ew2"] = 0.0
+            map["val2_ew2"] = 0.0
+        elif template.orbit_type == "eccentric":
+            map["type_ew"] = "u"  # Uniform
+            map["val1_ew1"] = -1.0
+            map["val2_ew1"] = 1.0
+            map["val1_ew2"] = -1.0
+            map["val2_ew2"] = 1.0
+        else:
+            raise ValueError(f"Unsupported orbit type: {template.orbit_type}")
 
     pyaneti_target_in_dir = pti_env.target_in_dir
     lc_pyaneti_dat_filename = pti_env.lc_dat_filename
 
+    # First process and combine all the given parameters
+    # into a mapping table, which will be used to instantiate
+    # the actual `input_fit.py`
+
     mapping = meta.copy()
-    mapping["template_filename"] = template_filename
+    mapping["template_type"] = template.abbrev
     mapping.update(q1_q2)
     mapping.update(r_planet_dict)
     mapping.update(a_planet_dict)
+    mapping.update(mcmc_controls)
     mapping["tic"] = tic
     mapping["alias"] = alias
     mapping["fname_tr"] = lc_pyaneti_dat_filename
 
-    # map transit_specs to epoch_min/max, period_min/max
-    # TODO: handle multiple transit_specs
-    window_epoch = transit_specs[0].get("window_epoch")
-    # check for `value` attribute rather than testing against Fraction instance
-    # so that the codes would work even if users have reloaded the module after
-    # fraction is defined initially in `transit_specs`.
-    # if isinstance(window_epoch, Fraction):
-    if hasattr(window_epoch, "value"):
-        window_epoch = transit_specs[0]["duration_hr"] * window_epoch.value / 24
-    if window_epoch is not None:
-        set_if_None(mapping, "epoch_min", transit_specs[0]["epoch"] - window_epoch / 2)
-        set_if_None(mapping, "epoch_max", transit_specs[0]["epoch"] + window_epoch / 2)
-
-    if transit_specs[0].get("min_period") is not None and transit_specs[0].get("max_period") is not None:
-        set_if_None(mapping, "period_min", transit_specs[0].get("min_period"))
-        set_if_None(mapping, "period_max", transit_specs[0].get("max_period"))
-    else:  # users does not specify min/max, so we deduce one if window_period is specified
-        window_period = transit_specs[0].get("window_period", None)
-        if hasattr(window_period, "value"):
-            window_period = transit_specs[0]["period"] * window_period.value
-        if window_period is not None:
-            set_if_None(mapping, "period_min", transit_specs[0]["period"] - window_period / 2)
-            set_if_None(mapping, "period_max", transit_specs[0]["period"] + window_period / 2)
+    process_orbit_type(mapping)
+    # TODO: handle multiple planets
+    process_priors(mapping, "epoch", transit_specs[0], fraction_base_func=lambda spec: spec["duration_hr"] / 24)
+    process_priors(mapping, "period", transit_specs[0])
+    process_priors(mapping, "a", mapping)
+    mapping["comment_a"] = "a/R*"
+    process_priors(mapping, "rp", mapping, "r_planet_in_r_star")
+    process_priors(mapping, "q1", mapping)
+    process_priors(mapping, "q2", mapping)
 
     lc_time_label = lc.time.format.upper()
     if lc.time.format == "btjd":
@@ -358,8 +452,11 @@ def create_input_fit(
     elif lc.time.format == "bkjd":
         lc_time_label = "BJD - 2454833 (BKJD days)"
     set_if_None(mapping, "lc_time_label", lc_time_label)
+    set_if_None(mapping, "time_format", lc.time.format)
 
-    result = template
+    # Now all parameters are assembled in `mapping``, create the actual `input_fit.py`
+    #
+    result = Path("pyaneti_templates", "input_1planet.py").read_text()
     for key, value in mapping.items():
         result = result.replace("{" + key + "}", str(value))
 
