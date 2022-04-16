@@ -27,6 +27,15 @@ tstar_sigma = {e_Teff}
 # Since we want to fit transit data, we need to include the next line
 fit_tr = [True]
 
+# THIS IS THE MOST IMPORTANT LINE TO ADD IN A SINGLE TRANSIT MODEL
+# If set to `True`, we tell pyaneti that we will be fitting only one transit
+# This will tell to the code how to deal with the period and the dummy semi-amplitude
+# see: https://github.com/oscaribv/pyaneti/blob/master/inpy/example_single/input_fit.py
+# - note: single transit mode does not appear to be compatible with
+#   rho fitting mode (`sample_stellar_density = True`). Don't use them together.
+is_single_transit = {is_single_transit}
+
+
 # Specify which kind of priors we want
 # For a transit fit of a single planet with eccentric orbit
 # we fit only for time of minimum conjunction T0, period P, impact parameter b, scaled semi-major axis (a)

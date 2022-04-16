@@ -424,12 +424,19 @@ def create_input_fit(
             process_priors(map, "a", map)
             map["comment_a"] = "a/R*"
             map["sample_stellar_density"] = False
+            map["is_single_transit"] = False
         elif template.fit_type == "rho":
             process_priors(map, "a", map, key_prior_src="rho")
             map["comment_a"] = "rho*"
             map["sample_stellar_density"] = True
+            map["is_single_transit"] = False
         elif template.fit_type == "single_transit":
-            raise ValueError("TODO")
+            # currently, single transit implies fitting orbital distance rather than rho;
+            # as it is Pyaneti's actual behavior
+            process_priors(map, "a", map)
+            map["comment_a"] = "a/R*"
+            map["sample_stellar_density"] = False
+            map["is_single_transit"] = True
         else:
             raise ValueError(f"Unsupported fit_type: {template.fit_type}")
 
