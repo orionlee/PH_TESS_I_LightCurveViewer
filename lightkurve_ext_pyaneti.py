@@ -185,7 +185,7 @@ RHO_SUN_CGS = (astropy.constants.M_sun / (4 / 3 * np.pi * astropy.constants.R_su
 
 @cached
 def catalog_info_TIC(tic_id):
-    """Takes TIC_ID, returns stellar information from online catalog using Vizier"""
+    """Takes TIC_ID, returns stellar information from TIC Catalog at MAST"""
     if type(tic_id) is not int:
         raise TypeError('tic_id must be of type "int"')
     try:
@@ -207,7 +207,98 @@ def catalog_info_TIC(tic_id):
         result["e_rho_in_solar"] = e_rho_in_solar  # keep original data
         result["e_rho"] = e_rho_in_solar * RHO_SUN_CGS  # in g/cm^3
 
+    # convert Gaia ID from str to preferred int
+    gaia_dr2_id_str = result.get("GAIA")
+    if gaia_dr2_id_str is not None:
+        result["GAIA"] = int(gaia_dr2_id_str)
+
     return result
+
+
+@cached
+def stellar_parameters_from_gaia(gaia_dr2_id):
+    try:
+        from astroquery.gaia import Gaia
+    except:
+        raise ImportError("Package astroquery required but failed to import")
+
+    if gaia_dr2_id is None:
+        return {}
+
+    if type(gaia_dr2_id) is not int:
+        raise TypeError('gaia_dr2_id must be of type "int"')
+
+    def val_and_error_of_param(row, name):
+        key_val = f"{name}_val"
+        key_p_upper = f"{name}_percentile_upper"
+        key_p_lower = f"{name}_percentile_lower"
+
+        val = row[key_val]
+        if val is not None:
+            # Gaia DR2 gives more precise lower/upper bound of 68% CI, we convert them to a single one error
+            e_val = max(row[key_val] - row[key_p_lower], row[key_p_upper] - row[key_val])
+            return val, e_val
+        else:
+            return None, None
+
+    query = (
+        """SELECT
+source_id,
+ra,
+dec,
+teff_val,
+teff_percentile_lower,
+teff_percentile_upper,
+radius_val,
+radius_percentile_lower,
+radius_percentile_upper
+FROM gaiadr2.gaia_source
+WHERE source_id=%d"""
+        % gaia_dr2_id
+    )
+
+    result_tab = Gaia.launch_job(query).get_results()
+    if len(result_tab) < 1:
+        return None
+
+    result = {}
+
+    row = result_tab[0]
+
+    teff, e_teff = val_and_error_of_param(row, "teff")
+    rad, e_rad = val_and_error_of_param(row, "radius")
+
+    if teff is not None:
+        result["Teff"] = teff
+        result["e_Teff"] = e_teff
+
+    if rad is not None:
+        result["rad"] = rad
+        result["e_rad"] = e_rad
+
+    return result
+
+
+def stellar_parameters_of_tic(tic, also_use_gaia=True, diff_warning_threshold_percent=10):
+    """Obtain stellar parameters from MAST, and optionally from Gaia as well."""
+
+    def warn_if_significant_diff(meta_mast, meta_gaia, param_name):
+        val_mast, val_gaia = meta_mast[param_name], meta_gaia[param_name]
+        if val_mast is not None and val_gaia is not None:
+            if abs(val_mast - val_gaia) / val_mast > diff_warning_threshold_percent / 100:
+                warnings.warn(
+                    f"Significant difference (> {diff_warning_threshold_percent}%) in {param_name} . MAST: {val_mast} ; Gaia DR2: {val_gaia}"
+                )
+
+    meta = catalog_info_TIC(tic)
+    gaia_dr2_id = meta.get("GAIA")
+    if also_use_gaia and gaia_dr2_id is not None:
+        meta_gaia = stellar_parameters_from_gaia(gaia_dr2_id)
+        warn_if_significant_diff(meta, meta_gaia, "rad")
+        warn_if_significant_diff(meta, meta_gaia, "Teff")
+        meta.update(meta_gaia)
+
+    return meta
 
 
 def get_limb_darkening_params(tic_meta):
