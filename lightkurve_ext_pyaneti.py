@@ -580,7 +580,6 @@ def display_model(
     <li>{html_a_of_file(url_params, "Model params")}: {file_params}</li>
     <li>{html_a_of_file(url_init, "Init params")}: {file_init}</li>
 </ul>
-(Copy the link to open in a new tab if clicking them does not work.)
 """
             )
         )
