@@ -11,8 +11,14 @@ import re
 import shutil
 import warnings
 
+# memoization would not introduce additional dependency
+# as lightkurve has already depends on it.
+from memoization import cached
+
+import astropy.constants
 from astropy.table import Table
 from astropy.time import Time
+from astropy import units as u
 import numpy as np
 import lightkurve as lk
 
@@ -174,6 +180,10 @@ def to_pyaneti_dat(lc, transit_specs, pyaneti_env, return_processed_lc=False):
         return out_path
 
 
+RHO_SUN_CGS = (astropy.constants.M_sun / (4 / 3 * np.pi * astropy.constants.R_sun**3)).to(u.g / u.cm**3).value
+
+
+@cached
 def catalog_info_TIC(tic_id):
     """Takes TIC_ID, returns stellar information from online catalog using Vizier"""
     if type(tic_id) is not int:
@@ -184,7 +194,20 @@ def catalog_info_TIC(tic_id):
         raise ImportError("Package astroquery required but failed to import")
 
     result_tab = Catalogs.query_criteria(catalog="Tic", ID=tic_id)
-    return {c: result_tab[0][c] for c in result_tab[0].colnames}
+    result = {c: result_tab[0][c] for c in result_tab[0].colnames}
+    # In MAST result, rho is in the unit of solar density. we prefer g/cm^3 (ExoFOP UI also uses g/cm^3)
+    # Reference: Appendix A, Notes on the individual columns 75, 76, Stassun et al., The TESS Input Catalog and Candidate Target List
+    # https://ui.adsabs.harvard.edu/abs/2018AJ....156..102S/
+    rho_in_solar = result.get("rho")
+    if rho_in_solar is not None:
+        result["rho_in_solar"] = rho_in_solar  # keep original data
+        result["rho"] = rho_in_solar * RHO_SUN_CGS  # in g/cm^3
+    e_rho_in_solar = result.get("e_rho")
+    if e_rho_in_solar is not None:
+        result["e_rho_in_solar"] = e_rho_in_solar  # keep original data
+        result["e_rho"] = e_rho_in_solar * RHO_SUN_CGS  # in g/cm^3
+
+    return result
 
 
 def get_limb_darkening_params(tic_meta):
@@ -198,8 +221,8 @@ def get_limb_darkening_params(tic_meta):
     # Logic derived from:
     # https://github.com/hippke/tls/blob/v1.0.31/transitleastsquares/catalog.py
     logg, Teff, = (
-        tic_meta["logg"],
-        tic_meta["Teff"],
+        tic_meta.get("logg"),
+        tic_meta.get("Teff"),
     )
     if logg is None:
         logg = 4
@@ -307,10 +330,8 @@ def display_stellar_meta_links(meta, header=None):
     gaia_html = ""
     if gaia_id is not None:
         gaia_html = f"""
-<a target="_gaia_dr2" href="https://vizier.u-strasbg.fr/viz-bin/VizieR-S?Gaia%20DR2%20{gaia_id}">Gaia DR2</a><br>
-<a target="_gaia_edr3" href="https://vizier.u-strasbg.fr/viz-bin/VizieR-S?Gaia%20EDR3%20{gaia_id}">Gaia EDR3</a>
-<span style="font-size: 80%;">&nbsp;(if the Gaia ID is the same as DR2)</span><br>
-<a target="_gaia_esa" href="https://gea.esac.esa.int/archive/">Gaia Official Archive at ESA</a><br>
+<a target="_gaia_dr2" href="https://vizier.u-strasbg.fr/viz-bin/VizieR-S?Gaia%20DR2%20{gaia_id}">Gaia DR2 at Vizier</a>
+&emsp;(<a target="_gaia_esa" href="https://gea.esac.esa.int/archive/" style="font-size: 85%;">Official Archive at ESA</a>)<br>
 """
     display(HTML(f"{exofop_html}<br>{gaia_html}"))
 
