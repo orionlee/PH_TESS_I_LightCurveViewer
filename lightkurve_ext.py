@@ -820,6 +820,13 @@ def search_gaiaedr3_of_lc(
     """Locate the lightcurve target's correspond entry in GaiaEDR3.
     The match is by an heuristics based on coordinate and magnitude.
     """
+
+    # OPEN:
+    # Consider alternative by crossting Gaia DR2 of the TIC (availabe on MAST) with Gaia EDR3
+    # https://gea.esac.esa.int/archive/documentation/GEDR3/Catalogue_consolidation/chap_cu9dr2xm/sec_cu9dr2xm_adql_queries/sec_cu9dr2xm_closest_edr3_neighbour_to_each_dr2_source_10m.html
+    # some suggestion: limit cross match result by comparing GMag (difference < 0.1 was suggested in some doc)
+    # Other Gaia crossmatch tips:
+    # https://www.cosmos.esa.int/web/gaia-users/archive/combine-with-other-data
     ra, dec, equinox = lc.meta.get("RA"), lc.meta.get("DEC"), lc.meta.get("EQUINOX")
     tess_mag = lc.meta.get("TESSMAG")
     lower_limit, upper_limit = tess_mag - magnitude_range, tess_mag + magnitude_range
