@@ -66,16 +66,29 @@ class Fraction:
 
 def init_notebook_js_utils():
     """Define Javascript helper functions used in a notebook UI."""
-    from IPython.display import display, Javascript
+    from IPython.display import display, HTML
 
     display(
-        Javascript(
+        HTML(
             """
+<script>
+function show_message(msg) {
+    document.body.insertAdjacentHTML('beforeend',
+        '<div id="msg_popin" style="word-break: break-all; font-size: 18px; position: fixed; top: 10%; left: 35vw; width: 30vw; padding: 1em; background-color: #feefc3; color: #333; z-index: 999999;">' +
+        msg + '</div>');
+    const ctr = document.getElementById("msg_popin");
+    const remove_msg = () => {
+        ctr.remove();
+    };
+    ctr.onclick = remove_msg;
+    setTimeout(remove_msg, 5000);
+}
+
 async function copyTextToClipboard(text) {
     const res = await navigator.clipboard.writeText(text);
-    console.debug(res);
-    alert(`Copied to clipboard:\n${text}`);
+    show_message(`Copied to clipboard:<br>${text}`);
 }
+</script>
 """
         )
     )
