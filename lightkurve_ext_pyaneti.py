@@ -130,7 +130,10 @@ def _create_dir_if_needed(path):
         os.makedirs(basedir)
 
 
-def truncate_lc_to_around_transits(lc, transit_specs):
+def _truncate_lc_to_around_transits(lc, transit_specs):
+    if transit_specs is None:
+        return lc
+
     def calc_duration_to_use(spec):
         """Calc a duration for the purpose of masking,
         by adding transit duration with an additional `surround_time`,
@@ -162,22 +165,56 @@ def truncate_lc_to_around_transits(lc, transit_specs):
     return lc[mask]
 
 
-def to_pyaneti_dat(lc, transit_specs, pyaneti_env, return_processed_lc=False):
+def _merge_and_truncate_lcs(lc_or_lc_by_band, transit_specs):
+    if isinstance(lc_or_lc_by_band, lk.LightCurve):
+        return _truncate_lc_to_around_transits(lc_or_lc_by_band, transit_specs)
+    # if it's a dictionary of lcs,
+    # - truncate and stitch with an added `band` column indicating the source for each row
+    #   (short cadence vs long cadence in typical TESS Transit model case)
+    lc_trunc_by_band = dict()
+    for band, lc_trunc in lc_or_lc_by_band.items():
+        lc_trunc = _truncate_lc_to_around_transits(lc_trunc, transit_specs)
+        lc_trunc["band"] = [band] * len(lc_trunc)
+        lc_trunc_by_band[band] = lc_trunc
+
+    lc_trunc = lk.LightCurveCollection(lc_trunc_by_band.values()).stitch(corrector_func=None)
+    lc_trunc.sort("time")
+    return lc_trunc, lc_trunc_by_band
+
+
+def to_pyaneti_dat(lc_or_lc_by_band, transit_specs, pyaneti_env, return_processed_lc=False):
     "Output lc data to a file readable by Pyaneti, with lc pre-processed to be suitable for Pyaneti modeling"
-    if transit_specs is not None:
-        lc = truncate_lc_to_around_transits(lc, transit_specs)
+    lc_trunc, lc_trunc_by_band = _merge_and_truncate_lcs(lc_or_lc_by_band, transit_specs)
 
     out_path = pyaneti_env.lc_dat_filepath
 
     # finally write to output
-    #  lc["time", "flux", "flux_err"]  # somehow "time" is causing problem
-    lc1 = type(lc)(time=lc.time.copy(), flux=lc.flux, flux_err=lc.flux_err)
+    # lc column subset does not work due to bug: https://github.com/lightkurve/lightkurve/issues/1194
+    #  lc_trunc["time", "flux", "flux_err"]
+    lc1 = type(lc_trunc)(time=lc_trunc.time.copy(), flux=lc_trunc.flux, flux_err=lc_trunc.flux_err)
+    if "band" in lc_trunc.colnames:
+        lc1["band"] = lc_trunc["band"]
     _create_dir_if_needed(out_path)
     lc1.write(out_path, format="ascii.commented_header", overwrite=True)
+
     if return_processed_lc:
-        return out_path, lc
+        return out_path, lc_trunc, lc_trunc_by_band
     else:
         return out_path
+
+
+def scatter_by_band(lc, **kwargs):
+    """Do scatter plot of the given lightcurve, with each band labelled separately."""
+    if "band" not in lc.colnames:
+        return lc.scatter(**kwargs)
+    band_names = np.unique(lc["band"])
+
+    ax = None
+    for band_name in band_names:
+        ax = lc[lc["band"] == band_name].scatter(ax=ax, label=band_name, **kwargs)
+    if lc.label is not None:
+        ax.set_title(lc.label)
+    return ax
 
 
 RHO_SUN_CGS = (astropy.constants.M_sun / (4 / 3 * np.pi * astropy.constants.R_sun**3)).to(u.g / u.cm**3).value
