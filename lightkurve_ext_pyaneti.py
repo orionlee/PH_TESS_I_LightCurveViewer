@@ -3,6 +3,7 @@
 # - https://github.com/oscaribv/pyaneti
 #
 
+from collections import OrderedDict
 from collections.abc import Iterable
 import os
 from os import path
@@ -107,6 +108,144 @@ def html_a_of_file(file_url, a_text):
     from http/https pages (includes typical Jupyter notebook URLs).
     """
     return f"""<a href="{file_url}" onclick="copyTextToClipboard(this.href); return false;" target="_blank">{a_text}</a>"""
+
+
+#
+# Download helper
+#
+
+
+def _map_cadence_type(cadence_in_days):
+    long_minimum = 6 / 60 / 24  # 6 minutes cutoff is somewhat arbitrary.
+    short_minimum = 0.9 / 60 / 24  # 1 minute in days, with some margin of error
+    if cadence_in_days is None:
+        return None
+    if cadence_in_days >= long_minimum:
+        return "long"
+    if cadence_in_days >= short_minimum:
+        return "short"
+    return "fast"
+
+
+def _filter_by_priority(
+    sr,
+    author_priority=["SPOC", "TESS-SPOC", "QLP"],
+    exptime_priority=["short", "long", "fast"],
+):
+    author_sort_keys = {}
+    for idx, author in enumerate(author_priority):
+        author_sort_keys[author] = idx + 1
+
+    exptime_sort_keys = {}
+    for idx, exptime in enumerate(exptime_priority):
+        exptime_sort_keys[exptime] = idx + 1
+
+    def calc_filter_priority(row):
+        # Overall priority key is in the form of <author_key><exptime_key>, e.g., 101
+        # - "01" is the exptime_key
+        # - the leading "1" is the author_key, given it is the primary one
+        author_default = max(dict(author_sort_keys).values()) + 1
+        author_key = author_sort_keys.get(row["author"], author_default) * 100
+
+        # secondary priority
+        exptime_default = max(dict(exptime_sort_keys).values()) + 1
+        exptime_key = exptime_sort_keys.get(_map_cadence_type(row["exptime"] / 60 / 60 / 24), exptime_default)
+        return author_key + exptime_key
+
+    sr.table["_filter_priority"] = [calc_filter_priority(r) for r in sr.table]
+
+    # A temporary table that sorts the table by the priority
+    sorted_t = sr.table.copy()
+    sorted_t.sort(["mission", "_filter_priority"])
+
+    # create an empty table for results, with the same set of columns
+    res_t = sr.table[np.zeros(len(sr), dtype=bool)].copy()
+
+    # for each mission (e.g., TESS Sector 01), select a row based on specified priority
+    # - select the first row given the table has been sorted by priority
+    uniq_missions = list(OrderedDict.fromkeys(sorted_t["mission"]))
+    for m in uniq_missions:
+        mission_t = sorted_t[sorted_t["mission"] == m]
+        # OPEN: if for a given mission, the only row available is not listed in the priorities,
+        # the logic still add a row to the result.
+        # We might want it to be an option specified by the user.
+        res_t.add_row(mission_t[0])
+
+    return lk.SearchResult(table=res_t)
+
+
+def _stitch_lc_collection(lcc, warn_if_multiple_authors=True):
+    lc = lcc.stitch()
+    lc.meta["SECTORS"] = [lc.meta.get("SECTOR") for lc in lcc]
+    lc.meta["AUTHORS"] = [lc.meta.get("AUTHOR") for lc in lcc]
+    if warn_if_multiple_authors:
+        unique_authors = np.unique(lc.meta["AUTHORS"])
+        if len(unique_authors) > 1:
+            warnings.warn(
+                f"Multiple authors in the collection. The stitched lightcurve might not be suitable for modeling: {lcc}"
+            )
+    return lc
+
+
+def download_lightcurves_by_cadence_type(
+    tic, sector, cadence="short", author_priority=["SPOC", "TESS-SPOC", "QLP"], download_dir=None, return_sr=False
+):
+    """Download the lightcurves of the given TIC - sector combination.
+    The downloaded lightcurves are partitioned by cadence type (long / short),
+    so they could be fed to `Pyaneti` separately (one band for each cadence type).
+    """
+    # for not-yet-released query cache in https://github.com/lightkurve/lightkurve/pull/1039
+    if hasattr(lk.search, "sr_cache"):
+        lk.search.sr_cache.cache_dir = download_dir
+
+    sr_all = lk.search_lightcurve(f"TIC{tic}", mission="TESS")
+
+    sr = _filter_by_priority(sr_all, author_priority=author_priority, exptime_priority=["short, long"])
+
+    # filter by sector and cadence
+    sr = sr[np.in1d(sr.table["sequence_number"], sector)]
+
+    lc_by_cadence_type = dict()
+    if cadence == "short" or cadence == "short_long":
+        lcc_short = sr[sr.exptime == 120 * u.s].download_all(download_dir=download_dir)
+        lc_short = _stitch_lc_collection(lcc_short, warn_if_multiple_authors=True)
+        lc_by_cadence_type["SC"] = lc_short
+
+    if cadence == "long" or cadence == "short_long":
+        lcc_long = sr[sr.exptime == 1800 * u.s].download_all(download_dir=download_dir)
+        lc_long = _stitch_lc_collection(lcc_long, warn_if_multiple_authors=True)
+        lc_by_cadence_type["LC"] = lc_long
+
+    if return_sr:
+        return lc_by_cadence_type, sr_all
+    else:
+        return lc_by_cadence_type
+
+
+def display_sr(sr, header):
+    from IPython.display import display, HTML
+
+    html = "<details open>"
+    html += f"\n<summary>{header}</summary>"
+    html += sr.__repr__(html=True)
+    html += "\n</details>"
+
+    return display(HTML(html))
+
+
+def display_lc_by_band_summary(lc_by_band, header):
+    from IPython.display import display, HTML
+
+    html = ""
+    if header is not None:
+        html = f"<h5>{header}</h5>\n"
+    html += "<pre>"
+    for band, lc in lc_by_band.items():
+        authors = np.unique(lc.meta.get("AUTHORS"))
+        sectors = lc.meta.get("SECTORS")
+        html += f"Band {band}  : {lc.label} ; Sectors: {sectors} ; Author(s): {authors}\n"
+    html += "</pre>"
+    return display(HTML(html))
 
 
 #
