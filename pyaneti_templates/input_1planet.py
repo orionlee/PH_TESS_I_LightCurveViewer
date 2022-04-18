@@ -12,6 +12,19 @@ nchains = {mcmc_nchains}
 # method to use 'mcmc' sample the posteriors, 'plot' creates the plots using posteriors from a previous run
 method = "mcmc"
 
+# n_cad/t_cad: for handling lightcurves with long cadences.
+# In order to re-sample the model, we just need to specify the cadence time (t_cad) in units of days and the number
+# of steps for the integration (n_cad), default values are t_cad = 2./60./24. (2 min) and n_cad = 1 (i.e., no resampling)
+# For K2 long cadence (30 min) data we will integrate the model for 30min with 10 steps
+# Reference: [Kipping, 2010](https://academic.oup.com/mnras/article/408/3/1758/1075347)
+n_cad = {n_cad}
+t_cad_in_min = {t_cad_in_min}
+# convert from minutes to days
+try:
+    t_cad = [t / 60.0 / 24.0 for t in t_cad_in_min]
+except TypeError:
+    t_cad = t_cad_in_min / 60.0 / 24.0
+
 # We want the planet values in Earth units
 unit_mass = "earth"
 

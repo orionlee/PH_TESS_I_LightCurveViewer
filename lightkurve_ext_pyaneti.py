@@ -570,6 +570,17 @@ def create_input_fit(
         else:
             raise ValueError(f"Unsupported fit_type: {template.fit_type}")
 
+    def process_cadence(map, lc):
+        # deduce the cadence
+        cadence_in_min = np.round(np.nanmedian(np.asarray([t.to(u.min).value for t in np.diff(lc.time)])), decimals=1)
+        # For n_cad, we use the following reference:
+        # - t_cad_in_min == 30 (Kepler) ==> n_cad = 10
+        # - t_cad_in_min == 2 (TESS Short cadence) ==> n_cad = 1
+        # and scale it accordingly
+        n_cad = np.ceil(10.0 * cadence_in_min / 30.0)
+        map["n_cad"] = n_cad
+        map["t_cad_in_min"] = cadence_in_min
+
     # First process and combine all the given parameters
     # into a mapping table, which will be used to instantiate
     # the actual `input_fit.py`
@@ -594,6 +605,7 @@ def create_input_fit(
     process_priors(mapping, "rp", mapping, "r_planet_in_r_star")
     process_priors(mapping, "q1", mapping)
     process_priors(mapping, "q2", mapping)
+    process_cadence(mapping, lc)
 
     lc_time_label = lc.time.format.upper()
     if lc.time.format == "btjd":
