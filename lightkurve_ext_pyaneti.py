@@ -504,7 +504,7 @@ def create_input_fit(
     tic,
     alias,
     pti_env,
-    lc,
+    lc_or_lc_by_band,
     transit_specs,
     impact_parameter,
     meta,
@@ -524,7 +524,19 @@ def create_input_fit(
         else:
             return False
 
-    def process_priors(map, key_prior, src, key_prior_src=None, fraction_base_func=None):
+    def repeat(val, repeat_n):
+        if repeat_n <= 1:
+            return [val]
+        else:
+            return [val] * repeat_n
+
+    def process_priors(map, key_prior, src, key_prior_src=None, fraction_base_func=None, repeat_n=None):
+
+        if repeat_n is None or repeat_n < 1:
+            repeat_n = 1
+
+        def do_repeat(val):
+            return repeat(val, repeat_n)
 
         if key_prior_src is None:
             key_prior_src = key_prior
@@ -541,14 +553,14 @@ def create_input_fit(
         key_prior_val2 = f"val2_{key_prior}"
         if src.get(key_prior_src) is not None and src.get(key_prior_src_error) is not None:
             logger.info(f"Prior {key_prior}: resolved to Gaussian")
-            map[key_prior_type] = "g"  # Gaussian Prior
-            map[key_prior_val1] = src.get(key_prior_src)  # Mean
-            map[key_prior_val2] = src.get(key_prior_src_error)  # Standard Deviation
+            map[key_prior_type] = do_repeat("g")  # Gaussian Prior
+            map[key_prior_val1] = do_repeat(src.get(key_prior_src))  # Mean
+            map[key_prior_val2] = do_repeat(src.get(key_prior_src_error))  # Standard Deviation
         elif src.get(key_prior_src_min) is not None and src.get(key_prior_src_max) is not None:
             logger.info(f"Prior {key_prior}: resolved to Uniform")
-            map[key_prior_type] = "u"  # Uniform Prior
-            map[key_prior_val1] = src.get(key_prior_src_min)  # Minimum
-            map[key_prior_val2] = src.get(key_prior_src_max)  # Maximum
+            map[key_prior_type] = do_repeat("u")  # Uniform Prior
+            map[key_prior_val1] = do_repeat(src.get(key_prior_src_min))  # Minimum
+            map[key_prior_val2] = do_repeat(src.get(key_prior_src_max))  # Maximum
         elif src.get(key_prior_src) is not None and src.get(key_prior_src_window) is not None:
             logger.info(f"Prior {key_prior}: resolved to Uniform (by mean and window)")
             window = src.get(key_prior_src_window)
@@ -559,30 +571,30 @@ def create_input_fit(
             if hasattr(window, "value"):  # i.e, a Fraction type
                 fraction_base = src.get(key_prior_src) if fraction_base_func is None else fraction_base_func(src)
                 window = fraction_base * window.value
-            map[key_prior_type] = "u"  # Uniform Prior
-            map[key_prior_val1] = src.get(key_prior_src) - window / 2  # Minimum
-            map[key_prior_val2] = src.get(key_prior_src) + window / 2  # Maximum
+            map[key_prior_type] = do_repeat("u")  # Uniform Prior
+            map[key_prior_val1] = do_repeat(src.get(key_prior_src) - window / 2)  # Minimum
+            map[key_prior_val2] = do_repeat(src.get(key_prior_src) + window / 2)  # Maximum
         elif src.get(key_prior_src) is not None:
             logger.info(f"Prior {key_prior}: resolved to Fixed")
-            map[key_prior_type] = "f"  # Fixed Prior
-            map[key_prior_val1] = src.get(key_prior_src)  # Fixed value
-            map[key_prior_val2] = src.get(key_prior_src)  # does not matter for fixed value
+            map[key_prior_type] = do_repeat("f")  # Fixed Prior
+            map[key_prior_val1] = do_repeat(src.get(key_prior_src))  # Fixed value
+            map[key_prior_val2] = do_repeat(src.get(key_prior_src))  # does not matter for fixed value
         else:
             raise ValueError(f"Prior {key_prior} is not defined or only partly defined.")
 
-    def process_orbit_type(map):
+    def process_orbit_type(map, num_planets):
         if template.orbit_type == "circular":
-            map["type_ew"] = "f"  # Fixed
-            map["val1_ew1"] = 0.0
-            map["val2_ew1"] = 0.0
-            map["val1_ew2"] = 0.0
-            map["val2_ew2"] = 0.0
+            map["type_ew"] = repeat("f", num_planets)  # Fixed
+            map["val1_ew1"] = repeat(0.0, num_planets)
+            map["val2_ew1"] = repeat(0.0, num_planets)
+            map["val1_ew2"] = repeat(0.0, num_planets)
+            map["val2_ew2"] = repeat(0.0, num_planets)
         elif template.orbit_type == "eccentric":
-            map["type_ew"] = "u"  # Uniform
-            map["val1_ew1"] = -1.0
-            map["val2_ew1"] = 1.0
-            map["val1_ew2"] = -1.0
-            map["val2_ew2"] = 1.0
+            map["type_ew"] = repeat("u", num_planets)  # Uniform
+            map["val1_ew1"] = repeat(-1.0, num_planets)
+            map["val2_ew1"] = repeat(1.0, num_planets)
+            map["val1_ew2"] = repeat(-1.0, num_planets)
+            map["val2_ew2"] = repeat(1.0, num_planets)
         else:
             raise ValueError(f"Unsupported orbit type: {template.orbit_type}")
 
@@ -607,16 +619,39 @@ def create_input_fit(
         else:
             raise ValueError(f"Unsupported fit_type: {template.fit_type}")
 
-    def process_cadence(map, lc):
-        # deduce the cadence
-        cadence_in_min = np.round(np.nanmedian(np.asarray([t.to(u.min).value for t in np.diff(lc.time)])), decimals=1)
-        # For n_cad, we use the following reference:
-        # - t_cad_in_min == 30 (Kepler) ==> n_cad = 10
-        # - t_cad_in_min == 2 (TESS Short cadence) ==> n_cad = 1
-        # and scale it accordingly
-        n_cad = np.ceil(10.0 * cadence_in_min / 30.0)
-        map["n_cad"] = n_cad
-        map["t_cad_in_min"] = cadence_in_min
+    def process_cadence(map, lc_or_lc_by_band):
+        if isinstance(lc_or_lc_by_band, lk.LightCurve):
+            lc_or_lc_by_band = {"default-band": lc_or_lc_by_band}
+
+        def calc_cadence(lc):
+            # deduce the cadence
+            cadence_in_min = np.round(np.nanmedian(np.asarray([t.to(u.min).value for t in np.diff(lc.time)])), decimals=1)
+            # For n_cad, we use the following reference:
+            # - t_cad_in_min == 30 (Kepler) ==> n_cad = 10
+            # - t_cad_in_min == 2 (TESS Short cadence) ==> n_cad = 1
+            # and scale it accordingly
+            n_cad = np.ceil(10.0 * cadence_in_min / 30.0)
+            return n_cad, cadence_in_min
+
+        num_bands = len(lc_or_lc_by_band)
+        if num_bands <= 1:
+            # the default value of single band. see:
+            # https://github.com/oscaribv/pyaneti/blob/ff570e7f92120ee4ef36683105fa709871382e50/src/default.py#L180
+            map["bands"] = [""]
+        else:
+            map["bands"] = list(lc_or_lc_by_band.keys())
+
+        cad_n_cad_in_min_pairs = [calc_cadence(lc) for lc in lc_or_lc_by_band.values()]
+
+        map["n_cad"] = [pair[0] for pair in cad_n_cad_in_min_pairs]
+        map["t_cad_in_min"] = [pair[1] for pair in cad_n_cad_in_min_pairs]
+
+        # OPEN: should it defaulted to True or False for multiband case?
+        is_multi_radius = True if len(lc_or_lc_by_band) > 1 else False
+        # if users have specified is_multi_radius a priori, we honor their choice
+        set_if_None(map, "is_multi_radius", is_multi_radius)
+
+        return num_bands
 
     # First process and combine all the given parameters
     # into a mapping table, which will be used to instantiate
@@ -633,24 +668,29 @@ def create_input_fit(
     mapping["alias"] = alias
     mapping["fname_tr"] = pti_env.lc_dat_filename
 
-    process_orbit_type(mapping)
     # TODO: handle multiple planets
+    process_orbit_type(mapping, 1)
     process_priors(mapping, "epoch", transit_specs[0], fraction_base_func=lambda spec: spec["duration_hr"] / 24)
     process_priors(mapping, "period", transit_specs[0])
     process_priors(mapping, "b", mapping)
     process_fit_type(mapping)
     process_priors(mapping, "rp", mapping, "r_planet_in_r_star")
-    process_priors(mapping, "q1", mapping)
-    process_priors(mapping, "q2", mapping)
-    process_cadence(mapping, lc)
+    # Per-band / cadence type processing
+    num_bands = process_cadence(mapping, lc_or_lc_by_band)
+    process_priors(mapping, "q1", mapping, repeat_n=num_bands)
+    process_priors(mapping, "q2", mapping, repeat_n=num_bands)
 
-    lc_time_label = lc.time.format.upper()
-    if lc.time.format == "btjd":
+    if isinstance(lc_or_lc_by_band, lk.LightCurve):
+        time_col = lc_or_lc_by_band.time
+    else:
+        time_col = list(lc_or_lc_by_band.values())[0].time
+    lc_time_label = time_col.format.upper()
+    if time_col.format == "btjd":
         lc_time_label = "BJD - 2457000 (BTJD days)"
-    elif lc.time.format == "bkjd":
+    elif time_col.format == "bkjd":
         lc_time_label = "BJD - 2454833 (BKJD days)"
     set_if_None(mapping, "lc_time_label", lc_time_label)
-    set_if_None(mapping, "time_format", lc.time.format)
+    set_if_None(mapping, "time_format", time_col.format)
 
     # Now all parameters are assembled in `mapping``, create the actual `input_fit.py`
     #
