@@ -720,6 +720,68 @@ def select_flux(lc, flux_cols):
     raise ValueError(f"'column {flux_cols}' not found")
 
 
+HAS_BOTTLENECK = False
+try:
+    import bottleneck
+
+    HAS_BOTTLENECK = True
+except:
+    HAS_BOTTLENECK = False
+
+
+def parse_aggregate_func(cenfunc):
+    # based on Astropy SigmaClip
+    # https://github.com/astropy/astropy/blob/326435449ad8d859f1abf36800c3fb88d49c27ea/astropy/stats/sigma_clipping.py#L263
+
+    # cenfunc should really be aggfunc, but I keep the name from SigmaClip
+    if cenfunc is None:
+        cenfunc = "mean"
+
+    if isinstance(cenfunc, str):
+        if cenfunc == "median":
+            if HAS_BOTTLENECK:
+                cenfunc = bottleneck.nanmedian  # SigmaClip has more robust version
+            else:
+                cenfunc = np.nanmedian  # pragma: no cover
+
+        elif cenfunc == "mean":
+            if HAS_BOTTLENECK:
+                cenfunc = bottleneck.nanmean  # SigmaClip has more robust version
+            else:
+                cenfunc = np.nanmean  # pragma: no cover
+
+        else:
+            raise ValueError(f"{cenfunc} is an invalid cenfunc.")
+
+    return cenfunc
+
+
+def bin_flux(lc, columns=["flux", "flux_err"], **kwargs):
+    """Helper to bin() more efficiently."""
+    # Note: the biggest slowdown comes from astropy regression
+    # that this impl cannot address:
+    # https://github.com/astropy/astropy/issues/13058
+
+    # construct a lc_subset that only has a subset of columns,
+    # to minimize the number of columns that need to be binned
+    # see: https://github.com/lightkurve/lightkurve/issues/1191
+
+    # lc_subset = lc['time', 'flux', 'flux_err'] does not work
+    # due to https://github.com/lightkurve/lightkurve/issues/1194
+    lc_subset = type(lc)(time=lc.time.copy())
+    lc_subset.meta.update(lc.meta)
+    for c in columns:
+        if c in lc.colnames:
+            lc_subset[c] = lc[c]
+        else:
+            warnings.warn(f"bin_flux(): column {c} cannot be found in lightcurve. It is ignored.")
+
+    aggregate_func = parse_aggregate_func(kwargs.get("aggregate_func"))
+    kwargs["aggregate_func"] = aggregate_func
+
+    return lc_subset.bin(**kwargs)
+
+
 #
 # TargetPixelFile helpers
 #
