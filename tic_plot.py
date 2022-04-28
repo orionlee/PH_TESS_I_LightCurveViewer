@@ -1823,6 +1823,80 @@ def interact(
     return SimpleNamespace(mark_list=mark_list)
 
 
+def plot_spoc_aperture(lc, ax=None):
+    """Plot the aperture associated with the SPOC lightcurve"""
+    return _plot_lc_aperture(lc, "SPOC", 2, ax)
+
+
+def plot_tasoc_aperture(lc, ax=None):
+    """Plot the aperture associated with the TASOC lightcurve"""
+    return _plot_lc_aperture(lc, "TASOC", 3, ax)
+
+
+def _plot_lc_aperture(lc, supported_author, aperture_hdu_idx, ax=None):
+    """Plot the aperture associated with the lightcurve.
+    The specifics depends on the pipeline produced the lightcurve."""
+    if lc.meta.get("AUTHOR") != supported_author:
+        warnings.warn(f"The given lightcurve is not a {supported_author} lightcurve. No-op")
+        return ax
+
+    with fits.open(lc.filename) as hdu:
+        # it'd be great is I could show the actual CCD row/column, but the data is not there.
+        ax = lk.utils.plot_image(hdu[aperture_hdu_idx].data, title=lc.meta.get("LABEL"), ax=ax)
+        return ax
+
+
+def plot_tasoc_pixels_n_aperture(lc, ax=None):
+    """Plot the time-average pixels, and the aperture associated with the TASOC lightcurve"""
+
+    def draw_aperture_mask(aperture_mask, ax, mask_color):
+        # adapted from TargetPixelFile.plot()
+        from matplotlib import patches
+
+        # Overlay the aperture mask if given
+        if aperture_mask is None:
+            return ax
+        for i in range(aperture_mask.shape[0]):
+            for j in range(aperture_mask.shape[1]):
+                if aperture_mask[i, j]:
+                    rect = patches.Rectangle(
+                        xy=(j - 0.5, i - 0.5),
+                        width=1,
+                        height=1,
+                        color=mask_color,
+                        fill=False,
+                        hatch="//",
+                    )
+                    ax.add_patch(rect)
+        return ax
+
+    if lc.meta.get("AUTHOR") != "TASOC":
+        warnings.warn("The given lightcurve is not a TASOC lightcurve. No-op")
+        return ax
+
+    # for TASOC lightcurve
+    # - image of time-average pixels is in hdu[2]
+    # - aperture is in hdu[3]
+    # https://archive.stsci.edu/hlsp/tasoc
+    with fits.open(lc.filename) as hdu:
+        # it'd be great is I could show the actual CCD row/column, but the data is not there.
+        ax = lk.utils.plot_image(hdu[2].data, title=lc.meta.get("LABEL"), ax=ax)
+        aperture = hdu[3].data
+
+        # TASOC aperture has multiple values, the exact meaning is unclear. It seems that:
+        # - the one with the highest value is the aperture
+        # - the one with 2nd highest is the background
+        unique_vals = np.unique(aperture)
+        unique_vals[::-1].sort()
+
+        val = unique_vals[0]
+        draw_aperture_mask((aperture == val), ax, "red")
+        #         val = unique_vals[1]  # background?
+        #         draw_aperture_mask((aperture == val), ax, 'white')
+
+        return ax
+
+
 #
 # TargetPixelFile helpers
 #
