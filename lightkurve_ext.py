@@ -807,6 +807,21 @@ def to_lightcurve_with_custom_aperture(tpf, aperture_mask, background_mask):
 
 
 #
+# Astropy extension
+#
+
+# Specify / display time delta in hours
+# useful for specifying / displaying planet transits
+class TimeDeltaHour(astropy.time.TimeDeltaNumeric):
+    """Time delta in hours (3600 SI seconds)"""
+
+    import erfa
+
+    name = "hour"
+    unit = 3600.0 / erfa.DAYSEC  # for quantity input
+
+
+#
 # Others
 #
 
