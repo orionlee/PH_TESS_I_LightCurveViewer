@@ -1995,3 +1995,77 @@ def plot_with_aperture_n_background(
     ax = tpf.plot(ax=ax, aperture_mask=background_mask, mask_color="white", show_colorbar=False)
     ax.set_title(f"{getattr(tpf, 'targetid', '')}{title_extra}")
     return ax
+
+
+def plot_in_out_diff(tpf, epoch, epoch_half_duration=0.25, oot_outer_relative=0.5, oot_inner_relative=0.3):
+    """
+    Plot the in transit average flux and the out of transit average flux and compare the two (difference image).
+    """
+
+    # based on plot_in_out_TPF() in
+    # https://github.com/noraeisner/PH_Coffee_Chat/blob/4a723030ed80eeabdfb0eca49d948b97d61e35f6/False%20Positive/False%20positives%20-%20(2)%20in%20out%20transit%20flux.ipynb
+
+    tpf_list = [tpf.flux.value]
+    t_list = [tpf.time.value]
+    T0_list = [epoch]
+
+    plt.figure(figsize=(9, 2.5 * len(T0_list)))
+
+    plt.tight_layout()
+
+    # keep track of how many images have been plotted to that they appear on a subgrid of plots which has three columns
+    count = 0
+
+    # loop through all of the list of PCA corrected flux vs time arrays for each marked transit-event
+    for idx, tpf_filt in enumerate(tpf_list):  # idx is for each maked transit-event
+
+        T0 = T0_list[idx]  # the time of the transit-like event
+        t = t_list[idx]  # the time array
+
+        intr = abs(T0 - t) < epoch_half_duration  # create a mask of the in transit times
+        oot = (abs(T0 - t) < oot_outer_relative) * (
+            abs(T0 - t) < oot_inner_relative
+        )  # create a mask of the out of transit times
+        img_intr = tpf_filt[intr, :, :].sum(axis=0) / float(intr.sum())  # apply the masks and normalize the flux
+        img_oot = tpf_filt[oot, :, :].sum(axis=0) / float(oot.sum())
+        img_diff = img_oot - img_intr  # calculate the difference image (out of transit minus in-transit)
+
+        # ---- PLOT -------
+
+        # in transit
+        count += 1  # add to the count before each plot
+        plt.subplot(len(T0_list), 3, count)
+        plt.axis("off")
+        plt.imshow(img_intr, cmap=plt.cm.viridis, origin="lower")
+        plt.colorbar()
+        plt.title("t = {} days \n In Transit Flux (e-/candence)".format(T0), fontsize=9)
+
+        # out of transit
+        count += 1
+        plt.subplot(len(T0_list), 3, count)
+        plt.axis("off")
+        plt.imshow(img_oot, cmap=plt.cm.viridis, origin="lower")
+        plt.colorbar()
+        plt.title("Out of Transit Flux (e-/candence)", fontsize=9)
+
+        # out of transit minus in-transit
+        count += 1
+        plt.subplot(len(T0_list), 3, count)
+        plt.axis("off")
+        plt.imshow(img_diff, cmap=plt.cm.viridis, origin="lower")
+        plt.colorbar()
+        plt.title("Difference Flux (e-/candence)", fontsize=9)
+
+    plt.subplots_adjust(wspace=0)
+    plt.tight_layout()
+
+    # ---- additional lightcurve plot to help visualization of the time span measured -------
+    lc = tpf.to_lightcurve().remove_nans()
+    lc = lc.truncate(T0 - oot_outer_relative * 1.25, T0 + oot_outer_relative * 1.25)
+    ax = lc.scatter()
+    ax.axvline(T0, color="red", ymax=0.15, linestyle="--", label="epoch")
+    ax.axvspan(T0 - epoch_half_duration, T0 + epoch_half_duration, facecolor="red", alpha=0.3, label="In Transit")
+    ax.axvspan(T0 - oot_outer_relative, T0 - oot_inner_relative, facecolor="green", alpha=0.3, label="Out of Transit")
+    # no label to avoid double legend
+    ax.axvspan(T0 + oot_inner_relative, T0 + oot_outer_relative, facecolor="green", alpha=0.3)
+    ax.legend()
