@@ -1997,7 +1997,7 @@ def plot_with_aperture_n_background(
     return ax
 
 
-def plot_in_out_diff(tpf, epoch, epoch_half_duration=0.25, oot_outer_relative=0.5, oot_inner_relative=0.3):
+def plot_in_out_diff(tpf, epoch, epoch_half_duration=0.25, oot_outer_relative=0.5, oot_inner_relative=0.3, plot_lc=True):
     """
     Plot the in transit average flux and the out of transit average flux and compare the two (difference image).
     """
@@ -2059,13 +2059,18 @@ def plot_in_out_diff(tpf, epoch, epoch_half_duration=0.25, oot_outer_relative=0.
     plt.subplots_adjust(wspace=0)
     plt.tight_layout()
 
+    if not plot_lc:
+        return None
+
     # ---- additional lightcurve plot to help visualization of the time span measured -------
     lc = tpf.to_lightcurve().remove_nans()
     lc = lc.truncate(T0 - oot_outer_relative * 1.25, T0 + oot_outer_relative * 1.25)
-    ax = lc.scatter()
-    ax.axvline(T0, color="red", ymax=0.15, linestyle="--", label="epoch")
-    ax.axvspan(T0 - epoch_half_duration, T0 + epoch_half_duration, facecolor="red", alpha=0.3, label="In Transit")
-    ax.axvspan(T0 - oot_outer_relative, T0 - oot_inner_relative, facecolor="green", alpha=0.3, label="Out of Transit")
-    # no label to avoid double legend
-    ax.axvspan(T0 + oot_inner_relative, T0 + oot_outer_relative, facecolor="green", alpha=0.3)
-    ax.legend()
+    with plt.style.context(lk.MPLSTYLE):
+        ax = plt.figure(figsize=(6, 3)).gca()
+        ax = lc.scatter(ax=ax)
+        ax.axvline(T0, color="red", ymax=0.15, linestyle="--", label="epoch")
+        ax.axvspan(T0 - epoch_half_duration, T0 + epoch_half_duration, facecolor="red", alpha=0.3, label="In Transit")
+        ax.axvspan(T0 - oot_outer_relative, T0 - oot_inner_relative, facecolor="green", alpha=0.3, label="Out of Transit")
+        # no label to avoid double legend
+        ax.axvspan(T0 + oot_inner_relative, T0 + oot_outer_relative, facecolor="green", alpha=0.3)
+        ax.legend()
