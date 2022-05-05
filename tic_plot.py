@@ -280,9 +280,6 @@ def plot_n_annotate_lcf(
         _cache_plot_n_annotate_lcf["normalize"] = normalize
         _cache_plot_n_annotate_lcf["lc"] = lc
 
-    if lc_tweak_fn is not None:
-        lc = lc_tweak_fn(lc)
-
     if xmin is None and t_start is not None:
         xmin = t_start - 0.5
     if xmax is None and t_end is not None:
@@ -295,6 +292,9 @@ def plot_n_annotate_lcf(
         lc = lc[lc.time.value >= xmin]
     if xmax is not None:
         lc = lc[lc.time.value <= xmax]
+
+    if lc_tweak_fn is not None:
+        lc = lc_tweak_fn(lc)
 
     lcfh = lcf.meta
 
