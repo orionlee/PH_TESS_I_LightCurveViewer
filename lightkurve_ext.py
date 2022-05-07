@@ -999,9 +999,9 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
     tab = Table.read(url, format="ascii")
 
     # make columns follow Lightkurve convention
-    tab.rename_column("mag err", "mag_err")
-    tab.rename_column("flux (mJy)", "flux")
-    tab.rename_column("flux err", "flux_err")
+    tab.rename_column("flux(mJy)", "flux")
+    for c in tab.colnames:
+        tab.rename_column(c, re.sub(' ', '_', c.lower()))
 
     tab.sort(keys="hjd")
 
