@@ -154,7 +154,9 @@ def estimate_object_radius_in_r_jupiter(lc, depth):
     return r_obj_in_r_jupiter
 
 
-def download_lightcurves_of_tic_with_priority(tic, download_filter_func=None, download_dir=None):
+def download_lightcurves_of_tic_with_priority(
+    tic, author_priority=["SPOC", "QLP", "TESS-SPOC"], download_filter_func=None, download_dir=None
+):
     """For a given TIC, download lightcurves across all sectors.
     For each sector, download one based on pre-set priority.
     """
@@ -175,7 +177,7 @@ def download_lightcurves_of_tic_with_priority(tic, download_filter_func=None, do
     # - note: prefer QLP over TESS-SPOC because QLP is detrended, with multiple apertures within 1 file
     sr = filter_by_priority(
         sr,
-        author_priority=["SPOC", "QLP", "TESS-SPOC"],
+        author_priority=author_priority,
         exptime_priority=["short", "long", "fast"],
     )
     num_filtered = len(sr_unfiltered) - len(sr)
@@ -1001,7 +1003,7 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
     # make columns follow Lightkurve convention
     tab.rename_column("flux(mJy)", "flux")
     for c in tab.colnames:
-        tab.rename_column(c, re.sub(' ', '_', c.lower()))
+        tab.rename_column(c, re.sub(" ", "_", c.lower()))
 
     tab.sort(keys="hjd")
 
