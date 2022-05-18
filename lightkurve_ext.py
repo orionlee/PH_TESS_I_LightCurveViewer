@@ -1026,3 +1026,55 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
         lc.meta["LABEL"] = label
 
     return lc
+
+
+def read_superwasp_dr1_data(superwasp_id):
+    """Read SuperWASP DR1 data, in the format (FITS + CSV) available at
+    https://wasp.cerit-sc.cz/
+    """
+    from urllib.parse import quote_plus
+
+    fits_url = f"https://wasp.cerit-sc.cz/download?object={quote_plus(superwasp_id)}"
+    # camera data is not in FITs but can be found in CSV
+    csv_url = f"https://wasp.cerit-sc.cz/csv?object={quote_plus(superwasp_id)}"
+
+    with fits.open(fits_url) as hdul:
+
+        jd_ref = hdul[0].header.get("JD_REF")
+        # unsure if the HJD here is in TT
+        time = Time(hdul[1].data["TMID"] / 86400 + jd_ref, format="jd", scale="tt")
+
+        lc = lk.LightCurve(time=time)
+        e_s = u.electron / u.s
+        # TAMFLUX2 is corrected flux. See: https://exoplanetarchive.ipac.caltech.edu/docs/SuperWASPProcessing.html
+        flux_column = "TAMFLUX2"
+
+        # the unit of flux in microvega is basically electron per sec
+        # https://www.zooniverse.org/projects/ajnorton/superwasp-variable-stars/about/faq
+        lc["flux"] = hdul[1].data[flux_column] * e_s
+        lc["flux_err"] = hdul[1].data[f"{flux_column}_ERR"] * e_s
+
+        lc["flux2"] = hdul[1].data["FLUX2"] * e_s
+        lc["flux2_err"] = hdul[1].data["FLUX2_ERR"] * e_s
+        lc["tamflux2"] = hdul[1].data["TAMFLUX2"] * e_s
+        lc["tamflux2_err"] = hdul[1].data["TAMFLUX2_ERR"] * e_s
+
+        lc["ccdx"] = hdul[1].data["CCDX"]
+        lc["ccdy"] = hdul[1].data["CCDY"]
+
+        # need the following columns to make interact_bls() works
+        lc["quality"] = hdul[1].data["FLAG"]
+        lc["cadenceno"] = hdul[1].data["TMID"]  # a fake cadenceno
+
+        # misc. that might be useful
+        lc["imageid"] = hdul[1].data["IMAGEID"]
+
+        lc.meta.update(hdul[0].header)
+        lc.meta["LABEL"] = lc.meta["OBJNAME"]  # useful in plots
+
+        # get camera data from csv data
+        if csv_url is not None:
+            csv = Table.read(csv_url, format="ascii")
+            lc["camera"] = csv["camera"]
+
+        return lc
