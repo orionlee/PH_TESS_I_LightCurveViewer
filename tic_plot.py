@@ -1987,6 +1987,21 @@ def plot_tasoc_pixels_n_aperture(lc, ax=None):
         return ax
 
 
+def scatter_partition_by(lc, partition_by_column, ax=None, **kwargs):
+    """Generate a scatter plot of the given lightcurve, with flux
+    partitioned by the given column.
+
+    Use cases: provide a plot where flux comes from multiple bands / cameras.
+    """
+    if ax is None:
+        ax = lk_ax()
+
+    for val in np.unique(lc[partition_by_column]):
+        lc[lc[partition_by_column] == val].scatter(ax=ax, label=f"{partition_by_column} {val}", **kwargs)
+    ax.set_title(lc.label)
+    return ax
+
+
 #
 # TargetPixelFile helpers
 #
