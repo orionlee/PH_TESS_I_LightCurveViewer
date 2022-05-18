@@ -963,7 +963,8 @@ def search_gaiaedr3_of_lc(
         # OPEN: additional UI tweak, e.g., link back to Vizier, etc.
         html = ""
         if verbose_html:
-            html = f"<p>TIC {lc.targetid} - TESS mag: {tess_mag} ; coordinate: {ra}, {dec}</p>\n"
+            pmra, pmdec = lc.meta.get("PMRA"), lc.meta.get("PMDEC")
+            html = f"<p>TIC {lc.targetid} - TESS mag: {tess_mag} ; coordinate: {ra}, {dec} ; PM: {pmra}, {pmdec} .</p>\n"
         html = html + result._repr_html_()
 
         # linkify Gaia EDR3 ID
