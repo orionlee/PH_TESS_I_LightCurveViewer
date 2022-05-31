@@ -36,6 +36,7 @@ from lightkurve import LightCurve, LightCurveCollection, LightkurveWarning, Fold
 from lightkurve.utils import TessQualityFlags
 from lightkurve_ext import of_sectors
 import lightkurve_ext as lke
+import lightkurve_ext_tess as lket
 
 # typing
 from typing import Callable, Optional, Tuple
@@ -355,7 +356,7 @@ def plot_n_annotate_lcf(
         )
 
     if mark_momentum_dumps:
-        _plot_momentum_dumps(lc, ax)
+        plot_momentum_dumps(lc, ax)
 
     if set_title:
         title_text = lc.label
@@ -469,6 +470,10 @@ def print_data_range(lcf_coll):
 
 
 def get_momentum_dump_times(lcf):
+
+    # momentum_dump_times_from_file() is no longer useful
+    # `lket.MomentumDumpsAccessor.get_in_range()` is more flexible (e.g., better support for stitched lc better), and faster
+    # but I keep it here as reference
     def momentum_dump_times_from_file():
         # Note: momentum_dump signals are by default masked out in LightCurve objects.
         # To access times marked as such, I need to access the raw LightCurveFile directly.
@@ -491,14 +496,15 @@ def get_momentum_dump_times(lcf):
     # main logic
     time_mom_dumps = lcf.meta.get("momentum_dumps", None)
     if time_mom_dumps is None:
-        time_mom_dumps = momentum_dump_times_from_file()
+        time_mom_dumps = lket.MomentumDumpsAccessor.get_in_range(lcf)
         lcf.meta["momentum_dumps"] = time_mom_dumps
 
     # in case the lcf has been truncated, we preserve the truncation
     return time_mom_dumps[(lcf.time.min().value <= time_mom_dumps) & (time_mom_dumps <= lcf.time.max().value)]
 
 
-def _plot_momentum_dumps(lcf, ax, use_relative_time=False):
+def plot_momentum_dumps(lcf, ax, use_relative_time=False, mark_height_scale=0.15, color="red"):
+    """Mark  momentum dumps on the given plot."""
     time_mom_dumps = get_momentum_dump_times(lcf)
     if len(time_mom_dumps) < 1:
         return ax
@@ -511,8 +517,12 @@ def _plot_momentum_dumps(lcf, ax, use_relative_time=False):
     ax.vlines(
         time_mom_dumps,
         ymin=ybottom,
-        ymax=ybottom + 0.15 * (ytop - ybottom),
-        color="red",
+        ymax=ybottom + mark_height_scale * (ytop - ybottom),
+        # OPEN: make ax.vlines use axis coordinate by transform does not work completely
+        # ymax is honored correctly, but ymin is treated as data coordinate.
+        # see: https://github.com/matplotlib/matplotlib/issues/23171
+        # ymin=0, ymax=mark_height_scale, transform=ax.get_xaxis_transform(),
+        color=color,
         linewidth=1,
         linestyle="-.",
         label="Momentum dumps",
@@ -673,7 +683,7 @@ def plot_all(
                 )
 
         if mark_momentum_dumps:
-            _plot_momentum_dumps(lcf, ax, use_relative_time=use_relative_time)
+            plot_momentum_dumps(lcf, ax, use_relative_time=use_relative_time)
 
         ax.legend()
         axs.append(ax)
