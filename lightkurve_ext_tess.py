@@ -818,3 +818,18 @@ class MomentumDumpsAccessor:
         if end is not None:
             times = times[times < end]
         return times
+
+    @classmethod
+    def exclude_around(cls, lc_or_tpf=None, window_before=15 / 60 / 24, window_after=15 / 60 / 24):
+        """Exclude cadences of the given LC / TPF around momentum dumps.
+        Useful to exclude data points that are often skewed.
+        """
+
+        mom_dumps = cls.get_in_range(lc_or_tpf)
+
+        res = lc_or_tpf
+        for md in mom_dumps:
+            t = res.time.value
+            res = res[(t < md - window_before) | (t >= md + window_after)]
+
+        return res
