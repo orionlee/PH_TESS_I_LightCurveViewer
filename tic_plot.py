@@ -679,23 +679,11 @@ def plot_all(
             time_w_quality_issues = time[lke.create_quality_issues_mask(lc)]
             if len(time_w_quality_issues) > 0:
                 # add marks as vertical lines at bottom 10% of the plot
-                # Note: ax.vlines's ymin/ymax refers to the data. To specify them relative to y-axis
-
-                # I have to 1) use transform, and
-                #           2) tell the plot not to auto-scale Y-axis
-                #               (if auto-scaled is done, it will treat the line's coodrinate as data)
-                # somehow it doesn't work all the time. it could crop the y axis such that
-                # only the vlines are visible
-                #                 ax.set_autoscaley_on(False)
-                #                 ax.vlines(time_w_quality_issues, ymin=0, ymax=0.1, transform=ax.get_xaxis_transform()
-                #                           , color='red', linewidth=1, linestyle='--', label="potential quality issue")
-
-                # back to visually less appealing one (that vline doesn't start from the bottom
-                ybottom, ytop = ax.get_ylim()
-                ax.vlines(
+                vlines_y_in_axes_coord(
+                    ax,
                     time_w_quality_issues.value,
-                    ymin=ybottom,
-                    ymax=ybottom + 0.1 * (ytop - ybottom),
+                    ymin=0,
+                    ymax=0.1,
                     color="red",
                     linewidth=1,
                     linestyle="--",
@@ -1112,6 +1100,7 @@ def mark_transit_times(
     # a hack: mark the first line for each tt set, then set legend
     # so that each tt set will have 1 legend
     # if we simply set legend at the end, each dip will have its own legend!
+    # TODO: use `vlines_y_in_axes_coord()` helper instead.
     for (transit_times, axvline_kwargs) in zip(tt_list, axvline_kwargs_specs):
         if len(transit_times) > 0 and axvline_kwargs is not None:
             axvline_kwargs = axvline_kwargs.copy()  # as we might need to modify them locally
