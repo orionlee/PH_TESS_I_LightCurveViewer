@@ -503,6 +503,29 @@ def get_momentum_dump_times(lcf):
     return time_mom_dumps[(lcf.time.min().value <= time_mom_dumps) & (time_mom_dumps <= lcf.time.max().value)]
 
 
+def vlines_y_in_axes_coord(ax, x, ymin, ymax, **kwargs):
+    """Wrapper over `Axes.vlines()` for cases where ymin/ymax are in axes coordinates.
+    It is to workaround bug: https://github.com/matplotlib/matplotlib/issues/23171
+    """
+    ybottom, ytop = ax.get_ylim()  # saved for workaround
+
+    trans = ax.get_xaxis_transform()  # for ymin/ymax in axes coordinates
+    if kwargs.get("transform", None) is not None and kwargs["transform"] is not trans:
+        raise ValueError("_vlines_y_in_axes_coord() does not accept transform() parameter. It uses its own")
+    kwargs["transform"] = trans
+    res = ax.vlines(x, ymin, ymax, **kwargs)
+
+    # Applying workaround: the bug scaled the ax's y-axis incorrectly, we compensate it by
+    # rescaling it using the saved ylim
+    #
+    # edge case: if ymax > 1, we need to rescale the ytop
+    if ymax > 1:
+        ytop = ytop * ymax
+    ax.set_ylim(ybottom, ytop)
+
+    return res
+
+
 def plot_momentum_dumps(lcf, ax, use_relative_time=False, mark_height_scale=0.15, color="red"):
     """Mark  momentum dumps on the given plot."""
     time_mom_dumps = get_momentum_dump_times(lcf)
@@ -513,20 +536,17 @@ def plot_momentum_dumps(lcf, ax, use_relative_time=False, mark_height_scale=0.15
         t_start = lcf.meta.get("TSTART")
         time_mom_dumps = time_mom_dumps - t_start
 
-    ybottom, ytop = ax.get_ylim()
-    ax.vlines(
+    vlines_y_in_axes_coord(
+        ax,
         time_mom_dumps,
-        ymin=ybottom,
-        ymax=ybottom + mark_height_scale * (ytop - ybottom),
-        # OPEN: make ax.vlines use axis coordinate by transform does not work completely
-        # ymax is honored correctly, but ymin is treated as data coordinate.
-        # see: https://github.com/matplotlib/matplotlib/issues/23171
-        # ymin=0, ymax=mark_height_scale, transform=ax.get_xaxis_transform(),
+        ymin=0,
+        ymax=mark_height_scale,
         color=color,
         linewidth=1,
         linestyle="-.",
         label="Momentum dumps",
     )
+
     return ax
 
 
