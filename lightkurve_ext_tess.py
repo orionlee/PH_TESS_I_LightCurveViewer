@@ -722,6 +722,9 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
         margin-left: 0;
         float: right;
     }
+    #tic_metadata_ctr.float:hover { /* on hover, make it stand out more by decreasing transparency */
+        background-color: rgba(255, 255, 127, 0.9);
+    }
 
     #float_fixed_toggle {
         cursor: pointer;
