@@ -825,11 +825,32 @@ class MomentumDumpsAccessor:
         Useful to exclude data points that are often skewed.
         """
 
+        def compress_as_exclude_ranges(mom_dumps, window_before, window_after):
+            """Transform the list of momentum dumps to a list of range of time to exclude.
+            The function also compress the momentum dump list, by consolidating
+            multiple nearby timestamps to a single range.
+            This is done as an performance optimization, to reduce the number of actual lc/tpf truncation needed.
+            (In practice, it cuts the time or processing a typical TESS 2-minute cadence tpf from a few seconds to ~500ms)
+            """
+            if len(mom_dumps) < 1:
+                return []
+            res = []
+            cur_range = [mom_dumps[0] - window_before, mom_dumps[0] + window_after]
+            for t in mom_dumps[1:]:
+                if t <= cur_range[1]:
+                    cur_range[1] = t + window_after
+                else:
+                    res.append(cur_range)
+                    cur_range = [t - window_before, t + window_after]
+            res.append(cur_range)
+            return res
+
         mom_dumps = cls.get_in_range(lc_or_tpf)
+        exclude_ranges = compress_as_exclude_ranges(mom_dumps, window_before, window_after)
 
         res = lc_or_tpf
-        for md in mom_dumps:
+        for an_exclude in exclude_ranges:
             t = res.time.value
-            res = res[(t < md - window_before) | (t >= md + window_after)]
+            res = res[(t < an_exclude[0]) | (t >= an_exclude[1])]
 
         return res
