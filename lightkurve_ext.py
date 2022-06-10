@@ -885,10 +885,15 @@ def search_nearby(
     result = result[catalog_name]
 
     if magnitude_lower_limit is not None:
-        result = result[magnitude_lower_limit <= result[magnitude_limit_column]]
+        result = result[(magnitude_lower_limit <= result[magnitude_limit_column]) | result[magnitude_limit_column].mask]
 
     if magnitude_upper_limit is not None:
-        result = result[result[magnitude_limit_column] <= magnitude_upper_limit]
+        result = result[(result[magnitude_limit_column] <= magnitude_upper_limit) | result[magnitude_limit_column].mask]
+
+    # Calculated separation is approximate, as proper motion is not accounted for
+    r_coords = SkyCoord(result["RAJ2000"], result["DEJ2000"], unit=(u.hourangle, u.deg), frame="icrs")
+    sep = r_coords.separation(c1).to(u.arcsec)
+    result["separation"] = sep
 
     return result
 
@@ -901,14 +906,17 @@ def search_gaiaedr3_of_lc(
     """
 
     # OPEN:
-    # Consider alternative by crossting Gaia DR2 of the TIC (availabe on MAST) with Gaia EDR3
+    # Consider alternative by crossmatching Gaia DR2 of the TIC (available on MAST) with Gaia EDR3
     # https://gea.esac.esa.int/archive/documentation/GEDR3/Catalogue_consolidation/chap_cu9dr2xm/sec_cu9dr2xm_adql_queries/sec_cu9dr2xm_closest_edr3_neighbour_to_each_dr2_source_10m.html
     # some suggestion: limit cross match result by comparing GMag (difference < 0.1 was suggested in some doc)
     # Other Gaia crossmatch tips:
     # https://www.cosmos.esa.int/web/gaia-users/archive/combine-with-other-data
     ra, dec, equinox = lc.meta.get("RA"), lc.meta.get("DEC"), lc.meta.get("EQUINOX")
     tess_mag = lc.meta.get("TESSMAG")
-    lower_limit, upper_limit = tess_mag - magnitude_range, tess_mag + magnitude_range
+    if magnitude_range is not None:
+        lower_limit, upper_limit = tess_mag - magnitude_range, tess_mag + magnitude_range
+    else:
+        lower_limit, upper_limit = None, None
 
     result = search_nearby(
         ra,
@@ -922,9 +930,12 @@ def search_gaiaedr3_of_lc(
 
     if result is None:
         if also_return_html:
-            return None, ""
+            return None, None, ""
         else:
-            return None
+            return (
+                None,
+                None,
+            )
 
     # flag entries (that could indicate binary systems, etc.)
     flag_column_values = []
@@ -936,20 +947,24 @@ def search_gaiaedr3_of_lc(
             flag += "!"
         # astrometric excess noise sig > 2 cutoff source
         # https://gea.esac.esa.int/archive/documentation/GDR2/Gaia_archive/chap_datamodel/sec_dm_main_tables/ssec_dm_gaia_source.html
+        # https://web.archive.org/web/20211121142803/https://gea.esac.esa.int/archive/documentation/GDR2/Gaia_archive/chap_datamodel/sec_dm_main_tables/ssec_dm_gaia_source.html
         if row["sepsi"] > 2:
             flag += "!"
         flag_column_values.append(flag)
     result.add_column(flag_column_values, name="flag")
+    result_all_columns = result
 
     if compact_columns:  # select the most useful columns
         # prefer RA/DEC in Epoch 2000 as they can be compared more easily with those those in TESS LC metadata
         result = result[
             "flag",
+            "separation",
             "RAJ2000",
             "DEJ2000",
             "RPmag",
             "Gmag",
             "BPmag",
+            "BP-RP",
             "Tefftemp",
             "RUWE",
             "sepsi",
@@ -978,9 +993,9 @@ def search_gaiaedr3_of_lc(
         result_len = len(result)
         html = html.replace(f"<i>Table length={result_len}</i>", "")
 
-        return result, html
+        return result_all_columns, result, html
     else:
-        return result
+        return result_all_columns, result
 
 
 #
