@@ -17,6 +17,8 @@ import numpy as np
 import pandas as pd
 from pandas.io.formats.style import Styler
 
+from astropy.table import Table
+
 # for accessing / parsing TCEs from MAST
 from astroquery.exceptions import NoResultsWarning
 from astroquery.mast import Observations
@@ -855,5 +857,27 @@ class MomentumDumpsAccessor:
         for an_exclude in exclude_ranges:
             t = res.time.value
             res = res[(t < an_exclude[0]) | (t >= an_exclude[1])]
+
+        return res
+
+
+class WTVResultAccessor:
+    @classmethod
+    def get_all(cls, wtv_csv_path, add_sectors_summary=True, start_sector=1, end_sector_inclusive=69):
+        res = Table.read(wtv_csv_path)
+        if not add_sectors_summary:
+            return res
+
+        def to_sectors_summary(row):
+            summary = ""
+            for sector in np.arange(start_sector, end_sector_inclusive + 1):
+                if row[f"S{sector}"] > 0:
+                    summary = f"{summary} {sector},"
+            return summary
+
+        summary_ary = []
+        for row in res:
+            summary_ary.append(to_sectors_summary(row))
+        res["Sectors"] = summary_ary
 
         return res
