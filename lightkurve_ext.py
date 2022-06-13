@@ -1017,7 +1017,11 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
     tab = Table.read(url, format="ascii")
 
     # make columns follow Lightkurve convention
-    tab.rename_column("flux(mJy)", "flux")
+    if "flux(mJy)" in tab.colnames:
+        # column flux(mJy) shows up in csv from path "/variables/" or "/sky-patrol/coordinate/"
+        # for csv from path "/photometry/" , the column is simply flux
+        tab.rename_column("flux(mJy)", "flux")
+
     for c in tab.colnames:
         tab.rename_column(c, re.sub(" ", "_", c.lower()))
 
