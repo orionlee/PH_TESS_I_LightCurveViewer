@@ -892,7 +892,7 @@ def search_nearby(
     ra,
     dec,
     equinox="J2000.0",
-    catalog_name="I/350/gaiaedr3",
+    catalog_name="I/355/gaiadr3",
     radius_arcsec=60,
     magnitude_limit_column=None,
     magnitude_lower_limit=None,
@@ -905,6 +905,8 @@ def search_nearby(
     columns = ["*"]
     if catalog_name == "I/350/gaiaedr3":
         columns = ["*", "epsi", "sepsi"]  # add astrometric excess noise to the output (see if a star wobbles)
+    if catalog_name == "I/355/gaiadr3":
+        columns = ["*", "epsi", "sepsi", "VarFlag", "Dup", "GRVSmag"]  # also add variability and Duplicate flag
 
     with warnings.catch_warnings():
         # suppress useless warning.  https://github.com/astropy/astroquery/issues/2352
@@ -931,10 +933,15 @@ def search_nearby(
     sep = r_coords.separation(c1).to(u.arcsec)
     result["separation"] = sep
 
+    # tweak default format to make magnitudes and separation more succinct
+    for col in ["separation", "RPmag", "Gmag", "BPmag", "BP-RP", "GRVSmag"]:
+        if col in result.colnames:
+            result[col].info.format = ".3f"
+
     return result
 
 
-def search_gaiaedr3_of_lc(
+def search_gaiadr3_of_lc(
     lc, radius_arcsec=15, magnitude_range=2.5, compact_columns=True, also_return_html=True, verbose_html=True
 ):
     """Locate the lightcurve target's correspond entry in GaiaEDR3.
@@ -997,17 +1004,24 @@ def search_gaiaedr3_of_lc(
             "separation",
             "RAJ2000",
             "DEJ2000",
-            "RPmag",
+            "RPmag",  # prioritize RPmag, as its pass band is close to TESS
             "Gmag",
             "BPmag",
             "BP-RP",
-            "Tefftemp",
+            "Teff",  # "Tefftemp" in Gaia DR2 / Gaia EDR3
             "RUWE",
             "sepsi",
             "epsi",
+            "NSS",  # Gaia DR3: 1 if there is entry in Non-Single Star tables
             "Plx",
             "pmRA",
             "pmDE",
+            "GRVSmag",  # Gaia DR3 Gmag from Radial Velocity spectrometer
+            "VarFlag",  # Gaia DR3: variability
+            "EpochPh",  # Gaia DR3: 1 if epoch photometry is available
+            "RV",  # Gaia DR3
+            "EpochRV",  # Gaia DR3
+            "Dup",  # Gaia DR3: if there are multiple source/Gaia DR3 entries for the same target
             "Source",
         ]
     if also_return_html:
@@ -1018,11 +1032,11 @@ def search_gaiaedr3_of_lc(
             html = f"<p>TIC {lc.targetid} - TESS mag: {tess_mag} ; coordinate: {ra}, {dec} ; PM: {pmra}, {pmdec} .</p>\n"
         html = html + result._repr_html_()
 
-        # linkify Gaia EDR3 ID
+        # linkify Gaia DR3 ID
         for id in result["Source"]:
             html = html.replace(
                 f">{id}<",
-                f"><a target='vizier_gaia_edr3' href='https://vizier.u-strasbg.fr/viz-bin/VizieR-S?Gaia%20EDR3%20{id}'>{id}</a><",
+                f"><a target='vizier_gaia_dr3' href='https://vizier.u-strasbg.fr/viz-bin/VizieR-S?Gaia%20DR3%20{id}'>{id}</a><",
             )
 
         # remove the Table length=n message
