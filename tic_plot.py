@@ -361,7 +361,7 @@ def plot_n_annotate_lcf(
     if set_title:
         title_text = lc.label
         if len(lcfh.get("SECTORS", [])) > 1:
-            sector_text = f"""{lcfh.get("SECTORS")[0]} - {lcfh.get("SECTORS")[-1]}"""
+            sector_text = lke.abbrev_sector_list(lcfh.get("SECTORS", []))
         else:
             sector_text = lcfh.get("SECTOR", None)
         if sector_text is not None:
@@ -459,7 +459,7 @@ def print_data_range(lcf_coll):
     * camera used
     """
     html = '<pre style="line-height: 1.1;">\n'
-    html += "<summary>Sectors: " + str(list(map(lambda lc: lc.meta.get("SECTOR"), lcf_coll))) + f" ({len(lcf_coll)})" + "\n"
+    html += "<summary>Sectors: " + lke.abbrev_sector_list(lcf_coll) + f" ({len(lcf_coll)})" + "\n"
     html += "Observation period range / data range:" + "\n"
     html += "<details>"
     for lc in lcf_coll:

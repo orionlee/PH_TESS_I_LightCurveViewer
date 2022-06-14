@@ -784,6 +784,42 @@ def bin_flux(lc, columns=["flux", "flux_err"], **kwargs):
     return lc_subset.bin(**kwargs)
 
 
+def abbrev_sector_list(lcc_or_sectors):
+    """Abbreviate a list of sectors, e.g., `1,2,3, 9` becomes `1-3, 9`."""
+
+    # OPEN 1: consider to handle SearchResult as well, in addition to
+    #         array like numbers, LightCurveCollection and TargetPixelFileCollection
+    # OPEN 2: consider to handle Kepler quarter / K2 campaign.
+
+    sectors = lcc_or_sectors
+    if isinstance(sectors, lk.collections.Collection):  # LC / TPF collection
+        sectors = [lc.meta.get("SECTOR") for lc in lcc_or_sectors]
+
+    sectors = sectors.copy()
+    sectors.sort()
+
+    if len(sectors) < 1:
+        return ""
+
+    def a_range_to_str(range):
+        if range[0] == range[1]:
+            return str(range[0])
+        else:
+            return f"{range[0]}-{range[1]}"
+
+    ranges = []
+    cur_range = [sectors[0], sectors[0]]
+    for s in sectors[1:]:
+        if s == cur_range[1] + 1:
+            cur_range = [cur_range[0], s]
+        else:
+            ranges.append(cur_range)
+            cur_range = [s, s]
+    ranges.append(cur_range)
+
+    return ", ".join([a_range_to_str(r) for r in ranges])
+
+
 #
 # TargetPixelFile helpers
 #
