@@ -931,7 +931,13 @@ def _to_stellar_meta(target):
 
 
 def search_gaiadr3_of_tics(
-    targets, radius_arcsec=15, magnitude_range=2.5, compact_columns=True, also_return_html=True, verbose_html=True
+    targets,
+    radius_arcsec=15,
+    magnitude_range=2.5,
+    pm_range_fraction=0.25,
+    compact_columns=True,
+    also_return_html=True,
+    verbose_html=True,
 ):
     """Locate the lightcurve target's correspond entry in GaiaDR3.
     The match is by an heuristics based on coordinate and magnitude.
@@ -975,6 +981,9 @@ def search_gaiadr3_of_tics(
             magnitude_limit_column="RPmag",
             magnitude_lower_limit=lower_limit,
             magnitude_upper_limit=upper_limit,
+            pmra=t.pmra,
+            pmdec=t.pmdec,
+            pm_range_fraction=pm_range_fraction,
         )
 
         if a_result is not None:

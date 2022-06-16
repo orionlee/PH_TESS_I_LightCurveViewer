@@ -897,6 +897,11 @@ def search_nearby(
     magnitude_limit_column=None,
     magnitude_lower_limit=None,
     magnitude_upper_limit=None,
+    pmra=None,
+    pmdec=None,
+    pm_range_fraction=None,
+    pmra_limit_column="pmRA",
+    pmdec_limit_column="pmDE",
 ):
     """Stars around the given coordinate from Gaia DR2/EDR3, etc."""
 
@@ -927,6 +932,16 @@ def search_nearby(
 
     if magnitude_upper_limit is not None:
         result = result[(result[magnitude_limit_column] <= magnitude_upper_limit) | result[magnitude_limit_column].mask]
+
+    if pm_range_fraction is not None:
+        if pmra is not None:
+            pmra_lower, pmra_upper = pmra * (1 - pm_range_fraction), pmra * (1 + pm_range_fraction)
+            result = result[(pmra_lower <= result[pmra_limit_column]) | result[pmra_limit_column].mask]
+            result = result[(result[pmra_limit_column] <= pmra_upper) | result[pmra_limit_column].mask]
+        if pmdec is not None:
+            pmdec_lower, pmdec_upper = pmdec * (1 - pm_range_fraction), pmdec * (1 + pm_range_fraction)
+            result = result[(pmdec_lower <= result[pmdec_limit_column]) | result[pmdec_limit_column].mask]
+            result = result[(result[pmdec_limit_column] <= pmdec_upper) | result[pmdec_limit_column].mask]
 
     # Calculated separation is approximate, as proper motion is not accounted for
     r_coords = SkyCoord(result["RAJ2000"], result["DEJ2000"], unit=(u.hourangle, u.deg), frame="icrs")
