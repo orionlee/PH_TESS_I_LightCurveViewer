@@ -109,9 +109,14 @@ def of_2min_cadences(lcf_coll):
     return lk.LightCurveCollection(filtered)
 
 
-def estimate_cadence(lc):
+def estimate_cadence(lc, unit=None, round_unit_result=True):
     """Estimate the cadence of a lightcurve by returning the median of a sample"""
-    return np.nanmedian(np.diff(lc.time[:100].value))
+    res = np.nanmedian(np.diff(lc.time[:100].value))
+    if unit is not None:
+        res = (res * u.day).to(unit)  # LATER: handle cases lc.time is not in days
+        if round_unit_result:
+            res = res.round()
+    return res
 
 
 def map_cadence_type(cadence_in_days):
@@ -612,7 +617,17 @@ def stitch(lcf_coll, **kwargs):
 def to_window_length_for_2min_cadence(length_day):
     """Helper for LightCurve.flatten().
     Return a `window_length` for the given number of days, assuming the data has 2-minute cadence."""
-    res = math.floor(720 * length_day)
+    return to_window_length_for_cadence(length_day * u.day, 2 * u.min)
+
+
+def to_window_length_for_cadence(length, cadence):
+    """Helper for LightCurve.flatten().
+    Return a `window_length` for the given length and cadence.
+
+    Parameters length and cadence should be ~~astropy.quantity.Quantity~~.
+    If they are unitless number, they should be in the same unit.
+    """
+    res = math.floor(length / cadence)
     if res % 2 == 0:
         res += 1  # savgol_filter window length must be odd number
     return res
@@ -661,6 +676,57 @@ def _lksl_statistics(ts):
 
 def lksl_statistics(lc, column="flux"):
     return _lksl_statistics(lc[column].value)
+
+
+def estimate_snr(
+    lc,
+    signal_depth,
+    signal_duration,
+    num_signals,
+    savgol_to_transit_window_ratio=4,
+    cdpp_kwargs=None,
+    return_diagnostics=False,
+):
+    """Estimate Signal-to-Noise Ratio (SNR) of the signals, e.g., transits.
+    The estimate assumes:
+    - there is no red noises (due to systematics, etc.)
+    - noise level does not vary over time.
+
+    References:
+    - based on KSCI-19085-001: Planet Detection Metrics
+      (section 3:  one-sigma depth function. the basic form quoted is used instead of one-sigma depth function)
+      https://exoplanetarchive.ipac.caltech.edu/docs/KSCI-19085-001.pdf
+    - Poster with more in-depth treatment on white noises, red noises, etc.
+      https://mirasolinstitute.org/kaspar/publications/Window_Functions.pdf
+    """
+
+    if not isinstance(signal_duration, u.Quantity):
+        signal_duration = signal_duration * u.hour
+    if cdpp_kwargs is None:
+        cdpp_kwargs = dict()
+
+    cadence = estimate_cadence(lc, unit=u.min)
+    transit_window = math.ceil(signal_duration / cadence)
+
+    savgol_window = transit_window * savgol_to_transit_window_ratio
+    if savgol_window % 2 == 0:
+        savgol_window += 1
+
+    if cdpp_kwargs.get("transit_duration") is None:
+        cdpp_kwargs["transit_duration"] = transit_window
+    if cdpp_kwargs.get("savgol_window") is None:
+        cdpp_kwargs["savgol_window"] = savgol_window
+
+    cdpp = lc.estimate_cdpp(**cdpp_kwargs)
+
+    snr = np.sqrt(num_signals) * (signal_depth / cdpp).decompose().value
+
+    if not return_diagnostics:
+        return snr
+    else:
+        diagnostics = cdpp_kwargs.copy()
+        diagnostics["cdpp"] = cdpp
+        return snr, diagnostics
 
 
 def tess_flux_to_mag(flux):
