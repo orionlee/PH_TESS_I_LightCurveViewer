@@ -2,6 +2,7 @@
 # Helpers to download TESS-specific non-lightcurve data: TOIs, TCEs, etc.
 #
 
+from collections.abc import Sequence
 import logging
 import os
 from pathlib import Path
@@ -17,7 +18,11 @@ import numpy as np
 import pandas as pd
 from pandas.io.formats.style import Styler
 
+import astropy
 from astropy.table import Table
+
+import lightkurve as lk
+import lightkurve_ext as lke
 
 # for accessing / parsing TCEs from MAST
 from astroquery.exceptions import NoResultsWarning
@@ -25,7 +30,7 @@ from astroquery.mast import Observations
 import xmltodict
 
 #
-# Misc constatants
+# Misc constants
 #
 
 R_earth = 6371000  # radius of the Earth [m]
@@ -884,3 +889,180 @@ class WTVResultAccessor:
         res["Sectors"] = summary_ary
 
         return res
+
+
+def catalog_info_of_tics(tic):
+    """Return the info of a TIC in the TIC catalog"""
+    from astroquery.mast import Catalogs
+
+    return Catalogs.query_criteria(catalog="Tic", ID=tic)
+
+
+def _to_stellar_meta(target):
+    if hasattr(target, "meta"):  # case LC, TPF, etc.
+        meta = target.meta
+        ra, dec, equinox = meta.get("RA"), meta.get("DEC"), meta.get("EQUINOX")
+        pmra, pmdec = meta.get("PMRA"), meta.get("PMDEC")
+        tess_mag = meta.get("TESSMAG")
+        tic = meta.get("TICID")
+        if tic is not None:
+            label = f"{tic}"
+        else:
+            label = f"[{ra:4f} {dec:4f}]"
+        return SimpleNamespace(ra=ra, dec=dec, equinox=equinox, pmra=pmra, pmdec=pmdec, tess_mag=tess_mag, label=label)
+
+    # case target is a tic id
+    if isinstance(target, (int, str)):
+        result = catalog_info_of_tics(target)
+        if len(result) < 1:
+            return None
+        row = result[0]
+        ra, dec, equinox = row["ra"], row["dec"], 2000
+        pmra, pmdec = row["pmRA"], row["pmDEC"]
+        tess_mag = row["Tmag"]
+        tic = row["ID"]
+        if tic is not None:
+            label = f"{tic}"
+        else:
+            label = f"[{ra:4f} {dec:4f}]"
+        return SimpleNamespace(ra=ra, dec=dec, equinox=equinox, pmra=pmra, pmdec=pmdec, tess_mag=tess_mag, label=label)
+
+    raise TypeError(f"target, of type {type(target)} is not supported")
+
+
+def search_gaiadr3_of_tics(
+    targets, radius_arcsec=15, magnitude_range=2.5, compact_columns=True, also_return_html=True, verbose_html=True
+):
+    """Locate the lightcurve target's correspond entry in GaiaDR3.
+    The match is by an heuristics based on coordinate and magnitude.
+
+    Parameters
+    ----------
+    target : int, LightCurve, TargetPixelFile, or a list of them
+        targets to be searched. Either the TIC, or LightCurve/TargetPixelFile of a TIC.
+
+    """
+
+    # OPEN:
+    # Consider alternative by crossmatching Gaia DR2 of the TIC (available on MAST) with Gaia EDR3
+    # https://gea.esac.esa.int/archive/documentation/GEDR3/Catalogue_consolidation/chap_cu9dr2xm/sec_cu9dr2xm_adql_queries/sec_cu9dr2xm_closest_edr3_neighbour_to_each_dr2_source_10m.html
+    # some suggestion: limit cross match result by comparing GMag (difference < 0.1 was suggested in some doc)
+    # Other Gaia crossmatch tips:
+    # https://www.cosmos.esa.int/web/gaia-users/archive/combine-with-other-data
+
+    if isinstance(targets, (Sequence, np.ndarray, lk.collections.Collection)):
+        add_target_as_col = True
+    else:
+        add_target_as_col = False
+        targets = [targets]
+
+    result_list = []
+
+    targets = np.asarray([_to_stellar_meta(t) for t in targets])
+    targets = targets[targets != None]
+
+    for t in targets:
+        if magnitude_range is not None:
+            lower_limit, upper_limit = t.tess_mag - magnitude_range, t.tess_mag + magnitude_range
+        else:
+            lower_limit, upper_limit = None, None
+
+        a_result = lke.search_nearby(
+            t.ra,
+            t.dec,
+            equinox=f"J{t.equinox}",
+            radius_arcsec=radius_arcsec,
+            magnitude_limit_column="RPmag",
+            magnitude_lower_limit=lower_limit,
+            magnitude_upper_limit=upper_limit,
+        )
+
+        if a_result is not None:
+            a_result["target"] = [t.label for i in range(0, len(a_result))]
+            result_list.append(a_result)
+
+    with warnings.catch_warnings():
+        # Avoid spurious MergeConflictWarning: Cannot merge meta key 'null' types <class 'float'> and <class 'float'>, choosing null=nan [astropy.utils.metadata]
+        result = astropy.table.vstack(result_list)
+
+    if len(result) < 1:
+        if also_return_html:
+            return None, None, ""
+        else:
+            return (
+                None,
+                None,
+            )
+
+    # flag entries (that could indicate binary systems, etc.)
+    flag_column_values = []
+    for row in result:
+        flag = ""
+        # RUWE > 1.4 cutoff source:
+        # https://gea.esac.esa.int/archive/documentation/GDR2/Gaia_archive/chap_datamodel/sec_dm_main_tables/ssec_dm_ruwe.html
+        if row["RUWE"] > 1.4:
+            flag += "!"
+        # astrometric excess noise sig > 2 cutoff source
+        # https://gea.esac.esa.int/archive/documentation/GDR2/Gaia_archive/chap_datamodel/sec_dm_main_tables/ssec_dm_gaia_source.html
+        # https://web.archive.org/web/20211121142803/https://gea.esac.esa.int/archive/documentation/GDR2/Gaia_archive/chap_datamodel/sec_dm_main_tables/ssec_dm_gaia_source.html
+        if row["sepsi"] > 2:
+            flag += "!"
+        flag_column_values.append(flag)
+    result.add_column(flag_column_values, name="flag")
+    result_all_columns = result
+
+    if compact_columns:  # select the most useful columns
+        # prefer RA/DEC in Epoch 2000 as they can be compared more easily with those those in TESS LC metadata
+        result = result[
+            "target",
+            "flag",
+            "separation",
+            "RAJ2000",
+            "DEJ2000",
+            "RPmag",  # prioritize RPmag, as its pass band is close to TESS
+            "Gmag",
+            "BPmag",
+            "BP-RP",
+            "Teff",  # "Tefftemp" in Gaia DR2 / Gaia EDR3
+            "RUWE",
+            "sepsi",
+            "epsi",
+            "NSS",  # Gaia DR3: 1 if there is entry in Non-Single Star tables
+            "Plx",
+            "pmRA",
+            "pmDE",
+            "GRVSmag",  # Gaia DR3 Gmag from Radial Velocity spectrometer
+            "VarFlag",  # Gaia DR3: variability
+            "EpochPh",  # Gaia DR3: 1 if epoch photometry is available
+            "RV",  # Gaia DR3
+            "EpochRV",  # Gaia DR3
+            "Dup",  # Gaia DR3: if there are multiple source/Gaia DR3 entries for the same target
+            "Source",
+        ]
+        if not add_target_as_col:
+            result.remove_column("target")
+
+    if also_return_html:
+        html = ""
+        if verbose_html:
+            for t in targets:
+                html = html + (
+                    f"<pre>TIC {t.label} - TESS mag: {t.tess_mag} ; coordinate: {t.ra}, {t.dec} ; "
+                    f"PM: {t.pmra}, {t.pmdec} .</pre>"
+                )
+        html = html + result._repr_html_()
+
+        # linkify Gaia DR3 ID
+        for id in result["Source"]:
+            html = html.replace(
+                f">{id}<",
+                f"><a target='vizier_gaia_dr3' href='https://vizier.u-strasbg.fr/viz-bin/VizieR-S?Gaia%20DR3%20{id}'>{id}</a><",
+            )
+
+        # remove the Table length=n message
+        result_len = len(result)
+        html = html.replace(f"<i>Table length={result_len}</i>", "")
+
+        return result_all_columns, result, html
+    else:
+        return result_all_columns, result
