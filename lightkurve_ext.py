@@ -1053,11 +1053,13 @@ def search_nearby(
 
     if pm_range_fraction is not None:
         if pmra is not None:
-            pmra_lower, pmra_upper = pmra * (1 - pm_range_fraction), pmra * (1 + pm_range_fraction)
+            pmra_range = np.abs(pmra) * pm_range_fraction
+            pmra_lower, pmra_upper = pmra - pmra_range, pmra + pmra_range
             result = result[(pmra_lower <= result[pmra_limit_column]) | result[pmra_limit_column].mask]
             result = result[(result[pmra_limit_column] <= pmra_upper) | result[pmra_limit_column].mask]
         if pmdec is not None:
-            pmdec_lower, pmdec_upper = pmdec * (1 - pm_range_fraction), pmdec * (1 + pm_range_fraction)
+            pmdec_range = np.abs(pmdec) * pm_range_fraction
+            pmdec_lower, pmdec_upper = pmdec - pmdec_range, pmdec + pmdec_range
             result = result[(pmdec_lower <= result[pmdec_limit_column]) | result[pmdec_limit_column].mask]
             result = result[(result[pmdec_limit_column] <= pmdec_upper) | result[pmdec_limit_column].mask]
 
