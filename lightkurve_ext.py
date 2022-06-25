@@ -1082,17 +1082,20 @@ def search_nearby(
 
 
 def read_asas_sn_csv(url=None, asas_sn_uuid=None):
+    # csv url format: https://asas-sn.osu.edu/variables/4bccdf4d-f98c-5697-ad69-4199e5cf3905.csv
     if url is None:
         if asas_sn_uuid is not None:
-            url = f"https://asas-sn.osu.edu/variables/{asas_sn_uuid}/star_data/export?type=csv"
+            url = f"https://asas-sn.osu.edu/variables/{asas_sn_uuid}.csv"
         else:
             raise ValueError("either url or asas_sn_uuid must be supplied")
     else:
-        match = re.match(r".*asas-sn.osu.edu/variables/([^/]+)/star_data/export", url)
+        match = re.match(r".*asas-sn.osu.edu/([^/]+([^/]+)?)/([^/]+)[.]csv", url)
         if match is not None:
-            asas_sn_uuid = match[1]
+            asas_sn_uuid = match[2]
 
+    # print("DBG1: url=", url)
     tab = Table.read(url, format="ascii")
+    # print("DBG2: colnames=", tab.colnames)
 
     # make columns follow Lightkurve convention
     if "flux(mJy)" in tab.colnames:
@@ -1117,9 +1120,10 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
     if asas_sn_uuid is not None:
         lc.meta["ASAS-SN_UUID"] = asas_sn_uuid
         label = f"ASAS-SN {asas_sn_uuid}"
-        filters = np.unique(lc.filter)
-        if len(filters) > 1:
-            label += " , filters: {', '.join(np.unique(lc.filter))}"
+        if "camera" in lc.colnames:
+            cameras = np.unique(lc["camera"])
+            if len(cameras) > 1:
+                label += " , cameras: {', '.join(cameras)}"
         lc.meta["LABEL"] = label
 
     return lc
