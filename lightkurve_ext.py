@@ -730,6 +730,11 @@ def iterative_sine_fit(
     return dict(pgs=pg, lc_models=lc_models, lc_residuals=lc_residuals, lc_input=lc)
 
 
+#
+# TODO: util to estimate transit depth
+#
+
+
 def estimate_snr(
     lc,
     signal_depth,
@@ -779,6 +784,58 @@ def estimate_snr(
         diagnostics = cdpp_kwargs.copy()
         diagnostics["cdpp"] = cdpp
         return snr, diagnostics
+
+
+def estimate_b(depth, t_full, t_total):
+    # equation 1.8 of https://www.astro.ex.ac.uk/people/alapini/Publications/PhD_chap1.pdf,
+    # which quotes  Seager & Mallén-Ornelas (2003)
+    # limitations include: limb darkening is not taken into account. Circular orbit is assumed
+    d, tF, tT = depth, t_full, t_total
+    return (((1 - d**0.5) ** 2 - (tF / tT) ** 2 * (1 + d**0.5) ** 2) / (1 - (tF / tT) ** 2)) ** 0.5
+
+
+def estimate_transit_duration_for_circular_orbit(period, rho, b):
+    """Estimate the transit duration for circular orbit, T_circ.
+    Usage: if the observed transit duration, T_obs,
+    Case 1. T_obs < T_circ significantly: the planet candidate is potentially
+    - Case 1a:
+      - in a highly eccentric orbit, and
+      - the transit occurs near periastron (nearest point to the host star)
+        - the planet moves faster, thus the duration is shorter, figure 1 orange line
+    - Case 1b:
+      - actual impact parameter b is higher than the estimate
+        - higher b implies the planet traverses across less of the host star's cross section
+    - the uncertainty is manifestation of e-w-b degeneracy.
+
+    Case 2. T_obs > T_circ significantly: the planet candidate is almost definitely
+    - in a highly eccentric orbit, and
+    - the transit occurs near apastron (farthest point to the host star)
+      - the planet moves slower, thus the duration is longer, figure 1 green line
+
+    cf. The TESS–Keck Survey. VI. Two Eccentric Sub-Neptunes Orbiting HIP-97166, MacDougall et. al
+    https://ui.adsabs.harvard.edu/abs/2021AJ....162..265M/abstract
+
+    - implementing the equations in section 2.2
+    - see figure 1 for the concept, and section 2.2 for interpreting the result
+    """
+    # use default units if the input is not quantity
+    if not isinstance(period, u.Quantity):
+        period = period * u.day
+
+    if not isinstance(rho, u.Quantity):
+        rho = rho * u.gram / u.cm**3
+
+    # implement eq. 1, 2, and 3
+    return (
+        period ** (1 / 3)
+        * rho ** (-1 / 3)
+        * (1 - b**2) ** (1 / 2)
+        *
+        # constants that are not explicitly stated in eq 3, but can be derived from eq 1 and 2
+        np.pi ** (-2 / 3)
+        * 3 ** (1 / 3)
+        * astropy.constants.G ** (-1 / 3)
+    ).to(u.hour)
 
 
 def tess_flux_to_mag(flux):
@@ -1067,6 +1124,8 @@ def search_nearby(
     r_coords = SkyCoord(result["RAJ2000"], result["DEJ2000"], unit=(u.hourangle, u.deg), frame="icrs")
     sep = r_coords.separation(c1).to(u.arcsec)
     result["separation"] = sep
+
+    result.sort("separation")
 
     # tweak default format to make magnitudes and separation more succinct
     for col in ["separation", "RPmag", "Gmag", "BPmag", "BP-RP", "GRVSmag"]:
