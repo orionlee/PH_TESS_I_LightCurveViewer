@@ -464,7 +464,7 @@ def print_data_range(lcf_coll):
     html += "<details>"
     for lc in lcf_coll:
         html += f"  Sector {lc.meta.get('SECTOR')}: {lc.meta.get('TSTART')} - {lc.meta.get('TSTOP')}" + "\n"
-        html += f"   (cam {lc.meta.get('CAMERA')})   {lc.time.min()} - {lc.time.max()}" + "\n"
+        html += f"   (cam.ccd {lc.meta.get('CAMERA')}.{lc.meta.get('CCD')})   {lc.time.min()} - {lc.time.max()}" + "\n"
     html += "</details></summary></pre>"
     display(HTML(html))
 
