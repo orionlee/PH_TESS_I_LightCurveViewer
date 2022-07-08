@@ -291,7 +291,6 @@ def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None
     # Kepler / K2 ids will need some additional processing for exact match to work.
     exact_target_name = tic_id
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*No products to download.*")
         # to filter WARNING: NoResultsWarning: Query returned no results. [astroquery.mast.discovery_portal]
         warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*Query returned no results.*")
         obs_wanted = Observations.query_criteria(
@@ -391,7 +390,10 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
             entry["dvr_dataURI"] = p["dataURI"]
 
     products_dvr_xml = filter_by_dataURI_suffix(products_wanted, "_dvr.xml")
-    manifest = Observations.download_products(products_dvr_xml, download_dir=download_dir)
+    with warnings.catch_warnings():
+        # filter WARNING: NoResultsWarning: No products to download. [astroquery.mast.observations]
+        warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*No products to download.*")
+        manifest = Observations.download_products(products_dvr_xml, download_dir=download_dir)
     if manifest is None:
         return res
     for m in manifest:
