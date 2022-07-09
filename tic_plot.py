@@ -3,11 +3,9 @@
 Helpers to plot the lightcurve of a TESS subject, given a
 LightCurveCollection
 """
-
-# so that TransitTimeSpec can be referenced in type annotation in the class itself
-# see: https://stackoverflow.com/a/49872353
+# so that type hint Optional(LC_Ylim_Func_Type) can be used
+# otherwise Python complains TypeError: Cannot instantiate typing.Optional
 from __future__ import annotations
-
 
 import inspect
 import warnings
@@ -969,87 +967,6 @@ def plot_flux_sap_flux_comparison(lc, sap_col="sap_flux", ax=None, offset=None, 
     ax = LightCurveCollection([lc, lc_sap]).plot(ax=ax, offset=offset, **kwargs)
     ax.set_title(f"{lc.label}, sector {lc.sector} - flux vs {sap_col}")
     return ax
-
-
-class TransitTimeSpec(dict):
-    def __init__(
-        self,
-        epoch: float = None,
-        period: float = None,
-        duration_hr: float = None,
-        sector: int = None,
-        steps_to_show: list = None,
-        surround_time: float = None,
-        label: str = None,
-        defaults: TransitTimeSpec = None,
-    ):
-        # core parameters
-        self["epoch"] = epoch
-        self["period"] = period
-        self["duration_hr"] = duration_hr
-
-        # used for plotting
-        self["sector"] = sector
-        self["steps_to_show"] = steps_to_show
-        self["surround_time"] = surround_time
-        self["label"] = label
-
-        if defaults is None:
-            defaults = {}
-        self._defaults = defaults  # put it as a custom attribute
-
-    def __getitem__(self, key):
-        res = super().get(key)
-        if res is None:
-            res = self._defaults.get(key)
-        return res
-
-    def get(self, key, default=None):
-        res = self.__getitem__(key)
-        if res is None:
-            res = default
-        return res
-
-
-class TransitTimeSpecList(list):
-    def __init__(self, *tt_spec_dict_list, defaults={}):
-        self._defaults = TransitTimeSpec(**defaults)
-        for tt_spec_dict in tt_spec_dict_list:
-            self.append(TransitTimeSpec(**tt_spec_dict, defaults=self._defaults))
-
-    def _spec_property_values(self, property_name):
-        return np.array([tt[property_name] for tt in self])
-
-    #
-    # The following properties return the specific transit parameters
-    # in an array. Together they can be used to create a mask
-    # for the transits using ``LightCurve.create_transit_mask()``
-    #
-
-    @property
-    def epoch(self):
-        return self._spec_property_values("epoch")
-
-    @property
-    def period(self):
-        return self._spec_property_values("period")
-
-    @property
-    def duration_hr(self):
-        return self._spec_property_values("duration_hr")
-
-    @property
-    def duration(self):
-        return self.duration_hr / 24
-
-    @property
-    def label(self):
-        return self._spec_property_values("label")
-
-    def to_table(self, columns=("label", "epoch", "duration_hr", "period")):
-        """Convert the specs to an ``astropy.Table``"""
-        data = [getattr(self, col) for col in columns]
-        return Table(data, names=columns)
 
 
 def mark_transit_times(
@@ -2192,12 +2109,12 @@ def plot_in_out_diff(tpf, epoch, transit_half_duration=0.25, oot_outer_relative=
     with plt.style.context(lk.MPLSTYLE):
         ax = plt.figure(figsize=(6, 3)).gca()
         ax = lc.scatter(ax=ax)
-        ax.axvline(T0, color="red", ymax=0.15, linestyle="--", label="epoch")
+        ax.axvline(T0, color="red", ymax=0.15, linewidth=1, linestyle="--", label="epoch")
         ax.axvspan(T0 - transit_half_duration, T0 + transit_half_duration, facecolor="red", alpha=0.3, label="In Transit")
         ax.axvspan(T0 - oot_outer_relative, T0 - oot_inner_relative, facecolor="green", alpha=0.3, label="Out of Transit")
         # no label to avoid double legend
         ax.axvspan(T0 + oot_inner_relative, T0 + oot_outer_relative, facecolor="green", alpha=0.3)
-        ax.legend()
+        ax.legend(loc="upper right", fontsize="small")
 
 
 def plot_pixel_level_LC(tpf, epoch, transit_half_duration=0.25, oot_outer_relative=0.5, oot_inner_relative=0.3):

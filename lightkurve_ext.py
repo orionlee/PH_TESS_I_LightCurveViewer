@@ -2,6 +2,11 @@
 Convenience helpers for `lightkurve` package.
 """
 
+# so that TransitTimeSpec can be referenced in type annotation in the class itself
+# see: https://stackoverflow.com/a/49872353
+from __future__ import annotations
+
+
 import os
 import logging
 import math
@@ -572,6 +577,95 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
         return ",".join(map(str, transit_times))
     else:
         return transit_times
+
+
+class TransitTimeSpec(dict):
+    def __init__(
+        self,
+        epoch: float = None,
+        period: float = None,
+        duration_hr: float = None,
+        sector: int = None,
+        steps_to_show: list = None,
+        surround_time: float = None,
+        label: str = None,
+        defaults: TransitTimeSpec = None,
+    ):
+        # core parameters
+        self["epoch"] = epoch
+        self["period"] = period
+        self["duration_hr"] = duration_hr
+
+        # used for plotting
+        self["sector"] = sector
+        self["steps_to_show"] = steps_to_show
+        self["surround_time"] = surround_time
+        self["label"] = label
+
+        if defaults is None:
+            defaults = {}
+        self._defaults = defaults  # put it as a custom attribute
+
+    def __getitem__(self, key):
+        res = super().get(key)
+        if res is None:
+            res = self._defaults.get(key)
+        return res
+
+    def get(self, key, default=None):
+        res = self.__getitem__(key)
+        if res is None:
+            res = default
+        return res
+
+
+class TransitTimeSpecList(list):
+    def __init__(self, *tt_spec_dict_list, defaults={}):
+        self._defaults = TransitTimeSpec(**defaults)
+        for tt_spec_dict in tt_spec_dict_list:
+            self.append(TransitTimeSpec(**tt_spec_dict, defaults=self._defaults))
+
+    def _spec_property_values(self, property_name):
+        return np.array([tt[property_name] for tt in self])
+
+    #
+    # The following properties return the specific transit parameters
+    # in an array. Together they can be used to create a mask
+    # for the transits using ``LightCurve.create_transit_mask()``
+    #
+
+    @property
+    def epoch(self):
+        return self._spec_property_values("epoch")
+
+    @property
+    def period(self):
+        return self._spec_property_values("period")
+
+    @property
+    def duration_hr(self):
+        return self._spec_property_values("duration_hr")
+
+    @property
+    def duration(self):
+        return self.duration_hr / 24
+
+    @property
+    def label(self):
+        return self._spec_property_values("label")
+
+    def to_table(self, columns=("label", "epoch", "duration_hr", "period")):
+        """Convert the specs to an ``astropy.Table``"""
+        data = [getattr(self, col) for col in columns]
+        return Table(data, names=columns)
+
+
+def create_transit_mak_from_specs(lc, specs):
+    period = [s["period"] for s in specs] * u.day
+    duration = [s["duration_hr"] for s in specs] * u.hour
+    transit_time = [s["epoch"] for s in specs]  # assumed to be in the same format,scale as the lc
+    mask = lc.create_transit_mask(transit_time=transit_time, period=period, duration=duration)
+    return mask
 
 
 def stitch(lcf_coll, **kwargs):
