@@ -660,14 +660,6 @@ class TransitTimeSpecList(list):
         return Table(data, names=columns)
 
 
-def create_transit_mak_from_specs(lc, specs):
-    period = [s["period"] for s in specs] * u.day
-    duration = [s["duration_hr"] for s in specs] * u.hour
-    transit_time = [s["epoch"] for s in specs]  # assumed to be in the same format,scale as the lc
-    mask = lc.create_transit_mask(transit_time=transit_time, period=period, duration=duration)
-    return mask
-
-
 def stitch(lcf_coll, **kwargs):
     """Wrapper over native stitch(), and tweak the metadata so that it behaves like a typical single-sector lightcurve."""
 
@@ -930,39 +922,6 @@ def estimate_transit_duration_for_circular_orbit(period, rho, b):
         * 3 ** (1 / 3)
         * astropy.constants.G ** (-1 / 3)
     ).to(u.hour)
-
-
-def tess_flux_to_mag(flux):
-    """Convert flux from TESS observation to magnitude."""
-    # Based on https://heasarc.gsfc.nasa.gov/docs/tess/observing-technical.html#saturation
-    # TESS CCDs produce 15000 e/s for magnitude 10 light source
-
-    if isinstance(flux, u.Quantity):
-        flux_raw = flux.to(u.electron / u.second).value
-    else:
-        flux_raw = flux
-
-    # np.log10 does not work on Quantity, unless it's dimensionless
-    res_raw = 10 - 2.5 * np.log10((flux_raw / 15000))
-
-    if isinstance(flux, u.Quantity):
-        return res_raw * u.mag
-    else:
-        return res_raw
-
-
-def mag_to_tess_flux(mag):
-    """Convert magnitude to flux in TESS observation."""
-    if isinstance(mag, u.Quantity):
-        mag_raw = mag.to(u.mag).value
-    else:
-        mag_raw = mag
-
-    flux_raw = (10 ** ((10 - mag_raw) / 2.5)) * 15000
-    if isinstance(mag, u.Quantity):
-        return flux_raw * ((u.electron / u.second))
-    else:
-        return flux_raw
 
 
 def select_flux(lc, flux_cols):
