@@ -1193,7 +1193,7 @@ def search_tesseb_of_tics(
         rs["TESSebs"] = ["!TESSEB-" + tic for tic in rs["TIC"]]  # to be converted to link in html
 
         _cpm = compact_preferred_model  # shortern it for convenience
-        rs["Code"] = [f"""epoch={epoch_p}, duration_hr={dur_p * 24}, period={per}, label="primary",   epoch={epoch_s}, duration_hr={dur_s * 24}, period={per}, label="secondary",""" for per, epoch_p, dur_p, epoch_s, dur_s in zip(rs["Per"], rs["Epochp"], rs[f"Durationp-{_cpm}"], rs[f"Epochs-{_cpm}"], rs[f"Durations-{_cpm}"])]
+        rs["Code"] = [f"""epoch={epoch_p}, duration_hr={dur_p}, period={per}, label="primary",   epoch={epoch_s}, duration_hr={dur_s}, period={per}, label="secondary",""" for per, epoch_p, dur_p, epoch_s, dur_s in zip(rs["Per"], rs["Epochp"], rs[f"Durationp-{_cpm}"], rs[f"Epochs-{_cpm}"], rs[f"Durations-{_cpm}"])]
 
         html = rs._repr_html_()
 
