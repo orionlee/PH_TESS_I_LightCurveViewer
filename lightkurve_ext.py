@@ -34,6 +34,18 @@ import asyncio_compat
 log = logging.getLogger(__name__)
 
 
+def of_lcs(lc_coll, filter_func):
+    """Filter a LightCurveCollection using the given filter_func.
+
+    Example
+    --------
+
+    Only retain TESS SPOC 2 minute cadence lightcurves
+    > of_lcs(lc_coll, lambda lc: lc.author == "SPOC")
+    """
+    return type(lc_coll)([lc for lc in lc_coll if filter_func(lc)])
+
+
 def of_sector(lcf_coll, sectorNum):
     res_list = of_sectors(lcf_coll, sectorNum)
     return res_list[0] if len(res_list) > 0 else None
