@@ -1122,3 +1122,100 @@ def search_gaiadr3_of_tics(
         return result_all_columns, result, html
     else:
         return result_all_columns, result
+
+
+from astroquery.vizier import Vizier
+
+def search_tesseb_of_tics(
+    targets,
+    compact_columns=True,
+    compact_preferred_model="pf",  # "pf" or "2g"
+    also_return_html=True,
+):
+    """Locate the lightcurve target's correspond entry in TESS EB.
+    (The static version in Vizier for sectors 1 - 26)
+
+    Parameters
+    ----------
+    target : int, LightCurve, TargetPixelFile, or a list of them
+        targets to be searched. Either the TIC, or LightCurve/TargetPixelFile of a TIC.
+
+    """
+
+    def to_tic_str(tic_id_or_obj):
+        if isinstance(tic_id_or_obj, str):
+            return tic_id_or_obj
+        if isinstance(tic_id_or_obj, int):
+            return str(tic_id_or_obj)
+        if isinstance(tic_id_or_obj, (lk.LightCurve, lk.TessTargetPixelFile)):
+            return tic_id_or_obj.meta.get("TICID")
+        raise TypeError(f"Unsupported type: {type(tic_id_or_obj)}")
+
+    if not isinstance(targets, (Sequence, np.ndarray, lk.collections.Collection)):
+        targets = [targets]
+
+    # Vizier requires a list of TIC in string
+    targets = [to_tic_str(t) for t in targets]
+    targets = [t for t in targets if t is not None]
+
+    columns = ["*", "Sectors", "UpDate"]  # UpDate: the "date_modified" column
+    result_list = Vizier(catalog="J/ApJS/258/16/tess-ebs", columns=columns).query_constraints(TIC=targets)
+
+    if len(result_list) < 1:
+        return None, None, "None found"
+    result = result_list[0]  # there is only 1 table in the catalog
+
+    result.rename_column("_tab1_10", "BJD0")  # somehow the column name for BJD0 is incorrect
+
+    # add convenience columns
+
+    result["Epochp"] = result["BJD0"]
+
+    for m in ["pf", "2g"]:
+        result[f"Durationp-{m}"] = result["Per"] * result[f"Wp-{m}"] * 24  # assuming "Per" is in unit day
+        result[f"Durationp-{m}"].unit = u.hour
+
+        result[f"Epochs-{m}"] = result["BJD0"] + result["Per"] * (result[f"Phis-{m}"] - result[f"Phip-{m}"])
+        result[f"Epochs-{m}"].unit = result["BJD0"].unit
+
+        result[f"Durations-{m}"] = result["Per"] * result[f"Ws-{m}"] * 24  # assuming "Per" is in unit day
+        result[f"Durations-{m}"].unit = u.hour
+
+    result_all_columns = result
+
+    if compact_columns:
+        _cpm = compact_preferred_model  # shortern it for convenience
+        result = result["TIC", "m_TIC", "Morph", "Per", "Epochp", f"Durationp-{_cpm}", f"Dp-{_cpm}", f"Epochs-{_cpm}", f"Durations-{_cpm}", f"Ds-{_cpm}", "Sectors"]
+
+    if also_return_html:
+        rs = result.copy()  # create a copy so that I can add / change columns optimized for display
+        # add link to live TESS EB
+        rs["TESSebs"] = ["!TESSEB-" + tic for tic in rs["TIC"]]  # to be converted to link in html
+
+        _cpm = compact_preferred_model  # shortern it for convenience
+        rs["Code"] = [f"""epoch={epoch_p}, duration_hr={dur_p * 24}, period={per}, label="primary",   epoch={epoch_s}, duration_hr={dur_s * 24}, period={per}, label="secondary",""" for per, epoch_p, dur_p, epoch_s, dur_s in zip(rs["Per"], rs["Epochp"], rs[f"Durationp-{_cpm}"], rs[f"Epochs-{_cpm}"], rs[f"Durations-{_cpm}"])]
+
+        html = rs._repr_html_()
+
+        # linkify TESSebs
+        for id in rs["TIC"]:
+            html = html.replace(
+                f">!TESSEB-{id}<",
+                f"><a target='tesseb' href='http://tessebs.villanova.edu/{id}'>{id}</a><",
+            )
+
+        # make Code column as HTML <input> for ease of copy
+        html = re.sub(
+            r"<td([^>]*)>(epoch=.+,)\s*</td>",
+            r"""<td\1><input  type="text" style="margin-left: 3ch; font-size: 90%; color: #666; width: 10ch;" onclick="this.select();" readonly="" value='\2'></td>""",
+            html,
+        )
+
+        # remove the Table length=n message
+        result_len = len(result)
+        html = html.replace(f"<i>Table length={result_len}</i>", "")
+
+        return result_all_columns, result, html
+    else:
+        return result_all_columns, result
+
