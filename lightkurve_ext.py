@@ -776,58 +776,6 @@ def lksl_statistics(lc, column="flux"):
     return _lksl_statistics(lc[column].value)
 
 
-def iterative_sine_fit(
-    lc,
-    num_iterations,
-    mask_for_model=None,
-    pg_kwargs=dict(),
-    plot_kwargs=dict(figsize=(30, 5), s=4, alpha=0.5),
-    plot_diagnostics=False,
-):
-    """Remove sine-wave like periodic signals using iterative sine fitting
-
-    Based on:
-    https://docs.lightkurve.org/tutorials/3-science-examples/periodograms-measuring-a-rotation-period.html#5.-Removing-Periodic-Signals-Using-Iterative-Sine-Fitting
-    """
-    import tic_plot as tplt  # for plot
-
-    lc = lc.normalize()  # use normalized as the base so that it can compute with the model lcs easily later on
-    lc = lc["time", "flux", "flux_err"]  # reduce the input size to iterative_sine_fit
-
-    if plot_diagnostics:
-        axs = tplt.plot_skip_data_gap(lc, **plot_kwargs)
-        axs[0].set_title("Input LC")
-
-    pgs, lc_models, lc_residuals = [], [], []
-    lc_in = lc
-    for i in range(1, num_iterations + 1):
-        lc_4_pg = lc_in
-        if mask_for_model is not None:  # the optional mask is to exclude cadence that could skew the periodogram calculation
-            lc_4_pg = lc_in[~mask_for_model]
-        pg = lc_4_pg.to_periodogram(method="lombscargle", **pg_kwargs)
-
-        lc_model = pg.model(lc_in.time, pg.frequency_at_max_power)
-        lc_model.meta["LS_MODEL_ITERATION"] = i
-        lc_residual = lc_in.copy()
-        lc_residual.flux = lc_in.flux / lc_model.flux
-        lc_residual.meta["LS_RESIDUAL_ITERATION"] = i
-
-        if plot_diagnostics:
-            axs = tplt.plot_skip_data_gap(lc_residual, label=f"lc_residual{i}", **plot_kwargs)
-            axs[0].set_title(f"Iteration {i}; signals removed: period={pg.period_at_max_power}, power={pg.max_power}")
-        #             axs = tplt.plot_skip_data_gap(lc_model, label=f"lc_model{i}", **plot_kwargs);
-
-        # accumulate output
-        pgs.append(pg)
-        lc_models.append(lc_model)
-        lc_residuals.append(lc_residual)
-
-        # Send the residual to the next iteration
-        lc_in = lc_residual
-
-    return dict(pgs=pg, lc_models=lc_models, lc_residuals=lc_residuals, lc_input=lc)
-
-
 #
 # TODO: util to estimate transit depth
 #
