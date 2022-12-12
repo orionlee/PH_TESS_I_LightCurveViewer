@@ -30,7 +30,7 @@ def _flatten(lc, flatten_kwargs):
 
 def _remove_fig_title(*ax_args):
     # Used to remove the extra title in %matplotlib widget mode
-    # alternative would be disbale them globally, see
+    # alternative would be disable them globally, see
     # https://github.com/matplotlib/ipympl/issues/229#issuecomment-633430427
     for ax in ax_args:
         if ax is not None:
@@ -120,13 +120,21 @@ def run_bls(
             _remove_fig_title(ax_pg)
 
         ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = None, None, None
-        if plot_lc_model:
+        if plot_lc_model is not False:
+            # convert plot_lc_model to kwargs
+            if plot_lc_model is True:
+                plot_lc_model_kwargs = dict(plot_lc=True, plot_model=True, plot_folded_model=True)
+            elif isinstance(plot_lc_model, dict):
+                plot_lc_model_kwargs = plot_lc_model
+            else:
+                raise TypeError("Argument plot_lc_model is not of supported Type (boolean or dict)")
+
             with warnings.catch_warnings():
                 # avoid warnings about using max power values
                 warnings.filterwarnings("ignore", message=".*Using.*")
                 logger = logging.getLogger("lightkurve.periodogram")
                 logger.setLevel(logging.ERROR)
-                ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = lke_pg.plot_lc_with_model(lc, pg)
+                ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = lke_pg.plot_lc_with_model(lc, pg, **plot_lc_model_kwargs)
                 _remove_fig_title(ax_lc_model_1, ax_lc_model_2, ax_lc_model_f)
 
         ax_tt_depth = None

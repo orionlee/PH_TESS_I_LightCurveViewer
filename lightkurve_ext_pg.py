@@ -41,32 +41,35 @@ def _model(pg, lc):
         return pg.model(lc.time, pg.frequency_at_max_power)
 
 
-def plot_lc_with_model(lc, pg):
-    # with plt.style.context(lk.MPLSTYLE):
-    #     ax = plt.figure(figsize=(15, 6)).gca()
-    ax1 = lc.scatter()
-    if hasattr(pg, "get_transit_mask"):
-        lc[pg.get_transit_mask()].scatter(ax=ax1, c="orange", marker="x", s=9, label="in transits")
-
+def plot_lc_with_model(lc, pg, plot_lc=True, plot_model=True, plot_folded_model=True):
     lc_model = _model(pg, lc)
+    ax1 = None
+    if plot_lc:
+        ax1 = lc.scatter()
+        if hasattr(pg, "get_transit_mask"):
+            lc[pg.get_transit_mask()].scatter(ax=ax1, c="orange", marker="x", s=9, label="in transits")
 
-    ax2 = lc.scatter()
-    lc_model.plot(ax=ax2, c="red", alpha=0.9, linewidth=2)
+    ax2 = None
+    if plot_model:
+        ax2 = lc.scatter()
+        lc_model.plot(ax=ax2, c="red", alpha=0.9, linewidth=2)
 
     # folded, zoom -in
-    period = pg.period_at_max_power
-    if hasattr(pg, "transit_time_at_max_power"):
-        epoch_time = pg.transit_time_at_max_power
-    else:
-        epoch_time = None
-    lc_f = lc.fold(epoch_time=epoch_time, period=period)
-    lc_model_f = lc_model.fold(epoch_time=epoch_time, period=period)
+    ax_f = None
+    if plot_folded_model:
+        period = pg.period_at_max_power
+        if hasattr(pg, "transit_time_at_max_power"):
+            epoch_time = pg.transit_time_at_max_power
+        else:
+            epoch_time = None
+        lc_f = lc.fold(epoch_time=epoch_time, period=period)
+        lc_model_f = lc_model.fold(epoch_time=epoch_time, period=period)
 
-    ax_f = lc_f.scatter()
-    lc_model_f.scatter(ax=ax_f, c="red")
-    if hasattr(pg, "duration_at_max_power"):
-        # zoom in for BLS model:
-        ax_f.set_xlim(-pg.duration_at_max_power.value, pg.duration_at_max_power.value)
+        ax_f = lc_f.scatter()
+        lc_model_f.scatter(ax=ax_f, c="red")
+        if hasattr(pg, "duration_at_max_power"):
+            # zoom in for BLS model:
+            ax_f.set_xlim(-pg.duration_at_max_power.value, pg.duration_at_max_power.value)
 
     return ax1, ax2, ax_f
 
@@ -412,3 +415,88 @@ def validate_tls_n_report(pg, to_display=True):
         return display(HTML(html))
     else:
         return html
+
+
+def iterative_bls(
+    lc,
+    num_iterations,
+    pg_kwargs=dict(),
+    duration_factor_for_mask=2,
+    plot_pg=True,
+    plot_lc_model=dict(plot_lc=False, plot_model=True, plot_folded_model=False),
+):
+    """Iteratively run BLS, to find multiple sets of transit/eclipse like signals."""
+
+    import lightkurve_ext_pg_runner as lke_pg_runner
+
+    result_list = []
+
+    lc_in = lc.copy()
+    for i in range(1, num_iterations + 1):
+        lc_in.meta["LABEL"] = f"{lc.meta.get('LABEL')}, #{i}"
+
+        display(HTML(f"<h3>Iteration {i}<h3>"))
+        result = lke_pg_runner.run_bls(lc_in, pg_kwargs, plot_pg=plot_pg, plot_lc_model=plot_lc_model)
+
+        result_list.append(result)
+
+        # remove identified dips from the LC, then fit it to the next iteration
+        t0 = result.pg.transit_time_at_max_power
+        period = result.pg.period_at_max_power
+        duration = result.pg.duration_at_max_power * duration_factor_for_mask
+        tmask = lc_in.create_transit_mask(period=period, transit_time=t0, duration=duration)
+        lc_in = lc_in[~tmask]
+
+    return result_list
+
+
+def iterative_sine_fit(
+    lc,
+    num_iterations,
+    mask_for_model=None,
+    pg_kwargs=dict(),
+    plot_kwargs=dict(figsize=(30, 5), s=4, alpha=0.5),
+    plot_diagnostics=False,
+):
+    """Remove sine-wave like periodic signals using iterative sine fitting
+
+    Based on:
+    https://docs.lightkurve.org/tutorials/3-science-examples/periodograms-measuring-a-rotation-period.html#5.-Removing-Periodic-Signals-Using-Iterative-Sine-Fitting
+    """
+    import tic_plot as tplt  # for plot
+
+    lc = lc.normalize()  # use normalized as the base so that it can compute with the model lcs easily later on
+    lc = lc["time", "flux", "flux_err"]  # reduce the input size to iterative_sine_fit
+
+    if plot_diagnostics:
+        axs = tplt.plot_skip_data_gap(lc, **plot_kwargs)
+        axs[0].set_title("Input LC")
+
+    pgs, lc_models, lc_residuals = [], [], []
+    lc_in = lc
+    for i in range(1, num_iterations + 1):
+        lc_4_pg = lc_in
+        if mask_for_model is not None:  # the optional mask is to exclude cadence that could skew the periodogram calculation
+            lc_4_pg = lc_in[~mask_for_model]
+        pg = lc_4_pg.to_periodogram(method="lombscargle", **pg_kwargs)
+
+        lc_model = pg.model(lc_in.time, pg.frequency_at_max_power)
+        lc_model.meta["LS_MODEL_ITERATION"] = i
+        lc_residual = lc_in.copy()
+        lc_residual.flux = lc_in.flux / lc_model.flux
+        lc_residual.meta["LS_RESIDUAL_ITERATION"] = i
+
+        if plot_diagnostics:
+            axs = tplt.plot_skip_data_gap(lc_residual, label=f"lc_residual{i}", **plot_kwargs)
+            axs[0].set_title(f"Iteration {i}; signals removed: period={pg.period_at_max_power}, power={pg.max_power}")
+        #             axs = tplt.plot_skip_data_gap(lc_model, label=f"lc_model{i}", **plot_kwargs);
+
+        # accumulate output
+        pgs.append(pg)
+        lc_models.append(lc_model)
+        lc_residuals.append(lc_residual)
+
+        # Send the residual to the next iteration
+        lc_in = lc_residual
+
+    return dict(pgs=pg, lc_models=lc_models, lc_residuals=lc_residuals, lc_input=lc)
