@@ -66,7 +66,7 @@ def plot_lc_with_model(lc, pg, plot_lc=True, plot_model=True, plot_folded_model=
         lc_model_f = lc_model.fold(epoch_time=epoch_time, period=period)
 
         ax_f = lc_f.scatter()
-        lc_model_f.scatter(ax=ax_f, c="red")
+        lc_model_f.plot(ax=ax_f, c="red")
         if hasattr(pg, "duration_at_max_power"):
             # zoom in for BLS model:
             ax_f.set_xlim(-pg.duration_at_max_power.value, pg.duration_at_max_power.value)
@@ -443,6 +443,9 @@ def iterative_bls(
         # remove identified dips from the LC, then fit it to the next iteration
         t0 = result.pg.transit_time_at_max_power
         period = result.pg.period_at_max_power
+        # duration_factor_for_mask: a factor to mask out extra time surrounding dips identified by the model
+        # useful when the model's duration it too short, which would leave residual dips that could
+        # confuse subsequent BLS runs.
         duration = result.pg.duration_at_max_power * duration_factor_for_mask
         tmask = lc_in.create_transit_mask(period=period, transit_time=t0, duration=duration)
         lc_in = lc_in[~tmask]
