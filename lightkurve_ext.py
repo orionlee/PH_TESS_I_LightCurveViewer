@@ -164,6 +164,11 @@ def of_tic(lcf_coll, tic):
     return lk.LightCurveCollection(filtered)
 
 
+def select(lcf_coll_or_sr, filter_func):
+    """Filter the given LightCurveCollection or SearchResult with the filter_func."""
+    return type(lcf_coll_or_sr)([obj for obj in lcf_coll_or_sr if filter_func(obj)])
+
+
 def estimate_object_radius_in_r_jupiter(lc, depth):
     """Return a back of envelope estimate of a companion object's radius."""
     R_JUPITER_IN_R_SUN = 71492 / 695700
