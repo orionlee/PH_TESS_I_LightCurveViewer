@@ -51,8 +51,8 @@ def plot_lc_with_model(lc, pg, plot_lc=True, plot_model=True, plot_folded_model=
 
     ax2 = None
     if plot_model:
-        ax2 = lc.scatter()
-        lc_model.plot(ax=ax2, c="red", alpha=0.9, linewidth=2)
+        ax2 = lc.scatter(alpha=0.5)
+        lc_model.plot(ax=ax2, c="red", linewidth=2)
 
     # folded, zoom -in
     ax_f = None
@@ -65,8 +65,8 @@ def plot_lc_with_model(lc, pg, plot_lc=True, plot_model=True, plot_folded_model=
         lc_f = lc.fold(epoch_time=epoch_time, period=period)
         lc_model_f = lc_model.fold(epoch_time=epoch_time, period=period)
 
-        ax_f = lc_f.scatter()
-        lc_model_f.plot(ax=ax_f, c="red")
+        ax_f = lc_f.scatter(alpha=0.3)
+        lc_model_f.plot(ax=ax_f, c="red", linewidth=4)
         if hasattr(pg, "duration_at_max_power"):
             # zoom in for BLS model:
             ax_f.set_xlim(-pg.duration_at_max_power.value, pg.duration_at_max_power.value)
