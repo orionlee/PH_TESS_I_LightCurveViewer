@@ -172,6 +172,15 @@ def as_4decimal(float_num):
         return float("{0:.4f}".format(_to_unitless(float_num)))
 
 
+def scatter(lc, **kwargs):
+    """lc.scatter() with the proper support of plotting flux in magnitudes"""
+    ax = lc.scatter(**kwargs)
+    y_column = "flux"
+    if lc[y_column].unit is u.mag:
+        ax.invert_yaxis()
+    return ax
+
+
 def add_flux_moving_average(lc, moving_avg_window):
     df = lc.to_pandas()
     begin_t = df.index[0]
@@ -1451,6 +1460,33 @@ def markTimes(ax, times, **kwargs):
     axvline_kwargs.setdefault("linestyle", "--")
     for t in times:
         ax.axvline(t, **axvline_kwargs)
+
+
+def plot_n_annotate_folded(lc_f, figsize=(10, 5)):
+    ax = lk_ax(figsize=figsize)
+    scatter(lc_f, ax=ax, s=1)
+
+    period = lc_f.meta.get("PERIOD").to(u.day).value
+    obs_span_days, obs_actual_days = lke.get_obs_date_range(lc_f)
+    obs_span_cycles = obs_span_days / period
+    obs_actual_cycles = len(set(lc_f.cycle))
+
+    plt.title(
+        f"""{lc_f.label} folded, period={period:.4f}d
+BTJD {lc_f.time_original.min().value:.2f} - {lc_f.time_original.max().value:.2f}
+time span: {obs_span_days:.2f}d / {obs_span_cycles:.0f} cycles
+observation: {obs_actual_days}d / {obs_actual_cycles} cycles
+"""
+    )
+
+    return ax
+
+
+def fold_and_plot(lc, period, epoch_time, flux_in_mag=False, **kwargs):
+    lc_f = lc.fold(period=period, epoch_time=epoch_time, epoch_phase=0)
+    if flux_in_mag:
+        lc_f = lke.to_flux_in_mag_by_normalization(lc_f)
+    return plot_n_annotate_folded(lc_f, **kwargs), lc_f
 
 
 def fold_and_plot_odd_even(lc, period, epoch_time, figsize=(10, 5), title_extra=""):

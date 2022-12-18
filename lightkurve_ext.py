@@ -169,6 +169,24 @@ def select(lcf_coll_or_sr, filter_func):
     return type(lcf_coll_or_sr)([obj for obj in lcf_coll_or_sr if filter_func(obj)])
 
 
+def get_obs_date_range(lcf_coll):
+    """Return the observation date span and the number of days with observation."""
+    # the code assumes the time are in all in BTJD, or other consistent format in days
+    if isinstance(lcf_coll, lk.LightCurve):
+        lcf_coll = lk.LightCurveCollection([lcf_coll])
+
+    # to support folded lightcurve
+    time_colname = "time_original" if "time_original" in lcf_coll[0].colnames else "time"
+
+    t_start = lcf_coll[0][time_colname].min().value
+    t_end = lcf_coll[-1][time_colname].max().value
+
+    obs_span = t_end - t_start
+    obs_actual = len(set(np.concatenate([lc[time_colname].value.astype("int") for lc in lcf_coll])))
+
+    return obs_span, obs_actual
+
+
 def estimate_object_radius_in_r_jupiter(lc, depth):
     """Return a back of envelope estimate of a companion object's radius."""
     R_JUPITER_IN_R_SUN = 71492 / 695700
@@ -913,6 +931,25 @@ def select_flux(lc, flux_cols):
         if res is not None:
             return res
     raise ValueError(f"'column {flux_cols}' not found")
+
+
+def to_flux_in_mag_by_normalization(lc, base_mag_header_name="TESSMAG"):
+    """Convert the a lightcurve's flux to magnitude via a normalized lightcurve with a known average / base magnitude."""
+    if lc.flux.unit is u.mag:
+        return lc
+
+    lc = lc.copy()
+
+    base_mag = lc.meta.get(base_mag_header_name)
+    if base_mag is None:
+        raise ValueError(f"The given lightcurve does not have base magnitude in {base_mag_header_name} header ")
+
+    lc_norm = lc.normalize()
+    flux_mag = (base_mag + 2.5 * np.log10(1 / lc_norm.flux)) * u.mag
+    flux_err_mag = (base_mag + 2.5 * np.log10(1 / lc_norm.flux_err)) * u.mag
+    lc.flux = flux_mag
+    lc.flux_err = flux_err_mag
+    return lc
 
 
 HAS_BOTTLENECK = False
