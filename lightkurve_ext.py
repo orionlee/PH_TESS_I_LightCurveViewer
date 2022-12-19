@@ -980,6 +980,11 @@ def to_flux_in_mag_by_normalization(lc, base_mag_header_name="TESSMAG"):
     return lc
 
 
+def ratio_to_mag(val_in_ratio):
+    """Convert normalized transit depth to magnitude."""
+    return 2.5 * np.log10(1 / (1 - val_in_ratio))
+
+
 HAS_BOTTLENECK = False
 try:
     import bottleneck
