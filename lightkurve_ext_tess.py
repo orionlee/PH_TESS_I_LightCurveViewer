@@ -934,6 +934,34 @@ def mag_to_tess_flux(mag):
 
 
 #
+# Misc. TESS specific utilities
+#
+
+
+def display_crowdsap(lc):
+    """Display `CROWDSAP` of a TESS SPOC lightcurve. Highlight it if it could be too low.
+
+    Warning that the field might be crowded using CROWDSAP header,
+    when CROWDSAP < 0.8 .
+
+    From section 4.1.2 of the paper TOI catalog from TESS primary mission
+    https://arxiv.org/pdf/2103.12538.pdf
+    """
+    from IPython.display import display, HTML
+
+    if lc is not None and lc.meta.get("CROWDSAP") is not None:
+        display(
+            HTML(
+                f"""Fraction of flux in aperture attributed to the target, <span style="font-family: monospace;">CROWDSAP</span>:
+        <span style="background-color: {'red' if lc.meta.get("CROWDSAP") < 0.8 else 'transparent'}; padding: 2px;">{lc.meta.get("CROWDSAP")}</span>
+        &emsp;<span style="font-family: monospace;">FLFRCSAP</span>: {lc.meta.get('FLFRCSAP')}
+        &emsp;<a href="https://heasarc.gsfc.nasa.gov/docs/tess/UnderstandingCrowding.html" target="_crowdsap_tutorial">(Help)</a>
+        """
+            )
+        )
+
+
+#
 # TIC Metadata in catalogs (TIC / Gaia)
 #
 
@@ -1126,6 +1154,7 @@ def search_gaiadr3_of_tics(
 
 from astroquery.vizier import Vizier
 
+
 def search_tesseb_of_tics(
     targets,
     compact_columns=True,
@@ -1185,7 +1214,19 @@ def search_tesseb_of_tics(
 
     if compact_columns:
         _cpm = compact_preferred_model  # shortern it for convenience
-        result = result["TIC", "m_TIC", "Morph", "Per", "Epochp", f"Durationp-{_cpm}", f"Dp-{_cpm}", f"Epochs-{_cpm}", f"Durations-{_cpm}", f"Ds-{_cpm}", "Sectors"]
+        result = result[
+            "TIC",
+            "m_TIC",
+            "Morph",
+            "Per",
+            "Epochp",
+            f"Durationp-{_cpm}",
+            f"Dp-{_cpm}",
+            f"Epochs-{_cpm}",
+            f"Durations-{_cpm}",
+            f"Ds-{_cpm}",
+            "Sectors",
+        ]
 
     if also_return_html:
         rs = result.copy()  # create a copy so that I can add / change columns optimized for display
@@ -1193,7 +1234,12 @@ def search_tesseb_of_tics(
         rs["TESSebs"] = ["!TESSEB-" + tic for tic in rs["TIC"]]  # to be converted to link in html
 
         _cpm = compact_preferred_model  # shortern it for convenience
-        rs["Code"] = [f"""epoch={epoch_p}, duration_hr={dur_p}, period={per}, label="primary",   epoch={epoch_s}, duration_hr={dur_s}, period={per}, label="secondary",""" for per, epoch_p, dur_p, epoch_s, dur_s in zip(rs["Per"], rs["Epochp"], rs[f"Durationp-{_cpm}"], rs[f"Epochs-{_cpm}"], rs[f"Durations-{_cpm}"])]
+        rs["Code"] = [
+            f"""epoch={epoch_p}, duration_hr={dur_p}, period={per}, label="primary",   epoch={epoch_s}, duration_hr={dur_s}, period={per}, label="secondary","""
+            for per, epoch_p, dur_p, epoch_s, dur_s in zip(
+                rs["Per"], rs["Epochp"], rs[f"Durationp-{_cpm}"], rs[f"Epochs-{_cpm}"], rs[f"Durations-{_cpm}"]
+            )
+        ]
 
         html = rs._repr_html_()
 
@@ -1218,4 +1264,3 @@ def search_tesseb_of_tics(
         return result_all_columns, result, html
     else:
         return result_all_columns, result
-
