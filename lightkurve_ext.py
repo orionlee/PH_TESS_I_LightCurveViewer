@@ -701,7 +701,7 @@ class TransitTimeSpecList(list):
         return Table(data, names=columns)
 
 
-def stitch(lcf_coll, **kwargs):
+def stitch(lcf_coll, ignore_incompatible_column_warning=False, **kwargs):
     """Wrapper over native stitch(), and tweak the metadata so that it behaves like a typical single-sector lightcurve."""
 
     def update_meta_if_exists_in(lc_src, keys):
@@ -714,7 +714,17 @@ def stitch(lcf_coll, **kwargs):
         if lc_stitched.meta.get(key, None) is not None:
             del lc_stitched.meta[key]
 
-    lc_stitched = lcf_coll.stitch(**kwargs)
+    if ignore_incompatible_column_warning:
+        with warnings.catch_warnings():
+            # suppress useless warning. Use cases: stitching QLP lightcurves with SPOC lightcurves (sap_flux is incompatible)
+            warnings.filterwarnings(
+                "ignore",
+                category=lk.LightkurveWarning,
+                message="The following columns will be excluded from stitching because the column types are incompatible:.*",
+            )
+            lc_stitched = lcf_coll.stitch(**kwargs)
+    else:
+        lc_stitched = lcf_coll.stitch(**kwargs)
 
     # now update the metadata
 
