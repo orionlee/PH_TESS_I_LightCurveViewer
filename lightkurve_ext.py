@@ -169,6 +169,12 @@ def select(lcf_coll_or_sr, filter_func):
     return type(lcf_coll_or_sr)([obj for obj in lcf_coll_or_sr if filter_func(obj)])
 
 
+def exclude_range(lc, start, end):
+    """Exclude the specified range of time from the given lightcurve."""
+    tmask = (lc.time.value >= start) & (lc.time.value < end)
+    return lc[~tmask]
+
+
 def get_obs_date_range(lcf_coll):
     """Return the observation date span and the number of days with observation."""
     # the code assumes the time are in all in BTJD, or other consistent format in days
@@ -907,6 +913,17 @@ def estimate_transit_duration_for_circular_orbit(period, rho, b):
     ).to(u.hour)
 
 
+def calc_flux_at_minimum(lc_f: lk.FoldedLightCurve, flux_window_min=10):
+    """Return the flux at minimum by calculating the median of the flux at minimum"""
+
+    flux_window = flux_window_min / 60 / 24  # in days
+    lc_trunc = lc_f.truncate(-flux_window / 2, flux_window / 2).remove_nans()
+    flux_min = np.median(lc_trunc.flux)
+    flux_min_sample_size = len(lc_trunc)
+
+    return flux_min, flux_min_sample_size
+
+
 def select_flux(lc, flux_cols):
     """Return a Lightcurve object with the named column as the flux column.
 
@@ -949,6 +966,7 @@ def to_flux_in_mag_by_normalization(lc, base_mag_header_name="TESSMAG"):
     flux_err_mag = (base_mag + 2.5 * np.log10(1 / lc_norm.flux_err)) * u.mag
     lc.flux = flux_mag
     lc.flux_err = flux_err_mag
+    lc.meta["NORMALIZED"] = False
     return lc
 
 

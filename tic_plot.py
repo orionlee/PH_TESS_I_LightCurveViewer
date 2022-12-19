@@ -1462,24 +1462,34 @@ def markTimes(ax, times, **kwargs):
         ax.axvline(t, **axvline_kwargs)
 
 
-def plot_n_annotate_folded(lc_f, figsize=(10, 5)):
+def plot_n_annotate_folded(lc_f, figsize=(10, 5), annotate=True, also_plot_zoom_transit=False, duration=None):
     ax = lk_ax(figsize=figsize)
     scatter(lc_f, ax=ax, s=1)
 
-    period = lc_f.meta.get("PERIOD").to(u.day).value
-    obs_span_days, obs_actual_days = lke.get_obs_date_range(lc_f)
-    obs_span_cycles = obs_span_days / period
-    obs_actual_cycles = len(set(lc_f.cycle))
+    if annotate:
+        epoch = lc_f.meta.get("EPOCH_TIME")  # a time object
+        period = lc_f.meta.get("PERIOD").to(u.day).value
+        obs_span_days, obs_actual_days = lke.get_obs_date_range(lc_f)
+        obs_span_cycles = obs_span_days / period
+        obs_actual_cycles = len(set(lc_f.cycle))
 
-    plt.title(
-        f"""{lc_f.label} folded, period={period:.4f}d
-BTJD {lc_f.time_original.min().value:.2f} - {lc_f.time_original.max().value:.2f}
-time span: {obs_span_days:.2f}d / {obs_span_cycles:.0f} cycles
-observation: {obs_actual_days}d / {obs_actual_cycles} cycles
-"""
-    )
+        ax.set_title(
+            f"""{lc_f.label} folded, period={period:.4f}d, epoch={epoch.format.upper()} {epoch.value:.3f}
+    {lc_f.time_original.format.upper()} {lc_f.time_original.min().value:.2f} - {lc_f.time_original.max().value:.2f}
+    time span: {obs_span_days:.2f}d / {obs_span_cycles:.0f} cycles
+    observation: {obs_actual_days}d / {obs_actual_cycles} cycles
+    """
+        )
 
-    return ax
+    if not also_plot_zoom_transit:
+        return ax
+
+    ax_z = lk_ax(figsize=figsize)
+    scatter(lc_f.truncate(-duration * 1.5, duration * 1.5), ax=ax_z)
+    ax_z.axvline(x=0, c="red")
+    ax_z.axvspan(0 - duration / 2, 0 + duration / 2, color="red", alpha=0.2)
+
+    return ax, ax_z
 
 
 def fold_and_plot(lc, period, epoch_time, flux_in_mag=False, **kwargs):
