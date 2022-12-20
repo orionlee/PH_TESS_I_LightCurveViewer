@@ -19,6 +19,7 @@ import pandas as pd
 from pandas.io.formats.style import Styler
 
 import astropy
+from astropy import coordinates as coord
 from astropy.table import Table
 from astropy.time import Time
 import astropy.units as u
@@ -959,6 +960,16 @@ def display_crowdsap(lc):
         """
             )
         )
+
+
+def btjd_to_hjd_utc(time_val, position):
+    t_btjd = Time(time_val, format="btjd", scale="tdb")
+    t_bjd = t_btjd.copy("jd")
+
+    ra, dec = position.split(",")
+    sky_coord = coord.SkyCoord(ra, dec, unit=(u.deg, u.deg), frame="icrs")
+
+    return lke.to_hjd_utc(t_bjd, sky_coord).value
 
 
 #

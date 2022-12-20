@@ -17,6 +17,7 @@ from collections import OrderedDict
 
 import astropy
 from astropy.io import fits
+from astropy import coordinates as coord
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy.time import Time
@@ -983,6 +984,24 @@ def to_flux_in_mag_by_normalization(lc, base_mag_header_name="TESSMAG"):
 def ratio_to_mag(val_in_ratio):
     """Convert normalized transit depth to magnitude."""
     return 2.5 * np.log10(1 / (1 - val_in_ratio))
+
+
+def to_hjd_utc(t_obj: Time, sky_coord: SkyCoord) -> Time:
+    # Based on astropy documentation
+    # https://docs.astropy.org/en/stable/time/#barycentric-and-heliocentric-light-travel-time-corrections
+
+    t_jd_tdb = t_obj.copy("jd").tdb
+
+    # 1. convert the given time in JD TDB to local time UTC
+    greenwich = coord.EarthLocation.of_site("greenwich")
+    ltt_bary = t_jd_tdb.light_travel_time(sky_coord, location=greenwich, kind="barycentric")
+    t_local_jd_utc = (t_jd_tdb - ltt_bary).utc
+
+    # 2. convert local time UTC to HJD UTC
+    ltt_helio = t_local_jd_utc.light_travel_time(sky_coord, location=greenwich, kind="heliocentric")
+    t_hjd_utc = t_local_jd_utc + ltt_helio
+
+    return t_hjd_utc
 
 
 HAS_BOTTLENECK = False
