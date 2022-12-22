@@ -1495,7 +1495,7 @@ def plot_n_annotate_folded(lc_f, figsize=(10, 5), annotate=True, also_plot_zoom_
 def fold_and_plot(lc, period, epoch_time, flux_in_mag=False, **kwargs):
     lc_f = lc.fold(period=period, epoch_time=epoch_time, epoch_phase=0)
     if flux_in_mag:
-        lc_f = lke.to_flux_in_mag_by_normalization(lc_f)
+        lc_f = lke.lc_to_flux_in_mag_by_normalization(lc_f)
     return plot_n_annotate_folded(lc_f, **kwargs), lc_f
 
 
