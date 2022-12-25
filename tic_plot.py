@@ -265,6 +265,7 @@ def plot_n_annotate_lcf(
     normalize=True,
     lc_tweak_fn=None,
     ax_tweak_fn=None,
+    plot_kwargs=dict(),
     legend_kwargs=dict(),
 ):
     if lcf is None:
@@ -307,13 +308,17 @@ def plot_n_annotate_lcf(
     lcfh = lcf.meta
 
     # Basic scatter of the observation
+    plot_kwargs["ax"] = ax
+
     if "long" == lke.estimate_cadence_type(lc):
         # long cadence has more spare data, use a larger "x" to represent them
         # "x" is also useful to distinguish it from moving average,
         # which will likely overlap with the points given the sparse data
-        ax = lc.scatter(ax=ax, s=36, marker="x")
-    else:
-        ax = lc.scatter(ax=ax)
+        if plot_kwargs.get("s") is None:
+            plot_kwargs["s"] = 36
+        if plot_kwargs.get("marker") is None:
+            plot_kwargs["marker"] = "x"
+    ax = scatter(lc, **plot_kwargs)
 
     if len(lc) < 1:
         print(
