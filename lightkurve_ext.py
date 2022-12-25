@@ -978,7 +978,7 @@ def lc_to_flux_in_mag_by_normalization(lc, base_mag_header_name="TESSMAG"):
 
     lc_norm = lc.normalize()
     flux_mag = (base_mag + 2.5 * np.log10(1 / lc_norm.flux)) * u.mag
-    flux_err_mag = (base_mag + 2.5 * np.log10(1 / lc_norm.flux_err)) * u.mag
+    flux_err_mag = (1.086 * lc_norm.flux_err / lc_norm.flux) * u.mag
     lc.flux = flux_mag
     lc.flux_err = flux_err_mag
     lc.meta["NORMALIZED"] = False
