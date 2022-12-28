@@ -934,6 +934,36 @@ def mag_to_tess_flux(mag):
         return flux_raw
 
 
+def calc_flux_range(lcf_coll, flux_column="flux", accepted_authors=["SPOC", "TESS-SPOC"], stitched_lc_corrector=lambda lc: lc):
+    """Derive flux range (in % and magnitude) from normalized lightcurve with mean TESS mag from TIC as the base"""
+
+    # the default SPOC, TESS-SPOC is to avoid inconsistency between SPOC and QLP
+    lcf_coll_filtered = lke.select(lcf_coll, lambda lc: lc.author in accepted_authors)
+    lc = lke.stitch(
+        lcf_coll_filtered,
+        corrector_func=lambda lc: (
+            lc
+            .select_flux(flux_column)
+            .remove_nans()
+            # normalize on per-sector basis, it seems TESS calibration across sectors is not necessarily consistent
+            .normalize(unit="percent")
+        ))
+
+    # optionally let caller tweak teh stitched LC, e.g., excluding some cadences, say, if flares are to be ignored.
+    lc = stitched_lc_corrector(lc)
+
+    flux_range_pct = np.asarray([lc.flux.max(), lc.flux.min()])
+    base_mag = lc.meta.get("TESSMAG")
+    flux_range_mag = lke.normalized_flux_val_to_mag(flux_range_pct, base_mag=base_mag)
+
+    return SimpleNamespace(
+        flux_range_pct=flux_range_pct,
+        flux_range_mag=flux_range_mag,
+        lc_stitched=lc,
+        lcf_coll_filtered=lcf_coll_filtered,
+    )
+
+
 #
 # Misc. TESS specific utilities
 #
