@@ -289,6 +289,10 @@ def plot_n_annotate_lcf(
         _cache_plot_n_annotate_lcf["normalize"] = normalize
         _cache_plot_n_annotate_lcf["lc"] = lc
 
+    # create a copy that will be modified, to avoid unintentional side effects,
+    # in case caller uses the same instance repeatedly.
+    plot_kwargs = plot_kwargs.copy()
+
     if xmin is None and t_start is not None:
         xmin = t_start - 0.5
     if xmax is None and t_end is not None:
