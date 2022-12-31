@@ -14,6 +14,7 @@ import json
 import re
 import warnings
 from collections import OrderedDict
+from types import SimpleNamespace
 
 import astropy
 from astropy.io import fits
@@ -924,15 +925,45 @@ def estimate_transit_duration_for_circular_orbit(period, rho, b):
     ).to(u.hour)
 
 
-def calc_flux_at_minimum(lc_f: lk.FoldedLightCurve, flux_window_min=10):
+def _calc_median_flux_around(lc_f: lk.FoldedLightCurve, epoch_phase, flux_window_in_min):
+    flux_window = flux_window_in_min / 60 / 24  # in days
+    lc_trunc = lc_f.truncate(epoch_phase - flux_window / 2, epoch_phase + flux_window / 2).remove_nans()
+    flux_median = np.median(lc_trunc.flux)
+    flux_median_sample_size = len(lc_trunc)
+
+    return flux_median, flux_median_sample_size
+
+
+def calc_flux_at_minimum(lc_f: lk.FoldedLightCurve, flux_window_in_min=10):
+    """Return the flux at minimum by calculating the median of the flux at minimum, assumed to be at phase 0"""
+    return _calc_median_flux_around(lc_f, 0, flux_window_in_min=flux_window_in_min)
+
+
+def calc_peak_to_peak(lc_f: lk.FoldedLightCurve, flux_window_in_min=10):
     """Return the flux at minimum by calculating the median of the flux at minimum"""
 
-    flux_window = flux_window_min / 60 / 24  # in days
-    lc_trunc = lc_f.truncate(-flux_window / 2, flux_window / 2).remove_nans()
-    flux_min = np.median(lc_trunc.flux)
-    flux_min_sample_size = len(lc_trunc)
+    argmax_func, argmin_func = "argmax", "argmin"
+    if lc_f.flux.unit == u.mag:
+        # if the unit is magnitude, reverse max/min
+        argmax_func, argmin_func = "argmin", "argmax"
 
-    return flux_min, flux_min_sample_size
+    time_max = lc_f.time[getattr(lc_f.flux, argmax_func)()]
+    flux_max, flux_max_sample_size = _calc_median_flux_around(lc_f, time_max.value, flux_window_in_min=flux_window_in_min)
+
+    time_min = lc_f.time[getattr(lc_f.flux, argmin_func)()]
+    flux_min, flux_min_sample_size = _calc_median_flux_around(lc_f, time_min.value, flux_window_in_min=flux_window_in_min)
+
+    peak_to_peak = np.abs(flux_max - flux_min)
+
+    return SimpleNamespace(
+        peak_to_peak=peak_to_peak,
+        time_max=time_max,
+        flux_max=flux_max,
+        flux_max_sample_size=flux_max_sample_size,
+        time_min=time_min,
+        flux_min=flux_min,
+        flux_min_sample_size=flux_min_sample_size,
+    )
 
 
 def select_flux(lc, flux_cols):
