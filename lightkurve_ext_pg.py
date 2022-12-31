@@ -46,7 +46,7 @@ def _model(pg, lc):
         return pg.model(lc.time, pg.frequency_at_max_power)
 
 
-def plot_lc_with_model(lc, pg, plot_lc=True, plot_model=True, plot_folded_model=True):
+def plot_lc_with_model(lc, pg, plot_lc=True, plot_model=True, plot_folded_model=True, also_return_lcs=False):
     lc_model = _model(pg, lc)
     ax1 = None
     if plot_lc:
@@ -76,7 +76,11 @@ def plot_lc_with_model(lc, pg, plot_lc=True, plot_model=True, plot_folded_model=
             # zoom in for BLS model:
             ax_f.set_xlim(-pg.duration_at_max_power.value, pg.duration_at_max_power.value)
 
-    return ax1, ax2, ax_f
+    if not also_return_lcs:
+        return ax1, ax2, ax_f
+    else:
+        lcs = SimpleNamespace(lc=lc, lc_f=lc_f, lc_model=lc_model, lc_model_f=lc_model_f)
+        return [ax1, ax2, ax_f], lcs
 
 
 def errorbar_transit_depth(pg):
