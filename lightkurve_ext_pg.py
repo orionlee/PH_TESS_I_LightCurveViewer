@@ -5,6 +5,7 @@ import warnings
 from types import SimpleNamespace
 from memoization import cached
 
+from astropy import units as u
 import numpy as np
 
 from lightkurve.periodogram import BoxLeastSquaresPeriodogram
@@ -18,7 +19,11 @@ from numbers import Number
 def plot_pg_n_mark_max(pg, ax=None, max_period_factor=None):
     ax = pg.plot(ax=ax, view="period")
     ax.axvline(pg.period_at_max_power.value, c="blue", alpha=0.4)
-    max_text = f"Power: {pg.max_power:.2f}, Period: {pg.period_at_max_power:.4f}"
+    period_val_text = f"{pg.period_at_max_power:.4f}"
+    if pg.period_at_max_power < 0.2 * u.day and pg.period_at_max_power.unit == u.day:
+        # for short period in days, also show the period in hours
+        period_val_text += f" ({pg.period_at_max_power.to(u.hour):.4f})"
+    max_text = f"Power: {pg.max_power:.2f}, Period: {period_val_text}"
     if hasattr(pg, "depth_at_max_power"):  # to accommodate LombScarglePeriodogram
         max_text += f", Depth: {pg.depth_at_max_power:.6f}"
 
