@@ -20,6 +20,7 @@ from pandas.io.formats.style import Styler
 
 import astropy
 from astropy import coordinates as coord
+from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
 import astropy.units as u
@@ -800,6 +801,30 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
 #
 
 
+def get_momentum_dump_times(lcf):
+    """Get the momentum dump times from the given lightcurve.
+    It is usually one from a sector.
+    The output can be added to data/tess_mom_dumps.txt for further plotting usage.
+    """
+    # Note: momentum_dump signals are by default masked out in LightCurve objects.
+    # To access times marked as such, I need to access the raw LightCurveFile directly.
+    filename = lcf.meta.get("FILENAME", None)
+    if filename is None:
+        warnings.warn("get_momentum_dump_times(): No-Op, because there is the LightCurve object has no backing FITS file.")
+        return np.array([])
+    with fits.open(filename) as hdu:
+        if "TIME" not in hdu[1].columns.names:
+            # case the file has no TIME column, typically non SPOC-produced ones, e.g., CDIPS,
+            # the logic of finding momentum dump would not apply to such files anyway.
+            return np.array([])
+
+        # normal flow
+        time = hdu[1].data["TIME"]
+        mom_dumps_mask = np.bitwise_and(hdu[1].data["QUALITY"], lk.utils.TessQualityFlags.Desat) >= 1
+        time_mom_dumps = time[mom_dumps_mask]
+        return time_mom_dumps
+
+
 class MomentumDumpsAccessor:
 
     _mom_dumps_tab = None
@@ -816,9 +841,13 @@ class MomentumDumpsAccessor:
         cls._mom_dumps_tab = np.genfromtxt("data/tess_mom_dumps.txt", delimiter="\t", names=True)
 
     @classmethod
+    def refresh(cls):
+        cls._load_mom_dumps_from_file()
+
+    @classmethod
     def get_all(cls, refresh=False):
         if refresh or cls._mom_dumps_tab is None:
-            cls._load_mom_dumps_from_file()
+            cls.refresh()
         return cls._mom_dumps_tab
 
     @classmethod
@@ -942,12 +971,11 @@ def calc_flux_range(lcf_coll, flux_column="flux", accepted_authors=["SPOC", "TES
     lc = lke.stitch(
         lcf_coll_filtered,
         corrector_func=lambda lc: (
-            lc
-            .select_flux(flux_column)
-            .remove_nans()
+            lc.select_flux(flux_column).remove_nans()
             # normalize on per-sector basis, it seems TESS calibration across sectors is not necessarily consistent
             .normalize(unit="percent")
-        ))
+        ),
+    )
 
     # optionally let caller tweak teh stitched LC, e.g., excluding some cadences, say, if flares are to be ignored.
     lc = stitched_lc_corrector(lc)
