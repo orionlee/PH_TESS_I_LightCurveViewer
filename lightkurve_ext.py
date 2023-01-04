@@ -996,7 +996,7 @@ def normalized_flux_val_to_mag(flux_val, base_mag):
     return base_mag + 2.5 * np.log10(1 / flux_val)
 
 
-def lc_to_flux_in_mag_by_normalization(lc, base_mag_header_name="TESSMAG"):
+def to_flux_in_mag_by_normalization(lc, base_mag_header_name="TESSMAG"):
     """Convert the a lightcurve's flux to magnitude via a normalized lightcurve with a known average / base magnitude."""
     if lc.flux.unit is u.mag:
         return lc
