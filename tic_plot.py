@@ -2274,7 +2274,11 @@ def plot_pixel_level_LC(
                 ax[ii, j].set_yticks([])
 
                 # highlight aperture pixels if specified
-                if aperture_mask is not None and aperture_mask[ii, j]:
+                if aperture_mask is not None and aperture_mask[i, j]:
+                    #                                             ^^^
+                    #                                       use `i` rather than `ii`
+                    # `ii` is for display purpose (small row# at the bottom )
+                    # `i` is for accessing in the underlying array (small row# at the top)
                     for pos in ["top", "bottom", "right", "left"]:
                         ax[ii, j].spines[pos].set_edgecolor("red")
                         ax[ii, j].spines[pos].set_linewidth(2)
