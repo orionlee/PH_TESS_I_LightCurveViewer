@@ -48,7 +48,7 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
     tab["flux"].unit = u.dimensionless_unscaled
     tab["flux_err"].unit = u.dimensionless_unscaled
 
-    lc = lk.LightCurve(time=Time(tab["hjd"], format="jd", scale="tt"), data=tab)
+    lc = lk.LightCurve(time=Time(tab["hjd"], format="jd", scale="utc"), data=tab)
 
     lc.meta["FILEURL"] = url
     if asas_sn_uuid is not None:
@@ -76,8 +76,8 @@ def read_superwasp_dr1_data(superwasp_id):
     with fits.open(fits_url) as hdul:
 
         jd_ref = hdul[0].header.get("JD_REF")
-        # unsure if the HJD here is in TT
-        time = Time(hdul[1].data["TMID"] / 86400 + jd_ref, format="jd", scale="tt")
+        # unsure if the HJD here is in UTC
+        time = Time(hdul[1].data["TMID"] / 86400 + jd_ref, format="jd", scale="utc")
 
         lc = lk.LightCurve(time=time)
         e_s = u.electron / u.s
