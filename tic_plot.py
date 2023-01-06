@@ -172,13 +172,29 @@ def as_4decimal(float_num):
         return float("{0:.4f}".format(_to_unitless(float_num)))
 
 
-def scatter(lc, **kwargs):
-    """lc.scatter() with the proper support of plotting flux in magnitudes"""
-    ax = lc.scatter(**kwargs)
-    y_column = "flux"
+def _flip_yaxis_for_mag(ax, lc, plot_kwargs):
+    y_column = plot_kwargs.get("column", "flux")
     if lc[y_column].unit is u.mag:
         ax.invert_yaxis()
     return ax
+
+
+def scatter(lc, **kwargs):
+    """lc.scatter() with the proper support of plotting flux in magnitudes"""
+    ax = lc.scatter(**kwargs)
+    return _flip_yaxis_for_mag(ax, lc, kwargs)
+
+
+def errorbar(lc, **kwargs):
+    """lc.errorbar() with the proper support of plotting flux in magnitudes"""
+    ax = lc.errorbar(**kwargs)
+    return _flip_yaxis_for_mag(ax, lc, kwargs)
+
+
+def plot(lc, **kwargs):
+    """lc.plot() with the proper support of plotting flux in magnitudes"""
+    ax = lc.plot(**kwargs)
+    return _flip_yaxis_for_mag(ax, lc, kwargs)
 
 
 def add_flux_moving_average(lc, moving_avg_window):
