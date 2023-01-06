@@ -88,6 +88,7 @@ def read_superwasp_dr1_data(superwasp_id):
         # https://www.zooniverse.org/projects/ajnorton/superwasp-variable-stars/about/faq
         lc["flux"] = hdul[1].data[flux_column] * e_s
         lc["flux_err"] = hdul[1].data[f"{flux_column}_ERR"] * e_s
+        lc.meta["FLUX_ORIGIN"] = flux_column
 
         lc["flux2"] = hdul[1].data["FLUX2"] * e_s
         lc["flux2_err"] = hdul[1].data["FLUX2_ERR"] * e_s
@@ -107,9 +108,12 @@ def read_superwasp_dr1_data(superwasp_id):
         lc.meta.update(hdul[0].header)
         lc.meta["LABEL"] = lc.meta["OBJNAME"]  # useful in plots
 
+        lc.meta["FILEURL"] = fits_url
+
         # get camera data from csv data
         if csv_url is not None:
             csv = Table.read(csv_url, format="ascii")
             lc["camera"] = csv["camera"]
+            lc.meta["FILEURL2"] = csv_url
 
         return lc
