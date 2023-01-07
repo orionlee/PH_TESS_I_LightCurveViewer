@@ -206,7 +206,7 @@ def add_flux_moving_average(lc, moving_avg_window):
     #    is so large that creating pd.Timestamp with it causes Overflow error
     # 2. if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
     #      pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s')
-    df["flux_mavg"] = df.rolling(moving_avg_window, on="time_ts")["flux"].mean()
+    df["flux_mavg"] = df.rolling(moving_avg_window, center=True, on="time_ts")["flux"].mean()
     return df
 
 
