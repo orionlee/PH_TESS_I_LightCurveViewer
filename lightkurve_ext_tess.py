@@ -244,13 +244,15 @@ class CTOIAccessor:
 
 def parse_dvs_filename(filename):
     # e.g.: tess2020267090513-s0030-s0030-0000000142087638-01-00394_dvs.pdf
-    match = re.match(r"^tess\d+-(s\d+-s\d+)-(\d+)-(\d+)-.+_dvs[.]pdf", filename)
+    # name pattern reference: https://archive.stsci.edu/missions-and-data/tess/data-products.html#name_schema
+    match = re.match(r"^tess\d+-(s\d+-s\d+)-(\d+)-(\d+)-(\d+)_dvs[.]pdf", filename)
     if not match:
         return {}
-    sector_range, tic_id_padded, tce_num_padded = (
+    sector_range, tic_id_padded, tce_num_padded, pipeline_run_padded = (
         match.group(1),
         match.group(2),
         match.group(3),
+        match.group(4),
     )
     tic_id = re.sub(r"^0+", "", tic_id_padded)
     tce_num = re.sub(r"^0+", "", tce_num_padded)
@@ -263,30 +265,36 @@ def parse_dvs_filename(filename):
     #       S0039S0039, it ie S0039-S0039
     tce_id = f"""TIC{tic_id}{re.sub("-", "", sector_range.upper())}TCE{tce_num}"""
 
+    # pipeline_run: occasionally, a TIC in a sector has multiple dvs, they are differentiated by pipeline_run
+    pipeline_run = int(pipeline_run_padded)  # it's a 0-padded string
+
     return dict(
         tce_id=tce_id,
         tce_id_short=tce_id_short,
         sector_range=sector_range,
         tic_id=tic_id,
         tce_num=tce_num,
+        pipeline_run=pipeline_run,
     )
 
 
 def parse_dvr_filename(filename):
-    match = re.match(r"^tess\d+-(s\d+-s\d+)-(\d+)-.+_dvr[.](pdf|xml)", filename)
+    match = re.match(r"^tess\d+-(s\d+-s\d+)-(\d+)-(\d+)_dvr[.](pdf|xml)", filename)
     if not match:
         return {}
-    sector_range, tic_id_padded, file_type = (
+    sector_range, tic_id_padded, pipeline_run_padded, file_type = (
         match.group(1),
         match.group(2),
         match.group(3),
+        match.group(4),
     )
     tic_id = re.sub(r"^0+", "", tic_id_padded)
+    pipeline_run = int(pipeline_run_padded)  # it's a 0-padded string
 
-    return dict(sector_range=sector_range, tic_id=tic_id, file_type=file_type)
+    return dict(sector_range=sector_range, tic_id=tic_id, file_type=file_type, pipeline_run=pipeline_run)
 
 
-def get_dv_products_of_tic(tic_id, productSubGroupDescription, download_dir=None):
+def get_dv_products_of_tic(tic_id, productSubGroupDescription):
     # Based on:
     # - https://outerspace.stsci.edu/display/TESS/7.0+-+Tips+and+Tricks+to+Getting+TESS+Data+At+MAST
     # https://github.com/spacetelescope/notebooks/blob/master/notebooks/MAST/TESS/beginner_astroquery_dv/beginner_astroquery_dv.ipynb
@@ -370,26 +378,53 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
         # so that the entry is treated as a dvr pdf
         return products[np.char.endswith(products["dataURI"], suffix)]
 
-    products_wanted = get_dv_products_of_tic(tic_id, ["DVS", "DVR"], download_dir=download_dir)
+    def get_existing_entry_of_obsID(entries, obsID):
+        # help to identify duplicates for a given TIC/sector
+        for e in entries:
+            if e["obsID"] == obsID:
+                return e
+        return None
+
+    products_wanted = get_dv_products_of_tic(tic_id, ["DVS", "DVR"])
 
     res = []
     # basic info
     for p in filter_by_dataURI_suffix(products_wanted, "_dvs.pdf"):
         tce_info = parse_dvs_filename(p["productFilename"])
-        entry = dict(
-            obsID=p["obsID"],
-            tic_id=tce_info.get("tic_id"),
-            sector_range=tce_info.get("sector_range"),
-            tce_num=tce_info.get("tce_num"),
-            tce_id=tce_info.get("tce_id"),
-            tce_id_short=tce_info.get("tce_id_short"),
-            dvs_dataURI=p["dataURI"],
-        )
-        res.append(entry)
+        existing_entry = get_existing_entry_of_obsID(res, p["obsID"])
+        if existing_entry is None:
+            entry = dict(
+                obsID=p["obsID"],
+                tic_id=tce_info.get("tic_id"),
+                sector_range=tce_info.get("sector_range"),
+                tce_num=tce_info.get("tce_num"),
+                tce_id=tce_info.get("tce_id"),
+                tce_id_short=tce_info.get("tce_id_short"),
+                pipeline_run=tce_info.get("pipeline_run"),
+                dvs_dataURI=p["dataURI"],
+            )
+            res.append(entry)
+        else:
+            # case Multiple DVS for a TCE. We use a heuristics to retain the one with the largest pipeline_run number.
+            if existing_entry.get("pipeline_run") < tce_info.get("pipeline_run"):
+                warnings.warn(
+                    f"""get_tce_infos_of_tic(): Multiple DVS for {existing_entry["tce_id_short"]}. """
+                    f"""Discard pipeline_run {existing_entry.get("pipeline_run")}."""
+                )
+                existing_entry["pipeline_run"] = tce_info["pipeline_run"]
+                existing_entry["dvs_dataURI"] = p["dataURI"]
+            else:
+                warnings.warn(
+                    f"""get_tce_infos_of_tic(): Multiple DVS for {existing_entry["tce_id_short"]}. """
+                    f"""Discard pipeline_run {tce_info.get("pipeline_run")}."""
+                )
 
     # DVR pdf link
     for p in filter_by_dataURI_suffix(products_wanted, "_dvr.pdf"):
         # find TCEs for the same observation (sometimes there are multiple TCEs for the same observation)
+        # Consideration for multiple DVR for a given TCE: we should explicitly pick one, similar to what is done for DVS.
+        # we skip it in practice here, because given we choose the one with the largest pipeline run,
+        # it generally is the last one in the list, i.e., it will be the one written to entry["dvr_dataURI"]
         for entry in [e for e in res if e["obsID"] == p["obsID"]]:
             entry["dvr_dataURI"] = p["dataURI"]
 
