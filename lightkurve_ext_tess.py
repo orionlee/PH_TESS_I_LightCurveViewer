@@ -385,7 +385,7 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
                 return e
         return None
 
-    products_wanted = get_dv_products_of_tic(tic_id, ["DVS", "DVR"])
+    products_wanted = get_dv_products_of_tic(tic_id, ["DVS", "DVR", "DVM"])
 
     res = []
     # basic info
@@ -419,6 +419,15 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
                     f"""Discard pipeline_run {tce_info.get("pipeline_run")}."""
                 )
 
+    # DVM pdf link
+    for p in filter_by_dataURI_suffix(products_wanted, "_dvm.pdf"):
+        # find TCEs for the same observation (sometimes there are multiple TCEs for the same observation)
+        # Consideration for multiple DVM for a given TCE: we should explicitly pick one, similar to what is done for DVS.
+        # we skip it in practice here, because given we choose the one with the largest pipeline run,
+        # it generally is the last one in the list, i.e., it will be the one written to entry["dvm_dataURI"]
+        for entry in [e for e in res if e["obsID"] == p["obsID"]]:
+            entry["dvm_dataURI"] = p["dataURI"]
+
     # DVR pdf link
     for p in filter_by_dataURI_suffix(products_wanted, "_dvr.pdf"):
         # find TCEs for the same observation (sometimes there are multiple TCEs for the same observation)
@@ -429,6 +438,7 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
             entry["dvr_dataURI"] = p["dataURI"]
 
     products_dvr_xml = filter_by_dataURI_suffix(products_wanted, "_dvr.xml")
+    # TODO: remove duplicates to reduce download/parsing work
     with warnings.catch_warnings():
         # filter WARNING: NoResultsWarning: No products to download. [astroquery.mast.observations]
         warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*No products to download.*")
@@ -502,11 +512,12 @@ def _tce_info_to_html(tce_info_list):
     for info in tce_info_list:
         exomast_url = f'https://exo.mast.stsci.edu/exomast_planet.html?planet={info.get("tce_id")}'
         dvs_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
+        dvm_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvm_dataURI")}'
         dvr_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvr_dataURI")}'
         p_i = info.get("planet", {})
         html += row(
             link(info.get("tce_id_short"), exomast_url),
-            f"""{link("dvs", dvs_url)},&emsp;{link("full", dvr_url)}""",
+            f"""{link("dvs", dvs_url)},&emsp;{link("mini", dvm_url)},&emsp;{link("full", dvr_url)}""",
             f'{p_i.get("planetRadiusEarthRadii", 0) * R_EARTH_TO_R_JUPITER:.3f}',
             f'{p_i.get("transitEpochBtjd", 0):.4f}',
             f'{p_i.get("transitDurationHours", 0):.4f}',
