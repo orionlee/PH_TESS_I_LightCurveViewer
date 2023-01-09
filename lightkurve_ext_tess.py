@@ -323,11 +323,11 @@ def parse_dvr_xml(file_path):
         else:
             return [data]
 
-    def param_value(model_params_dict, param_name):
+    def param_value(model_params_dict, param_name, attr="value"):
         param_dict = model_params_dict.get(param_name)
         if param_dict is None:
             return None
-        val_str = param_dict.get("@value")
+        val_str = param_dict.get(f"@{attr}")
         if val_str is None:
             return None
         return float(val_str)
@@ -341,15 +341,16 @@ def parse_dvr_xml(file_path):
 
     e_pr_list = as_list(parsed["dv:dvTargetResults"]["dv:planetResults"])
     for e_pr in e_pr_list:
+        #  planet / transit parameters
+        #
         e_afit = e_pr["dv:allTransitsFit"]
         planet_num = e_afit["@planetNumber"]
 
-        params_dict = {}  # a temporary structure to access params internally
+        params_dict = {}  # a temporary structure to access planet params internally
         for mp in e_afit["dv:modelParameters"]["dv:modelParameter"]:
             params_dict[mp["@name"]] = mp
 
-        # TODO: add other DV fitting parameters, odd/even test, centroid, etc.
-        # use the underlying xml attribute names, even thought it breaks the convention
+        # use the underlying xml attribute names, even thought it breaks  Python convention
         a_planet_dict = dict(
             planetNumber=planet_num,
             transitEpochBtjd=param_value(params_dict, "transitEpochBtjd"),
@@ -359,6 +360,33 @@ def parse_dvr_xml(file_path):
             transitDepthPpm=param_value(params_dict, "transitDepthPpm"),
             minImpactParameter=param_value(params_dict, "minImpactParameter"),
         )
+
+        # centroid offsets, under <dv:centroidResults><dv:differenceImageMotionResults> element
+        #
+        # the TicOffset-rm in pdf
+        e_centroid_tic = e_pr["dv:centroidResults"]["dv:differenceImageMotionResults"]["dv:msTicCentroidOffsets"]
+        meanSkyOffsetTic = param_value(e_centroid_tic, "dv:meanSkyOffset")
+        meanSkyOffsetErrTic = param_value(e_centroid_tic, "dv:meanSkyOffset", attr="uncertainty")
+        meanSkyOffsetSigTic = meanSkyOffsetTic / meanSkyOffsetErrTic  # in sigma
+
+        # the OotOffset-rm in pdf
+        e_centroid_oot = e_pr["dv:centroidResults"]["dv:differenceImageMotionResults"]["dv:msControlCentroidOffsets"]
+        meanSkyOffsetOot = param_value(e_centroid_oot, "dv:meanSkyOffset")
+        meanSkyOffsetErrOot = param_value(e_centroid_oot, "dv:meanSkyOffset", attr="uncertainty")
+        meanSkyOffsetSigOot = meanSkyOffsetOot / meanSkyOffsetErrOot  # in sigma
+
+        a_planet_dict.update(
+            dict(
+                meanSkyOffsetTic=meanSkyOffsetTic,
+                meanSkyOffsetErrTic=meanSkyOffsetErrTic,
+                meanSkyOffsetSigTic=meanSkyOffsetSigTic,
+                meanSkyOffsetOot=meanSkyOffsetOot,
+                meanSkyOffsetErrOot=meanSkyOffsetErrOot,
+                meanSkyOffsetSigOot=meanSkyOffsetSigOot,
+            )
+        )
+
+        # TODO: add other DV fitting parameters: odd/even, dv:weakSecondary , suspectedEclipsingBinary, etc.
 
         planets_dict[planet_num] = a_planet_dict
 
@@ -494,6 +522,8 @@ def _tce_info_to_html(tce_info_list):
         ("Period", "day"),
         ("Depth", "%"),
         ("Impact P.", "<i>b</i>"),
+        ("TicOffset", "σ"),
+        ("OotOffset", "σ"),
         ("Codes", ""),
     ]
     html += """<table>
@@ -524,6 +554,8 @@ def _tce_info_to_html(tce_info_list):
             f'{p_i.get("orbitalPeriodDays", 0):.6f}',
             f'{p_i.get("transitDepthPpm", 0) / 10000:.4f}',
             f'{p_i.get("minImpactParameter", 0):.2f}',
+            f'{p_i.get("meanSkyOffsetSigTic", -1):.2f}',
+            f'{p_i.get("meanSkyOffsetSigOot", -1):.2f}',
             # code fragments to so that users can easily use a TCE as an entry in transit_specs
             f"""\
 <input type="text" style="margin-left: 3ch; font-size: 90%; color: #666; width: 10ch;"
