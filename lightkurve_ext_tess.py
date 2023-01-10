@@ -376,13 +376,23 @@ def parse_dvr_xml(file_path):
         meanSkyOffsetSigOot = meanSkyOffsetOot / meanSkyOffsetErrOot  # in sigma
 
         a_planet_dict.update(
+            # for centroid offset, the primary interest is SkyOffset and its sigma.
+            # Ra/Dec offset is added for potential usage in the future, e.g., if the centroid RA/Dec is needed.
             dict(
                 meanSkyOffsetTic=meanSkyOffsetTic,
                 meanSkyOffsetErrTic=meanSkyOffsetErrTic,
                 meanSkyOffsetSigTic=meanSkyOffsetSigTic,
+                meanRaOffsetTic=param_value(e_centroid_tic, "dv:meanRaOffset"),
+                meanRaOffsetErrTic=param_value(e_centroid_tic, "dv:meanRaOffset", attr="uncertainty"),
+                meanDecOffsetTic=param_value(e_centroid_tic, "dv:meanDecOffset"),
+                meanDecOffsetErrTic=param_value(e_centroid_tic, "dv:meanDecOffset", attr="uncertainty"),
                 meanSkyOffsetOot=meanSkyOffsetOot,
                 meanSkyOffsetErrOot=meanSkyOffsetErrOot,
                 meanSkyOffsetSigOot=meanSkyOffsetSigOot,
+                meanRaOffsetOot=param_value(e_centroid_oot, "dv:meanRaOffset"),
+                meanRaOffsetErrOot=param_value(e_centroid_oot, "dv:meanRaOffset", attr="uncertainty"),
+                meanDecOffsetOot=param_value(e_centroid_oot, "dv:meanDecOffset"),
+                meanDecOffsetErrOot=param_value(e_centroid_oot, "dv:meanDecOffset", attr="uncertainty"),
             )
         )
 
