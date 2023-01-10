@@ -416,11 +416,17 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
         # so that the entry is treated as a dvr pdf
         return products[np.char.endswith(products["dataURI"], suffix)]
 
-    def get_existing_entry_of_obsID(entries, obsID):
-        # help to identify duplicates for a given TIC/sector
+    def get_existing_entry_of_obsID(entries, obsID, tce_num=None):
+        # help to identify duplicates for a given TIC + sector
+        # (obsID uniquely identifies a TIC + sector)
+        # Specify `tce_num` to only remove duplicates for a specific planet
+        # (for cases that multiple planet candidates for a given TIC + sector)
         for e in entries:
             if e["obsID"] == obsID:
-                return e
+                if tce_num is None or e["tce_num"] == tce_num:
+                    return e
+                # else the same obsID but different tce_num, i.e., different planet candidate
+                # continue to search
         return None
 
     products_wanted = get_dv_products_of_tic(tic_id, ["DVS", "DVR", "DVM"])
@@ -429,7 +435,7 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
     # basic info
     for p in filter_by_dataURI_suffix(products_wanted, "_dvs.pdf"):
         tce_info = parse_dvs_filename(p["productFilename"])
-        existing_entry = get_existing_entry_of_obsID(res, p["obsID"])
+        existing_entry = get_existing_entry_of_obsID(res, p["obsID"], tce_num=tce_info.get("tce_num"))
         if existing_entry is None:
             entry = dict(
                 obsID=p["obsID"],
