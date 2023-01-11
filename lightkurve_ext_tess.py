@@ -245,15 +245,17 @@ class CTOIAccessor:
 def parse_dvs_filename(filename):
     # e.g.: tess2020267090513-s0030-s0030-0000000142087638-01-00394_dvs.pdf
     # name pattern reference: https://archive.stsci.edu/missions-and-data/tess/data-products.html#name_schema
-    match = re.match(r"^tess\d+-(s\d+-s\d+)-(\d+)-(\d+)-(\d+)_dvs[.]pdf", filename)
+    match = re.match(r"^tess\d+-s(\d+)-s(\d+)-(\d+)-(\d+)-(\d+)_dvs[.]pdf", filename)
     if not match:
         return {}
-    sector_range, tic_id_padded, tce_num_padded, pipeline_run_padded = (
+    sector_start, sector_stop, tic_id_padded, tce_num_padded, pipeline_run_padded = (
         match.group(1),
         match.group(2),
         match.group(3),
         match.group(4),
+        match.group(5),
     )
+    sector_range = f"s{sector_start}-s{sector_stop}"
     tic_id = re.sub(r"^0+", "", tic_id_padded)
     tce_num = re.sub(r"^0+", "", tce_num_padded)
     # sufficient to identify one for a given TIC, less visually busy
@@ -268,10 +270,16 @@ def parse_dvs_filename(filename):
     # pipeline_run: occasionally, a TIC in a sector has multiple dvs, they are differentiated by pipeline_run
     pipeline_run = int(pipeline_run_padded)  # it's a 0-padded string
 
+    # convert sector start/stop to int
+    sector_start, sector_stop = int(sector_start), int(sector_stop)
+
     return dict(
         tce_id=tce_id,
         tce_id_short=tce_id_short,
         sector_range=sector_range,
+        sector_range_start=sector_start,
+        sector_range_stop=sector_stop,
+        sector_range_span=1 + (sector_stop - sector_start),
         tic_id=tic_id,
         tce_num=tce_num,
         pipeline_run=pipeline_run,
@@ -443,6 +451,9 @@ def get_tce_minimal_infos_of_tic(tic_id, also_return_dvr_xml_table=True):
                 obsID=p["obsID"],
                 tic_id=tce_info.get("tic_id"),
                 sector_range=tce_info.get("sector_range"),
+                sector_range_start=tce_info.get("sector_range_start"),
+                sector_range_stop=tce_info.get("sector_range_stop"),
+                sector_range_span=tce_info.get("sector_range_span"),
                 tce_num=tce_info.get("tce_num"),
                 tce_id=tce_info.get("tce_id"),
                 tce_id_short=tce_info.get("tce_id_short"),
@@ -537,6 +548,28 @@ def get_tce_infos_of_tic(tic_id, tce_filter_func=None, download_dir=None):
     if tce_filter_func is not None:
         res = tce_filter_func(res)
     return add_info_from_tce_xml(res, products_dvr_xml, download_dir=download_dir)
+
+
+def filter_for_top_2_tces_for_eb(tce_infos):
+    """Given a list of TCEs, try to get top 2 for eclipsing binary use case."""
+    # convert tce_infos to a DataFrame for ease of filtering
+    if len(tce_infos) < 1:
+        return []
+
+    df = pd.DataFrame(tce_infos)
+    num_tics = df["tic_id"].nunique()
+    if num_tics > 1:
+        raise ValueError(f"The tce_infos list should be for a TIC. There are {num_tics}.")
+
+    df.sort_values(["sector_range_span", "obsID", "tce_num"], ascending=[False, True, True], inplace=True)
+    if len(df) > 1 and df["obsID"].iloc[1] == df["obsID"].iloc[0]:
+        # we always return the top one, we return the second one only if it is from the same TIC/sector (i.e., obsID)
+        # it might capture shallow eclipses, if the top TCE capture the deep eclipses; or vice versa
+        df = df[:2]
+    else:
+        df = df[:1]
+
+    return df.to_dict(orient="records")  # convert the filtered result back to a list of dict
 
 
 #
