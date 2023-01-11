@@ -403,8 +403,10 @@ def parse_dvr_xml(file_path):
     return planets_dict
 
 
-@cached
-def get_tce_infos_of_tic(tic_id, download_dir=None):
+def get_tce_minimal_infos_of_tic(tic_id, also_return_dvr_xml_table=True):
+    """Get the list of TCEs of the given TIC with minimal information: links to the underlying pdfs / XMLs, etc.
+    No download is done.
+    """
     # recent astroquery emits INFO messages by default, e.g., in downloading cached dvr xml files
     # suppress them
     logging.getLogger("astroquery").setLevel(logging.WARNING)
@@ -482,7 +484,25 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
             entry["dvr_dataURI"] = p["dataURI"]
 
     products_dvr_xml = filter_by_dataURI_suffix(products_wanted, "_dvr.xml")
-    # TODO: remove duplicates to reduce download/parsing work
+
+    if also_return_dvr_xml_table:
+        return res, products_dvr_xml
+    else:
+        return res
+
+
+def add_info_from_tce_xml(tce_infos, products_dvr_xml, download_dir=None):
+    """Download and prase relevant TCE XML files, and add extracted parameters to the given TCE info list."""
+
+    res = tce_infos
+
+    # recent astroquery emits INFO messages by default, e.g., in downloading cached dvr xml files
+    # suppress them
+    logging.getLogger("astroquery").setLevel(logging.WARNING)
+
+    # TODO:
+    # 1. remove duplicates to reduce download/parsing work
+    # 2. remove product rows that are not needed (not specified in tce_infos)
     with warnings.catch_warnings():
         # filter WARNING: NoResultsWarning: No products to download. [astroquery.mast.observations]
         warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*No products to download.*")
@@ -508,6 +528,15 @@ def get_tce_infos_of_tic(tic_id, download_dir=None):
                 entry["planet"] = a_planet_dict
 
     return res
+
+
+@cached
+def get_tce_infos_of_tic(tic_id, tce_filter_func=None, download_dir=None):
+    """Get the list of TCES of a given TIC, including downloading and extract some parameters from the correspond DVR XMLs."""
+    res, products_dvr_xml = get_tce_minimal_infos_of_tic(tic_id, also_return_dvr_xml_table=True)
+    if tce_filter_func is not None:
+        res = tce_filter_func(res)
+    return add_info_from_tce_xml(res, products_dvr_xml, download_dir=download_dir)
 
 
 #
