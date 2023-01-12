@@ -2,6 +2,7 @@
 # Helpers to download TESS-specific non-lightcurve data: TOIs, TCEs, etc.
 #
 
+from collections import OrderedDict
 from collections.abc import Sequence
 import logging
 import os
@@ -444,6 +445,24 @@ def get_tce_minimal_infos_of_tic(tic_id, also_return_dvr_xml_table=True):
                 # continue to search
         return None
 
+    def remove_duplicates(tab):
+        # The input table should be is assumed to be for 1 type of products, e.g., dvr_xml
+        def get_pipeline_run(filename):
+            return parse_dvr_filename(filename)["pipeline_run"]
+
+        tab = tab.copy()
+        tab["priority_key"] = [-get_pipeline_run(f) for f in tab["productFilename"]]
+        tab.sort(["obsID", "priority_key"], reverse=False)
+
+        # create an empty table for results, with the same set of columns
+        res_t = tab[np.zeros(len(tab), dtype=bool)].copy()
+
+        # for each obsID, select the one with the largest pipeline_run (implemented as the smallest priority_key)
+        uniq_obsIDs = list(OrderedDict.fromkeys(tab["obsID"]))
+        for oid in uniq_obsIDs:
+            res_t.add_row(tab[tab["obsID"] == oid][0])
+        return res_t
+
     products_wanted = get_dv_products_of_tic(tic_id, ["DVS", "DVR", "DVM"])
 
     res = []
@@ -500,6 +519,9 @@ def get_tce_minimal_infos_of_tic(tic_id, also_return_dvr_xml_table=True):
             entry["dvr_dataURI"] = p["dataURI"]
 
     products_dvr_xml = filter_by_dataURI_suffix(products_wanted, "_dvr.xml")
+    # for single TCE+sector with multiple pipeline runs, only retain the one with the largest pipeline_run
+    # (analogous to what's done for dvs above)
+    products_dvr_xml = remove_duplicates(products_dvr_xml)
 
     if also_return_dvr_xml_table:
         return res, products_dvr_xml
@@ -517,8 +539,7 @@ def add_info_from_tce_xml(tce_infos, products_dvr_xml, download_dir=None):
     logging.getLogger("astroquery").setLevel(logging.WARNING)
 
     # TODO:
-    # 1. remove duplicates to reduce download/parsing work
-    # 2. remove product rows that are not needed (not specified in tce_infos)
+    # 1. remove product rows that are not needed (not specified in tce_infos)
     with warnings.catch_warnings():
         # filter WARNING: NoResultsWarning: No products to download. [astroquery.mast.observations]
         warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*No products to download.*")
