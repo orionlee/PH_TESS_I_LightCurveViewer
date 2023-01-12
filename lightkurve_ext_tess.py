@@ -555,7 +555,7 @@ def get_tce_infos_of_tic(tic_id, tce_filter_func=None, download_dir=None):
     return add_info_from_tce_xml(res, products_dvr_xml, download_dir=download_dir)
 
 
-def filter_for_top_2_tces_for_eb(tce_infos):
+def filter_top_2_tces_for_eb(tce_infos):
     """Given a list of TCEs, try to get top 2 for eclipsing binary use case."""
     # convert tce_infos to a DataFrame for ease of filtering
     if len(tce_infos) < 1:
