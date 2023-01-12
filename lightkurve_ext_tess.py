@@ -538,8 +538,11 @@ def add_info_from_tce_xml(tce_infos, products_dvr_xml, download_dir=None):
     # suppress them
     logging.getLogger("astroquery").setLevel(logging.WARNING)
 
-    # TODO:
-    # 1. remove product rows that are not needed (not specified in tce_infos)
+    # remove product rows that are not needed (not specified in tce_infos)
+    # to avoid unnecessary download/ parsing
+    tce_info_obsIDs = [r["obsID"] for r in tce_infos]
+    products_dvr_xml = products_dvr_xml[np.isin(products_dvr_xml["obsID"], tce_info_obsIDs)]
+
     with warnings.catch_warnings():
         # filter WARNING: NoResultsWarning: No products to download. [astroquery.mast.observations]
         warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*No products to download.*")
