@@ -42,12 +42,12 @@ from typing import Callable, Optional, Tuple
 LC_Ylim_Func_Type = Callable[[LightCurve], Tuple[float, float]]
 
 
-def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
+def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None, **kwargs):
     # import locally so that if it fails (due to missing dependency)
     # it will not break the rest of the codes
     import lightkurve_ext_tess as lke_tess
 
-    return lke_tess.get_tic_meta_in_html(lc, a_subject_id=a_subject_id, download_dir=download_dir)
+    return lke_tess.get_tic_meta_in_html(lc, a_subject_id=a_subject_id, download_dir=download_dir, **kwargs)
 
 
 def beep():

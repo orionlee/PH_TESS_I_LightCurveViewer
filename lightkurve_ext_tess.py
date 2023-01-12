@@ -470,14 +470,14 @@ def get_tce_minimal_infos_of_tic(tic_id, also_return_dvr_xml_table=True):
             # case Multiple DVS for a TCE. We use a heuristics to retain the one with the largest pipeline_run number.
             if existing_entry.get("pipeline_run") < tce_info.get("pipeline_run"):
                 warnings.warn(
-                    f"""get_tce_infos_of_tic(): Multiple DVS for {existing_entry["tce_id_short"]}. """
+                    f"""get_tce_minimal_infos_of_tic(): Multiple DVS for {existing_entry["tce_id_short"]}. """
                     f"""Discard pipeline_run {existing_entry.get("pipeline_run")}."""
                 )
                 existing_entry["pipeline_run"] = tce_info["pipeline_run"]
                 existing_entry["dvs_dataURI"] = p["dataURI"]
             else:
                 warnings.warn(
-                    f"""get_tce_infos_of_tic(): Multiple DVS for {existing_entry["tce_id_short"]}. """
+                    f"""get_tce_minimal_infos_of_tic(): Multiple DVS for {existing_entry["tce_id_short"]}. """
                     f"""Discard pipeline_run {tce_info.get("pipeline_run")}."""
                 )
 
@@ -652,12 +652,12 @@ period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}"
     return html
 
 
-def _get_tces_in_html(tic, download_dir=None):
+def _get_tces_in_html(tic, download_dir=None, tce_filter_func=None):
     # For TCEs, query MAST download / parse results (the _dvr.xml), then show:
     # - basic planet parameters and orbital info
     # - TODO: red flags in vetting report
     # see: https://archive.stsci.edu/missions-and-data/tess/data-products
-    tce_info_list = get_tce_infos_of_tic(tic, download_dir=download_dir)
+    tce_info_list = get_tce_infos_of_tic(tic, download_dir=download_dir, tce_filter_func=tce_filter_func)
     return _tce_info_to_html(tce_info_list)
 
 
@@ -815,7 +815,7 @@ def _get_ctois_in_html(tic, download_dir=None):
     return html
 
 
-def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
+def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None, tce_filter_func=None):
     # This function does not do the actual display,
     # so that the caller can call it in background
     # and display it whereever it's needed
@@ -870,7 +870,7 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None):
     html += "</table>\n"
 
     html += "<p>TCEs:</p>"
-    html += _get_tces_in_html(tic_id, download_dir=download_dir)
+    html += _get_tces_in_html(tic_id, download_dir=download_dir, tce_filter_func=tce_filter_func)
 
     # TOIs/CTOIs
     html += "<p>TOIs / CTOIs:</p>"
