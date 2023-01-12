@@ -256,8 +256,8 @@ def parse_dvs_filename(filename):
         match.group(5),
     )
     sector_range = f"s{sector_start}-s{sector_stop}"
-    tic_id = re.sub(r"^0+", "", tic_id_padded)
-    tce_num = re.sub(r"^0+", "", tce_num_padded)
+    tic_id = int(tic_id_padded)  # it's a 0-padded string
+    tce_num = int(tce_num_padded)  # it's a 0-padded string
     # sufficient to identify one for a given TIC, less visually busy
     tce_id_short = f"{sector_range}:TCE{tce_num}"
 
@@ -296,7 +296,7 @@ def parse_dvr_filename(filename):
         match.group(3),
         match.group(4),
     )
-    tic_id = re.sub(r"^0+", "", tic_id_padded)
+    tic_id = int(tic_id_padded)  # it's a 0-padded string
     pipeline_run = int(pipeline_run_padded)  # it's a 0-padded string
 
     return dict(sector_range=sector_range, tic_id=tic_id, file_type=file_type, pipeline_run=pipeline_run)
@@ -319,7 +319,12 @@ def get_dv_products_of_tic(tic_id, productSubGroupDescription):
             obs_collection="TESS",
         )
         data_products = Observations.get_product_list(obs_wanted)
-        return Observations.filter_products(data_products, productSubGroupDescription=productSubGroupDescription)
+        res = Observations.filter_products(data_products, productSubGroupDescription=productSubGroupDescription)
+        # somehow astype() does not work, it raised "ValueError: invalid literal for int() with base 10: 'N/A'"
+        # from numpy, even though there is no missing value in obsID column
+        # res["obsID"] = res["obsID"].astype(int)
+        res["obsID"] = [int(v) for v in res["obsID"]]
+        return res
 
 
 def parse_dvr_xml(file_path):
@@ -352,7 +357,7 @@ def parse_dvr_xml(file_path):
         #  planet / transit parameters
         #
         e_afit = e_pr["dv:allTransitsFit"]
-        planet_num = e_afit["@planetNumber"]
+        planet_num = int(e_afit["@planetNumber"])
 
         params_dict = {}  # a temporary structure to access planet params internally
         for mp in e_afit["dv:modelParameters"]["dv:modelParameter"]:
