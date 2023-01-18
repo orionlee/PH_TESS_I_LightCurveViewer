@@ -174,7 +174,9 @@ def as_4decimal(float_num):
 
 def _flip_yaxis_for_mag(ax, lc, plot_kwargs):
     y_column = plot_kwargs.get("column", "flux")
-    if lc[y_column].unit is u.mag:
+    # invert y-axis only when it hasn't been inverted
+    # to support multiple scatter/plot/errorbar calls on the same ax object
+    if lc[y_column].unit is u.mag and ax.get_ylim()[1] > ax.get_ylim()[0]:
         ax.invert_yaxis()
     return ax
 
@@ -1980,7 +1982,7 @@ def scatter_partition_by(lc, partition_by_column, ax=None, **kwargs):
         ax = lk_ax()
 
     for val in np.unique(lc[partition_by_column]):
-        lc[lc[partition_by_column] == val].scatter(ax=ax, label=f"{partition_by_column} {val}", **kwargs)
+        scatter(lc[lc[partition_by_column] == val], ax=ax, label=f"{partition_by_column} {val}", **kwargs)
     ax.set_title(lc.label)
     return ax
 
