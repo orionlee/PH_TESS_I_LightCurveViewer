@@ -48,16 +48,25 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
     tab["flux"].unit = u.dimensionless_unscaled
     tab["flux_err"].unit = u.dimensionless_unscaled
 
+    # SkyPatrol csv contains rows with mag / flux as 99.99, presumably the underlying data is bad
+    tab = tab[tab["mag"] < 99.99]
+
     lc = lk.LightCurve(time=Time(tab["hjd"], format="jd", scale="utc"), data=tab)
 
     lc.meta["FILEURL"] = url
+
+    if asas_sn_uuid is None:  # deduce ASAS-SN uuid from url
+        uuid_match = re.search(r"[a-zA-Z0-9]{8}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{8}", url)
+        if uuid_match is not None:
+            asas_sn_uuid = uuid_match[0].lower()
+
     if asas_sn_uuid is not None:
         lc.meta["ASAS-SN_UUID"] = asas_sn_uuid
         label = f"ASAS-SN {asas_sn_uuid}"
         if "camera" in lc.colnames:
             cameras = np.unique(lc["camera"])
             if len(cameras) > 1:
-                label += " , cameras: {', '.join(cameras)}"
+                label += f" , cameras: {', '.join(cameras)}"
         lc.meta["LABEL"] = label
 
     return lc
