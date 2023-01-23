@@ -1161,6 +1161,46 @@ def to_lightcurve_with_custom_aperture(tpf, aperture_mask, background_mask):
     return corrected_lc, aperture_lc, background_lc
 
 
+def to_mask_in_pixel_coordinate(lc_or_tpf, mask=None):
+    """Convert the given aperture mask to the form of CCD pixel coordinate array.
+    The CDD pixel coordinate array form is used by some programs, such as triceratops.
+    """
+
+    def get_mask_coord_ref_tpf(tpf, mask):
+        if mask is None:  # default to pipeline mask
+            mask = tpf.pipeline_mask
+
+        row_base, col_base = tpf.row, tpf.column
+        return mask, row_base, col_base
+
+    def get_mask_coord_ref_lc(lc, mask):
+        # TODO: the logic probably only works for TESS SPOC LC fits, maybe Kepler or QLP too.
+        with fits.open(lc.filename) as hdul:
+            row_base, col_base = hdul[2].header.get("CRVAL2P "), hdul[2].header.get("CRVAL1P ")
+            if mask is None:
+                # the data encodes the aperture pixel, background pixels, etc.
+                # convert it into aperture mask
+                pixels = hdul[2].data
+                mask = pixels == np.max(pixels)
+
+        return mask, row_base, col_base
+
+    if isinstance(lc_or_tpf, lk.targetpixelfile.TargetPixelFile):
+        mask, row_base, col_base = get_mask_coord_ref_tpf(lc_or_tpf, mask)
+    elif isinstance(lc_or_tpf, lk.LightCurve):
+        mask, row_base, col_base = get_mask_coord_ref_lc(lc_or_tpf, mask)
+    else:
+        raise ValueError(f"Only LightCurve or TPF is supported. {type(lc_or_tpf)}")
+
+    num_rows, num_cols = mask.shape
+    res = []
+    for y in range(0, num_rows):
+        for x in range(0, num_cols):
+            if mask[y][x]:
+                res.append([col_base + x, row_base + y])
+    return np.array(res)
+
+
 #
 # Astropy extension
 #
