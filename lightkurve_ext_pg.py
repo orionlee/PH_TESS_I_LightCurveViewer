@@ -117,6 +117,75 @@ def errorbar_transit_depth(pg):
     return ax
 
 
+def peak_list(pg, powerlimit=None):
+    """Lists in descending order the peaks found in the periodogram with
+    the find_peaks function, which calculates the Prominence of the peak,
+    and Lower & Upper Half Width at Half Maximum (HWHM) of this Prominence.
+    For more information on this SciPy signal function,
+    please follow the link to their documentation:
+    https://docs.scipy.org/doc//scipy/reference/generated/scipy.signal.find_peaks.html
+    Additionally final column of the list shows the ratio of the peak with
+    the top peak, where deviation from neat fractions (like 2/1, 1/2, 3/2,
+    2/3, 4/3, 3/4, etc.) is an indication of another candidate.
+    Parameters
+    ----------
+    powerlimit : number or ndarray or sequence, optional
+        Required power of peaks. Either a number, None, an array matching x
+        or a 2-element sequence of the former. The first element is always
+        interpreted as the minimal power and the second, if supplied, as the
+        maximal required power. By default or None, 5% of the periodogram's
+        max_power value will be used as the number for the powerlimit.
+    Returns
+    -------
+    Table : `astropy table` object
+        Returns a Table object extracted from the periodogram.
+    """
+    # based on https://github.com/lightkurve/lightkurve/pull/1255/
+    # - added FWHM
+    # - rename the label x from Periodicity to Period
+    from scipy.signal import find_peaks
+    from astropy.table import Table
+    from astropy import units as u
+
+    if pg.default_view == "period":
+        view = pg.period
+        x = "period"
+        y = ".1f"
+    elif pg.default_view == "frequency":
+        view = pg.frequency
+        x = "frequency"
+        y = None
+    if powerlimit is None:
+        powerlimit = float(pg.max_power) / 20
+    peaks, stats = find_peaks(pg.power, height=powerlimit, width=1)
+    lhwhm_int_down = view[np.floor(stats["left_ips"]).astype(int)]
+    lhwhm_int_up = view[np.ceil(stats["left_ips"]).astype(int)]
+    lhwhm_int_remainder = stats["left_ips"] - np.floor(stats["left_ips"])
+    lhwhm_period = lhwhm_int_down + lhwhm_int_remainder * (lhwhm_int_up - lhwhm_int_down)
+    lhwhm = lhwhm_period - view[peaks]
+    uhwhm_int_down = view[np.floor(stats["right_ips"]).astype(int)]
+    uhwhm_int_up = view[np.ceil(stats["right_ips"]).astype(int)]
+    uhwhm_int_remainder = stats["right_ips"] - np.floor(stats["right_ips"])
+    uhwhm_period = uhwhm_int_down + uhwhm_int_remainder * (uhwhm_int_up - uhwhm_int_down)
+    uhwhm = uhwhm_period - view[peaks]
+    fwhm = uhwhm - lhwhm  # (lhwhm is -ve in the above definition)
+    result = Table(
+        data=[stats["peak_heights"], view[peaks], stats["prominences"], lhwhm, uhwhm, fwhm],
+        names=("power", x, "prominence", "lower_hwhm", "upper_hwhm", "fwhm"),
+    )
+    result.sort("prominence", reverse=True)
+    result[x + "_ratio"] = result[x][0] / result[x]
+    result["power"].format = y
+    result["power"].unit = pg.power.unit
+    result["prominence"].format = y
+    result["lower_hwhm"].format = ".5g"
+    result["upper_hwhm"].format = "+.5g"
+    result["fwhm"].format = ".5g"
+    result[x + "_ratio"].format = ".3f"
+    result[x + "_ratio"].unit = u.dimensionless_unscaled
+    return result
+
+
 @cached
 def idx_bin_peaks_by_half_power(x, y):
     """Bin a power spectrum `(x, y)`, such that for each peak,
