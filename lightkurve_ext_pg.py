@@ -1,19 +1,24 @@
 # Various helpers to work with Periodogram
 #
+import logging
 import warnings
 
 from types import SimpleNamespace
 from memoization import cached
 
+from astropy.time import Time
 from astropy import units as u
 import numpy as np
 
+import lightkurve as lk
 from lightkurve.periodogram import BoxLeastSquaresPeriodogram
 
 from IPython.display import display, HTML
 
 # for type annotation
 from numbers import Number
+
+log = logging.getLogger(__name__)
 
 
 def plot_pg_n_mark_max(pg, ax=None, max_period_factor=None):
@@ -39,15 +44,41 @@ def plot_pg_n_mark_max(pg, ax=None, max_period_factor=None):
     return ax
 
 
-def _model(pg, lc):
+def model(pg, lc, **kwargs):
     if hasattr(pg, "get_transit_model"):  # case BLS pg
-        return pg.get_transit_model()
+        return _bls_model(pg, lc, **kwargs)
     else:  # case LS pg
         return pg.model(lc.time, pg.frequency_at_max_power)
 
 
+def _bls_model(pg, lc, time=None, period=None, duration=None, transit_time=None):
+    # BLS pg.get_transit_model() does not support user-supplied time
+    if time is None:
+        time = lc.time  # defaulted to lc.time rather than pg.time
+    if period is None:
+        period = pg.period_at_max_power
+        # log.warning("No period specified. Using period at max power")
+    if duration is None:
+        duration = pg.duration_at_max_power
+        # log.warning("No duration specified. Using duration at max power")
+    if transit_time is None:
+        transit_time = pg.transit_time_at_max_power
+        # log.warning("No transit time specified. Using transit time at max power")
+    if not isinstance(transit_time, Time):
+        transit_time = Time(transit_time, format=pg.time.format, scale=pg.time.scale)
+
+    model_flux = pg._BLS_object.model(
+        time,
+        u.Quantity(period, "d").value,
+        u.Quantity(duration, "d").value,
+        transit_time,
+    )
+    model = lk.LightCurve(time=time, flux=model_flux, label="Transit Model Flux")
+    return model
+
+
 def plot_lc_with_model(lc, pg, plot_lc=True, plot_model=True, plot_folded_model=True, also_return_lcs=False):
-    lc_model = _model(pg, lc)
+    lc_model = model(pg, lc)
     ax1 = None
     if plot_lc:
         ax1 = lc.scatter()
@@ -156,7 +187,9 @@ def peak_list(pg, powerlimit=None):
         x = "frequency"
         y = None
     if powerlimit is None:
-        powerlimit = float(pg.max_power) / 20
+        powerlimit = pg.max_power / 20
+        if hasattr(powerlimit, "value"):  # powerlimit must be unit-less for scipy.find_peaks()
+            powerlimit = powerlimit.value
     peaks, stats = find_peaks(pg.power, height=powerlimit, width=1)
     lhwhm_int_down = view[np.floor(stats["left_ips"]).astype(int)]
     lhwhm_int_up = view[np.ceil(stats["left_ips"]).astype(int)]
