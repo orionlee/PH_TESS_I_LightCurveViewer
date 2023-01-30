@@ -1669,7 +1669,11 @@ def interact(
     from bokeh.models.tools import BoxZoomTool, WheelZoomTool, UndoTool, RedoTool
     from astropy.table import Table
 
-    mark_list = []  # to be returned, so it needs to be deined at the top
+    # need to import it, rather than relying on lk.interact
+    # as the interact module may not have been loaded
+    import lightkurve.interact as lk_interact
+
+    mark_list = []  # to be returned, so it needs to be denied at the top
 
     def get_tool_of_class(toolbar_or_fig, cls):
         if hasattr(toolbar_or_fig, "toolbar"):
@@ -1682,8 +1686,8 @@ def interact(
         return None
 
     def create_interact_ui(doc):
-        lc_source = lk.interact.prepare_lightcurve_datasource(lc)
-        fig_lc, vertical_line = lk.interact.make_lightcurve_figure_elements(lc, lc_source, ylim_func=ylim_func)
+        lc_source = lk_interact.prepare_lightcurve_datasource(lc)
+        fig_lc, vertical_line = lk_interact.make_lightcurve_figure_elements(lc, lc_source, ylim_func=ylim_func)
         fig_lc.output_backend = "webgl"  # use GPU accelerated graphics when possible
 
         # customize the plot to make it more suitable for our purpose
