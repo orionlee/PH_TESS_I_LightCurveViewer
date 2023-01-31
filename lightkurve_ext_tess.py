@@ -95,7 +95,7 @@ def _download_file(url, filename=None, download_dir=None):
     with requests.get(url, stream=True) as response:
         response.raise_for_status()
         # write to a temporary file. If successful, make it the real local file
-        # it is to preven interrupted download leaving a partial file
+        # it is to prevent interrupted download leaving a partial file
         local_filename_temp = f"{local_filename}.download"
         with open(local_filename_temp, "wb") as out_file:
             shutil.copyfileobj(response.raw, out_file)
@@ -159,7 +159,7 @@ class TOIAccessor:
         url = "https://exofop.ipac.caltech.edu/tess/download_toi.php?sort=toi&output=csv"
         filename = "tess_tois.csv"
         res = _get_csv(url, filename, download_dir, use_localfile_func=use_localfile_func, dtype={cls.Headers.TOI: str})
-        # add dervied columns
+        # add derived columns
         res[cls.Headers.EPOCH_BTJD] = res[cls.Headers.EPOCH_BJD] - BTJD_REF
         res[cls.Headers.PLANET_RADIUS_J] = res[cls.Headers.PLANET_RADIUS_E] * R_earth / R_jup
         res[cls.Headers.DEPTH_PCT] = res[cls.Headers.DEPTH_PPM] / 10000
@@ -210,7 +210,7 @@ class CTOIAccessor:
             use_localfile_func=use_localfile_func,
             dtype={cls.Headers.CTOI: str, cls.Headers.TOI: str},
         )
-        # add dervied columns
+        # add derived columns
         res[cls.Headers.EPOCH_BTJD] = res[cls.Headers.EPOCH_BJD] - BTJD_REF
         res[cls.Headers.PLANET_RADIUS_J] = res[cls.Headers.PLANET_RADIUS_E] * R_earth / R_jup
         res[cls.Headers.DEPTH_PCT] = res[cls.Headers.DEPTH_PPM] / 10000
