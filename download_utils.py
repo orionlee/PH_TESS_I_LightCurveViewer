@@ -61,6 +61,7 @@ def _create_local_filename(url, filename, download_dir):
 def _do_download_file(url, filename=None, download_dir=None):
     if download_dir is None:
         download_dir = ""
+    os.makedirs(download_dir, exist_ok=True)
 
     local_filename = _create_local_filename(url, filename, download_dir)
 
