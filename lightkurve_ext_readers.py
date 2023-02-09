@@ -126,3 +126,49 @@ def read_superwasp_dr1_data(superwasp_id):
             lc.meta["FILEURL2"] = csv_url
 
         return lc
+
+
+def read_astroimagej_tbl(
+    url=None,
+    time_column="BJD_TDB",
+    time_format="jd",
+    time_scale="tdb",
+    flux_column="rel_flux_T1",
+    flux_err_column="rel_flux_T1",
+):
+    """Read AstroImageJ measurement export .tbl file as LightCurve"""
+    import pandas as pd
+
+    # use pandas rather than Table.read(), because
+    # Table.read() does not handle the header line correctly
+    # AstroImageJ tbl's first column is a 1-based index that " " as column name
+    # Table.read() does not recognize it as a column in the header
+    df = pd.read_csv(url, sep="\t")
+
+    df.rename(columns={" ": "recordno"}, inplace=True)
+
+    if time_column not in df.columns:
+        raise ValueError(f"time column {time_column} not found")
+
+    time = Time(df[time_column], format=time_format, scale=time_scale)
+    df.drop(columns=[time_column], inplace=True)
+
+    flux = df[flux_column]
+    flux_err = df[flux_err_column] if flux_err_column is not None else None
+
+    lc = lk.LightCurve(
+        time=time,
+        flux=flux,
+        flux_err=flux_err,
+        data=Table.from_pandas(
+            df,
+        ),
+    )
+    lc.meta.update(
+        {
+            "FILEURL": url,
+            "FLUX_ORIGIN": flux_column,
+        }
+    )
+
+    return lc
