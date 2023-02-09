@@ -720,7 +720,10 @@ def _to_stellar_meta(target):
             label = f"{tic}"
         else:
             label = f"[{ra:4f} {dec:4f}]"
-        return SimpleNamespace(ra=ra, dec=dec, equinox=equinox, pmra=pmra, pmdec=pmdec, tess_mag=tess_mag, label=label)
+        gaiadr2_id = row["GAIA"]  # useful to crossmatch with Gaia data
+        return SimpleNamespace(
+            ra=ra, dec=dec, equinox=equinox, pmra=pmra, pmdec=pmdec, tess_mag=tess_mag, label=label, gaiadr2_id=gaiadr2_id
+        )
 
     raise TypeError(f"target, of type {type(target)} is not supported")
 
@@ -733,6 +736,7 @@ def search_gaiadr3_of_tics(
     compact_columns=True,
     also_return_html=True,
     verbose_html=True,
+    include_nss_summary_in_html=True,
 ):
     """Locate the lightcurve target's correspond entry in GaiaDR3.
     The match is by an heuristics based on coordinate and magnitude.
@@ -798,6 +802,8 @@ def search_gaiadr3_of_tics(
                 None,
             )
 
+    gaiadr2_id = getattr(t, "gaiadr2_id")
+
     # flag entries (that could indicate binary systems, etc.)
     flag_column_values = []
     for row in result:
@@ -811,6 +817,11 @@ def search_gaiadr3_of_tics(
         # https://web.archive.org/web/20211121142803/https://gea.esac.esa.int/archive/documentation/GDR2/Gaia_archive/chap_datamodel/sec_dm_main_tables/ssec_dm_gaia_source.html
         if row["sepsi"] > 2:
             flag += "!"
+        # e_RV > 1.5 heuristics suggested by mhuten that seems to be reliable
+        if row["e_RV"] > 1.5:
+            flag += "!"
+        if str(row["Source"]) == str(gaiadr2_id):  # use str to avoid str, int type complication
+            flag += " ✓"  # signify Gaia DR3 ID match with TIC
         flag_column_values.append(flag)
     result.add_column(flag_column_values, name="flag")
     result_all_columns = result
@@ -839,6 +850,7 @@ def search_gaiadr3_of_tics(
             "VarFlag",  # Gaia DR3: variability
             "EpochPh",  # Gaia DR3: 1 if epoch photometry is available
             "RV",  # Gaia DR3
+            "e_RV",  # Gaia DR3, e_RV > 1.5 km/s also possibly signifies non single star
             "EpochRV",  # Gaia DR3
             "Dup",  # Gaia DR3: if there are multiple source/Gaia DR3 entries for the same target
             "Source",
@@ -850,10 +862,12 @@ def search_gaiadr3_of_tics(
         html = ""
         if verbose_html:
             for t in targets:
-                html = html + (
-                    f"<pre>TIC {t.label} - TESS mag: {t.tess_mag} ; coordinate: {t.ra}, {t.dec} ; "
-                    f"PM: {t.pmra}, {t.pmdec} .</pre>"
+                stellar_summary = (
+                    f"TIC {t.label} - TESS mag: {t.tess_mag} ; coordinate: {t.ra}, {t.dec} ; " f"PM: {t.pmra}, {t.pmdec} ."
                 )
+                if gaiadr2_id is not None:
+                    stellar_summary += f" Gaia DR2 {gaiadr2_id}"
+                html += f"<pre>{stellar_summary}</pre>"
         html = html + result._repr_html_()
 
         # linkify Gaia DR3 ID
@@ -866,6 +880,17 @@ def search_gaiadr3_of_tics(
         # remove the Table length=n message
         result_len = len(result)
         html = html.replace(f"<i>Table length={result_len}</i>", "")
+
+        if include_nss_summary_in_html:
+            for i in range(0, len(result_all_columns)):
+                html += f"<pre>RUWE: {result_all_columns[i]['RUWE']}, astrometric excess noise significance: {result_all_columns[i]['sepsi']:.3f}, e_RV: {result_all_columns[i]['e_RV']:.2f} km/s</pre>"
+
+        if verbose_html:
+            html += """
+<br>Reference:
+    <a target ="_doc_gaiadr3_vizier" href="https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=I/355/gaiadr3">Column descption on Vizier</a> &nbsp; | &nbsp;
+    <a target="_doc_gaiadr3_datamodel" href="https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_main_source_catalogue/ssec_dm_gaia_source.html">data model doc on ESA</a>
+"""
 
         return result_all_columns, result, html
     else:
