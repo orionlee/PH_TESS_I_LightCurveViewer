@@ -820,8 +820,9 @@ def search_gaiadr3_of_tics(
             result_list.append(a_result)
 
     with warnings.catch_warnings():
-        # Avoid spurious MergeConflictWarning: Cannot merge meta key 'null' types <class 'float'> and <class 'float'>, choosing null=nan [astropy.utils.metadata]
-        result = astropy.table.vstack(result_list)
+        # Avoid spurious "MergeConflictWarning: Cannot merge meta key 'null' types <class 'float'>
+        #  and <class 'float'>, choosing null=nan [astropy.utils.metadata]"
+        result = astropy.table.vstack(result_list) if len(result_list) > 0 else []
 
     if len(result) < 1:
         if also_return_html:
