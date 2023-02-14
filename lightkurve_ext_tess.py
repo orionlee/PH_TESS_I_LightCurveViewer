@@ -305,10 +305,10 @@ def _get_ctois_in_html(tic, download_dir=None):
     return html
 
 
-def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None, tce_filter_func=None):
+def get_tic_meta_in_html(lc_or_tic, a_subject_id=None, download_dir=None, tce_filter_func=None):
     # This function does not do the actual display,
     # so that the caller can call it in background
-    # and display it whereever it's needed
+    # and display it wherever it's needed
     def link(link_text, url):
         return f"""<a href="{url}" target="_blank">{link_text}</a>"""
 
@@ -316,13 +316,19 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None, tce_filter_fu
         return f"""    <tr><td>{prop_name}</td><td>{prop_value}</td></tr>\n"""
 
     # main logic
-    m = lc.meta
-    tic_id = str(m.get("TICID"))
+    if isinstance(lc_or_tic, lk.LightCurve):
+        tic_id = str(lc_or_tic.meta.get("TICID"))
+    elif isinstance(lc_or_tic, (str, int)):
+        tic_id = lc_or_tic
+    else:
+        raise TypeError("lc_or_tic must be either a LightCurve object or a tic id (int/str)")
+
+    m = _to_stellar_meta(lc_or_tic)
 
     def safe_m_get(key, default_val):
         # in some meta, the key exists but the value is None
         # this helper handles it
-        res = m.get(key, default_val)
+        res = getattr(m, key, default_val)
         return res if res is not None else default_val
 
     html = f"""
@@ -349,14 +355,15 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None, tce_filter_fu
         )
         # show the sector number (here we assume a_subject_id does correspond the the sector)
         # the sector is useful to be included so that users can easily locate the TCE matching the sector.
-        html += f' (sector {safe_m_get("SECTOR", "")})'
+        html += f' (sector {safe_m_get("sector", "")})'
     html += "<br>\n"
 
     # stellar parameters
     html += "<table>\n"
-    html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", f'{safe_m_get("RADIUS", 0):.3f}')
-    html += prop("Magnitude (TESS)", f'{safe_m_get("TESSMAG", 0):.2f}')
-    html += prop("T_eff (in K)", safe_m_get("TEFF", 0))
+    html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", f'{safe_m_get("radius", -1):.3f}')
+    html += prop("M<sub>S</sub> (in M<sub>☉</sub>)", f'{safe_m_get("mass", -1):.3f}')
+    html += prop("Magnitude (TESS)", f'{safe_m_get("tess_mag", -1):.2f}')
+    html += prop("T_eff (in K)", safe_m_get("teff", -1))
     html += "</table>\n"
 
     html += "<p>TCEs:</p>"
@@ -704,7 +711,20 @@ def _to_stellar_meta(target):
             label = f"{tic}"
         else:
             label = f"[{ra:4f} {dec:4f}]"
-        return SimpleNamespace(ra=ra, dec=dec, equinox=equinox, pmra=pmra, pmdec=pmdec, tess_mag=tess_mag, label=label)
+        return SimpleNamespace(
+            # for Gaia DR3 query use case
+            ra=ra,
+            dec=dec,
+            equinox=equinox,
+            pmra=pmra,
+            pmdec=pmdec,
+            tess_mag=tess_mag,
+            label=label,
+            # additional attributes for get_tic_meta_in_html() use case
+            sector=meta.get("SECTOR"),
+            radius=meta.get("RADIUS"),
+            teff=meta.get("TEFF"),
+        )
 
     # case target is a tic id
     if isinstance(target, (int, str)):
@@ -722,9 +742,19 @@ def _to_stellar_meta(target):
             label = f"[{ra:4f} {dec:4f}]"
         gaiadr2_id = row["GAIA"]  # useful to crossmatch with Gaia data
         return SimpleNamespace(
-            ra=ra, dec=dec, equinox=equinox, pmra=pmra, pmdec=pmdec, tess_mag=tess_mag, label=label, gaiadr2_id=gaiadr2_id
+            ra=ra,
+            dec=dec,
+            equinox=equinox,
+            pmra=pmra,
+            pmdec=pmdec,
+            tess_mag=tess_mag,
+            label=label,
+            gaiadr2_id=gaiadr2_id,
+            # additional attributes for get_tic_meta_in_html() use case
+            radius=row["rad"],
+            mass=row["mass"],
+            teff=row["Teff"],
         )
-
     raise TypeError(f"target, of type {type(target)} is not supported")
 
 
