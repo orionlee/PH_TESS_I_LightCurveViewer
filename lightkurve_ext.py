@@ -55,6 +55,8 @@ def of_sector(lcf_coll, sectorNum):
 
 def of_sectors(*args):
     lk_coll_or_sr = args[0]
+    if lk_coll_or_sr is None:
+        return []
     if len(args) == 1:
         # when no sectors are specified, return entire collection
         # For convenience: when a notebooks is modified such that
