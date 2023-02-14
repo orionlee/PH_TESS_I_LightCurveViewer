@@ -763,6 +763,7 @@ def search_gaiadr3_of_tics(
     radius_arcsec=15,
     magnitude_range=2.5,
     pm_range_fraction=0.25,
+    warn_if_all_filtered=True,
     compact_columns=True,
     also_return_html=True,
     verbose_html=True,
@@ -813,6 +814,7 @@ def search_gaiadr3_of_tics(
             pmra=t.pmra,
             pmdec=t.pmdec,
             pm_range_fraction=pm_range_fraction,
+            warn_if_all_filtered=warn_if_all_filtered,
         )
 
         if a_result is not None:
@@ -913,8 +915,13 @@ def search_gaiadr3_of_tics(
         html = html.replace(f"<i>Table length={result_len}</i>", "")
 
         if include_nss_summary_in_html:
-            for i in range(0, len(result_all_columns)):
-                html += f"<pre>RUWE: {result_all_columns[i]['RUWE']}, astrometric excess noise significance: {result_all_columns[i]['sepsi']:.3f}, e_RV: {result_all_columns[i]['e_RV']:.2f} km/s</pre>"
+            with warnings.catch_warnings():
+                # ignore "Format strings passed to MaskedConstant are ignored, but in future may error or produce different behavior"
+                warnings.filterwarnings(
+                    "ignore", category=FutureWarning, message=".*Format strings passed to MaskedConstant are ignored,.*"
+                )
+                for i in range(0, len(result_all_columns)):
+                    html += f"<pre>RUWE: {result_all_columns[i]['RUWE']}, astrometric excess noise significance: {result_all_columns[i]['sepsi']:.3f}, e_RV: {result_all_columns[i]['e_RV']:.2f} km/s</pre>"
 
         if verbose_html:
             html += """

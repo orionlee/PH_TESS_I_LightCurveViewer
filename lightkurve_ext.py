@@ -1261,6 +1261,7 @@ def search_nearby(
     pm_range_fraction=None,
     pmra_limit_column="pmRA",
     pmdec_limit_column="pmDE",
+    warn_if_all_filtered=True,  # warn if PM/Mag filter filters outs all query result
 ):
     """Stars around the given coordinate from Gaia DR2/EDR3, etc."""
 
@@ -1285,6 +1286,7 @@ def search_nearby(
     if len(result) < 1:  # handle no search result case
         return None
     result = result[catalog_name]
+    result_pre_filter = result
 
     if magnitude_lower_limit is not None:
         result = result[(magnitude_lower_limit <= result[magnitude_limit_column]) | result[magnitude_limit_column].mask]
@@ -1315,5 +1317,8 @@ def search_nearby(
     for col in ["separation", "RPmag", "Gmag", "BPmag", "BP-RP", "GRVSmag"]:
         if col in result.colnames:
             result[col].info.format = ".3f"
+
+    if warn_if_all_filtered and len(result) == 0 and len(result_pre_filter) > 0:
+        warnings.warn(f"All query results filtered due to mag/PM filter. Num. of entries pre-filter: {len(result_pre_filter)}")
 
     return result
