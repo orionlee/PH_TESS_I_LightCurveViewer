@@ -148,7 +148,7 @@ def errorbar_transit_depth(pg):
     return ax
 
 
-def peak_list(pg, powerlimit=None):
+def find_peaks(pg, powerlimit=None):
     """Lists in descending order the peaks found in the periodogram with
     the find_peaks function, which calculates the Prominence of the peak,
     and Lower & Upper Half Width at Half Maximum (HWHM) of this Prominence.
@@ -174,7 +174,7 @@ def peak_list(pg, powerlimit=None):
     # based on https://github.com/lightkurve/lightkurve/pull/1255/
     # - added FWHM
     # - rename the label x from Periodicity to Period
-    from scipy.signal import find_peaks
+    from scipy.signal import find_peaks as scipy_find_peaks
     from astropy.table import Table
     from astropy import units as u
 
@@ -190,7 +190,7 @@ def peak_list(pg, powerlimit=None):
         powerlimit = pg.max_power / 20
         if hasattr(powerlimit, "value"):  # powerlimit must be unit-less for scipy.find_peaks()
             powerlimit = powerlimit.value
-    peaks, stats = find_peaks(pg.power, height=powerlimit, width=1)
+    peaks, stats = scipy_find_peaks(pg.power, height=powerlimit, width=1)
     lhwhm_int_down = view[np.floor(stats["left_ips"]).astype(int)]
     lhwhm_int_up = view[np.ceil(stats["left_ips"]).astype(int)]
     lhwhm_int_remainder = stats["left_ips"] - np.floor(stats["left_ips"])
@@ -201,7 +201,7 @@ def peak_list(pg, powerlimit=None):
     uhwhm_int_remainder = stats["right_ips"] - np.floor(stats["right_ips"])
     uhwhm_period = uhwhm_int_down + uhwhm_int_remainder * (uhwhm_int_up - uhwhm_int_down)
     uhwhm = uhwhm_period - view[peaks]
-    fwhm = uhwhm - lhwhm  # (lhwhm is -ve in the above definition)
+    fwhm = np.abs(uhwhm) + np.abs(lhwhm)  # make it immune to the sign of lhwhm, uhwhm
     result = Table(
         data=[stats["peak_heights"], view[peaks], stats["prominences"], lhwhm, uhwhm, fwhm],
         names=("power", x, "prominence", "lower_hwhm", "upper_hwhm", "fwhm"),
