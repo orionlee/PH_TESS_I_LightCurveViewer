@@ -154,17 +154,32 @@ class CTOIAccessor:
 def add_transit_as_codes_column_to_df(df, headers, label_value_func):
     h = headers
     # string interpolation does not work. So use old-school concatenation
+
+    # for single transit TOI/CTOIs, period returned is often nan or 0
+    # to make the codes (used in transit_specs) usable later on
+    # we substitute it with a large period
+    def handle_nan_or_zero(per):
+        if np.isnan(per) or per == 0.0:
+            return 9999.9
+        else:
+            return per
+
+    # somehow `period = pd.Series([handle_nan_or_zero(p) for p in df[h.PERIOD]])`
+    # does not work. I temporarily created a new column as a workaround
+    df["_period_nan_fixed"] = [handle_nan_or_zero(p) for p in df[h.PERIOD]]
+
     df["Codes"] = (
         "epoch="
         + df[h.EPOCH_BTJD].map("{:.4f}".format)
         + ", duration_hr="
         + df[h.DURATION_HR].map("{:.4f}".format)
         + ", period="
-        + df[h.PERIOD].map("{:.6f}".format)
+        + df["_period_nan_fixed"].map("{:.6f}".format)
         + ', label="'
         + label_value_func(df)
         + '",'
     )
+    df.drop(columns=["_period_nan_fixed"], inplace=True)  # drop the temp column
     return df
 
 
