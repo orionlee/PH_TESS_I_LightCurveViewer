@@ -1673,6 +1673,13 @@ def interact(
     # as the interact module may not have been loaded
     import lightkurve.interact as lk_interact
 
+    # workaround: lk_interact.make_lightcurve_figure_elements() requires quality and cadenceno
+    # until the requirement is relaxed. We'd add dummy column to it
+    lc = lc.copy()
+    for col in ["quality", "cadenceno"]:
+        if col not in lc.colnames:
+            lc[col] = np.zeros_like(lc.flux, dtype=int)
+
     mark_list = []  # to be returned, so it needs to be denied at the top
 
     def get_tool_of_class(toolbar_or_fig, cls):
