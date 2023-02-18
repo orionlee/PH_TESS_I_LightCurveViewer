@@ -773,6 +773,22 @@ def _to_stellar_meta(target):
     raise TypeError(f"target, of type {type(target)} is not supported")
 
 
+def decode_gaiadr3_nss_flag(nss_flag):
+    """Decode NSS (NON_SINGLE_STAR) flag in Gaia DR3.
+    Reference:
+    https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_main_source_catalogue/ssec_dm_gaia_source.html#p344
+    """
+    flags = []
+    for (mask, nss_type) in [
+        (0b1, "AB"),  # astrometric binary
+        (0b10, "SB"),  # spectroscopic binary
+        (0b100, "EB"),  # eclipsing binary
+    ]:
+        if nss_flag & mask > 0:
+            flags.append(nss_type)
+    return flags
+
+
 def search_gaiadr3_of_tics(
     targets,
     radius_arcsec=15,
@@ -936,7 +952,11 @@ def search_gaiadr3_of_tics(
                     "ignore", category=FutureWarning, message=".*Format strings passed to MaskedConstant are ignored,.*"
                 )
                 for i in range(0, len(result_all_columns)):
-                    html += f"<pre>RUWE: {result_all_columns[i]['RUWE']}, astrometric excess noise significance: {result_all_columns[i]['sepsi']:.3f}, e_RV: {result_all_columns[i]['e_RV']:.2f} km/s</pre>"
+                    html_inner = f"RUWE: {result_all_columns[i]['RUWE']}, astrometric excess noise significance: {result_all_columns[i]['sepsi']:.3f}, e_RV: {result_all_columns[i]['e_RV']:.2f} km/s"
+                    nss_flag = result_all_columns[i]["NSS"]
+                    if nss_flag > 0:
+                        html_inner += f"; NSS: {nss_flag} ({decode_gaiadr3_nss_flag(nss_flag)})"
+                    html += f"<pre>{html_inner}</pre>"
 
         if verbose_html:
             html += """
