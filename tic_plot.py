@@ -1018,6 +1018,7 @@ def mark_transit_times(
     #
     if axvline_kwargs_specs is None:
         axvline_kwargs_specs = [dict(label="dip", linestyle="--", color="red")]
+    axvline_kwargs_specs = [aks.copy() for aks in axvline_kwargs_specs]  # avoid modifying user's argument by making local copy
 
     # use the label in tt_specs if not specified in axvline_kwargs
     for (a_spec, an_axvline_kwargs, idx_0_based) in zip(tt_specs, axvline_kwargs_specs, range(len(axvline_kwargs_specs))):
