@@ -1103,16 +1103,20 @@ def bin_flux(lc, columns=["flux", "flux_err"], **kwargs):
     return lc_subset.bin(**kwargs)
 
 
-def abbrev_sector_list(lcc_or_sectors):
+def abbrev_sector_list(lcc_or_sectors_or_lc):
     """Abbreviate a list of sectors, e.g., `1,2,3, 9` becomes `1-3, 9`."""
 
     # OPEN 1: consider to handle SearchResult as well, in addition to
     #         array like numbers, LightCurveCollection and TargetPixelFileCollection
     # OPEN 2: consider to handle Kepler quarter / K2 campaign.
 
-    sectors = lcc_or_sectors
-    if isinstance(sectors, lk.collections.Collection):  # LC / TPF collection
-        sectors = [lc.meta.get("SECTOR") for lc in lcc_or_sectors]
+    sectors = lcc_or_sectors_or_lc
+    if sectors is None:
+        sectors = []
+    elif isinstance(sectors, lk.collections.Collection):  # LC / TPF collection
+        sectors = [lc.meta.get("SECTOR") for lc in lcc_or_sectors_or_lc]
+    elif isinstance(sectors, lk.LightCurve):
+        sectors = [sectors.meta.get("SECTOR")]
 
     sectors = sectors.copy()
     sectors.sort()
