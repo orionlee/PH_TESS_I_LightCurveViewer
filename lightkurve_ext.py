@@ -132,7 +132,12 @@ def of_2min_cadences(lcf_coll):
 
 def estimate_cadence(lc, unit=None, round_unit_result=True):
     """Estimate the cadence of a lightcurve by returning the median of a sample"""
-    res = np.nanmedian(np.diff(lc.time[:100].value))
+    if isinstance(lc, lk.FoldedLightCurve):
+        time_vals = lc.time_original.value
+        time_vals = np.sort(time_vals)
+    else:
+        time_vals = lc.time.value
+    res = np.nanmedian(np.diff(time_vals[:100]))
     if unit is not None:
         res = (res * u.day).to(unit)  # LATER: handle cases lc.time is not in days
         if round_unit_result:
@@ -852,7 +857,7 @@ def estimate_snr(
         cdpp_kwargs = dict()
 
     cadence = estimate_cadence(lc, unit=u.min)
-    transit_window = math.ceil(signal_duration / cadence)
+    transit_window = int(np.ceil((signal_duration / cadence).decompose()))
 
     savgol_window = transit_window * savgol_to_transit_window_ratio
     if savgol_window % 2 == 0:
@@ -872,6 +877,7 @@ def estimate_snr(
     else:
         diagnostics = cdpp_kwargs.copy()
         diagnostics["cdpp"] = cdpp
+        diagnostics["cadence"] = cadence
         return snr, diagnostics
 
 
