@@ -829,6 +829,7 @@ def search_gaiadr3_of_tics(
     targets = targets[targets != None]
 
     for t in targets:
+        gaiadr2_id = getattr(t, "gaiadr2_id", np.nan)
         if magnitude_range is not None:
             lower_limit, upper_limit = t.tess_mag - magnitude_range, t.tess_mag + magnitude_range
         else:
@@ -850,6 +851,8 @@ def search_gaiadr3_of_tics(
 
         if a_result is not None:
             a_result["target"] = [t.label for i in range(0, len(a_result))]
+            a_result["target_gaia_dr2_source"] = [gaiadr2_id for i in range(0, len(a_result))]
+
             result_list.append(a_result)
 
     with warnings.catch_warnings():
@@ -865,8 +868,6 @@ def search_gaiadr3_of_tics(
                 None,
                 None,
             )
-
-    gaiadr2_id = getattr(t, "gaiadr2_id")
 
     # flag entries (that could indicate binary systems, etc.)
     flag_column_values = []
@@ -884,8 +885,8 @@ def search_gaiadr3_of_tics(
         # e_RV > 1.5 heuristics suggested by mhuten that seems to be reliable
         if row["e_RV"] > 1.5:
             flag += "!"
-        if str(row["Source"]) == str(gaiadr2_id):  # use str to avoid str, int type complication
-            flag += " ✓"  # signify Gaia DR3 ID match with TIC
+        if str(row["Source"]) == str(row["target_gaia_dr2_source"]):  # use str to avoid str / int type complication
+            flag += " ✓"  # signify Gaia DR3 ID match with TIC's Gaia DR2 ID
         flag_column_values.append(flag)
     result.add_column(flag_column_values, name="flag")
     result_all_columns = result
@@ -929,6 +930,7 @@ def search_gaiadr3_of_tics(
                 stellar_summary = (
                     f"TIC {t.label} - TESS mag: {t.tess_mag} ; coordinate: {t.ra}, {t.dec} ; " f"PM: {t.pmra}, {t.pmdec} ."
                 )
+                gaiadr2_id = getattr(t, "gaiadr2_id", None)
                 if gaiadr2_id is not None:
                     stellar_summary += f" Gaia DR2 {gaiadr2_id}"
                 html += f"<pre>{stellar_summary}</pre>"
