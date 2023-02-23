@@ -1122,7 +1122,7 @@ def abbrev_sector_list(lcc_or_sectors_or_lc):
     elif isinstance(sectors, lk.collections.Collection):  # LC / TPF collection
         sectors = [lc.meta.get("SECTOR") for lc in lcc_or_sectors_or_lc]
     elif isinstance(sectors, lk.LightCurve):
-        sectors = [sectors.meta.get("SECTOR")]
+        sectors = sectors.meta.get("SECTORS", [sectors.meta.get("SECTOR")])  # case my custom stitched lc that has SECTORS meta
 
     sectors = sectors.copy()
     sectors.sort()
