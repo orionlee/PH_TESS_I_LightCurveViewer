@@ -2126,7 +2126,7 @@ def plot_in_out_diff(tpf, epoch, transit_half_duration=0.25, oot_outer_relative=
 
         intr = abs(T0 - t) < transit_half_duration  # create a mask of the in transit times
         oot = (abs(T0 - t) < oot_outer_relative) * (
-            abs(T0 - t) < oot_inner_relative
+            abs(T0 - t) > oot_inner_relative
         )  # create a mask of the out of transit times
         img_intr = tpf_filt[intr, :, :].sum(axis=0) / float(intr.sum())  # apply the masks and normalize the flux
         img_oot = tpf_filt[oot, :, :].sum(axis=0) / float(oot.sum())
