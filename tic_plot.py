@@ -2218,7 +2218,7 @@ def plot_pixel_level_LC(
 
         intr = abs(T0 - t) < transit_half_duration  # create a mask of the in transit times
         oot = (abs(T0 - t) < oot_outer_relative) * (
-            abs(T0 - t) < oot_inner_relative
+            abs(T0 - t) > oot_inner_relative
         )  # create a mask of the out of transit times
 
         fig, ax = plt.subplots(
