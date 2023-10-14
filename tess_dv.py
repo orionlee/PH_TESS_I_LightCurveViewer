@@ -17,6 +17,7 @@ from astroquery.mast import Observations
 # Search, download and parse TCEs
 #
 
+
 def parse_dvs_filename(filename):
     # e.g.: tess2020267090513-s0030-s0030-0000000142087638-01-00394_dvs.pdf
     # name pattern reference: https://archive.stsci.edu/missions-and-data/tess/data-products.html#name_schema
@@ -422,9 +423,9 @@ def _tce_info_to_html(tce_info_list):
     R_EARTH_TO_R_JUPITER = 6378.1 / 71492
     for info in tce_info_list:
         exomast_url = f'https://exo.mast.stsci.edu/exomast_planet.html?planet={info.get("tce_id")}'
-        dvs_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
-        dvm_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvm_dataURI")}'
-        dvr_url = f'https://exo.mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvr_dataURI")}'
+        dvs_url = f'https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
+        dvm_url = f'https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvm_dataURI")}'
+        dvr_url = f'https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvr_dataURI")}'
         p_i = info.get("planet", {})
         html += row(
             link(info.get("tce_id_short"), exomast_url),
