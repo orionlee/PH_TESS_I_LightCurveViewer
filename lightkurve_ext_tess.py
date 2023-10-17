@@ -56,7 +56,6 @@ def _single_row(df):
 
 
 class TOIAccessor:
-
     Headers = SimpleNamespace(
         TIC="TIC ID",
         TOI="TOI",
@@ -104,7 +103,6 @@ class TOIAccessor:
 
 
 class CTOIAccessor:
-
     Headers = SimpleNamespace(
         TIC="TIC ID",
         CTOI="CTOI",
@@ -499,7 +497,6 @@ def get_momentum_dump_times(lcf):
 
 
 class MomentumDumpsAccessor:
-
     _mom_dumps_tab = None
 
     @classmethod
@@ -779,7 +776,7 @@ def decode_gaiadr3_nss_flag(nss_flag):
     https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_main_source_catalogue/ssec_dm_gaia_source.html#p344
     """
     flags = []
-    for (mask, nss_type) in [
+    for mask, nss_type in [
         (0b1, "AB"),  # astrometric binary
         (0b10, "SB"),  # spectroscopic binary
         (0b100, "EB"),  # eclipsing binary
@@ -962,6 +959,7 @@ def search_gaiadr3_of_tics(
 
         if verbose_html:
             html += """
+<br>flag - &emsp; !: non single star proxy indicator (RUWE, sepsi, e_RV) ; &emsp; ✓: Gaia source matched with the one in TIC
 <br>Reference:
     <a target ="_doc_gaiadr3_vizier" href="https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=I/355/gaiadr3">Column descption on Vizier</a> &nbsp; | &nbsp;
     <a target="_doc_gaiadr3_datamodel" href="https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_main_source_catalogue/ssec_dm_gaia_source.html">data model doc on ESA</a>
