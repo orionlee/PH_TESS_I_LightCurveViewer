@@ -264,8 +264,9 @@ SearchResult is further filtered - only a subset will be downloaded."""
 
     lcf_coll = sr_to_download.download_all(download_dir=download_dir)
 
+    print(f"TIC {tic} \t, all available sectors: {abbrev_sector_list(sr)}")
     if lcf_coll is not None and len(lcf_coll) > 0:
-        print(f"TIC {tic} \t#sectors: {len(lcf_coll)} ; {lcf_coll[0].meta['SECTOR']} - {lcf_coll[-1].meta['SECTOR']}")
+        print(f"downloaded #sectors: {len(lcf_coll)} ; {abbrev_sector_list(lcf_coll)}")
         print(
             (
                 f"   sector {lcf_coll[-1].meta['SECTOR']}: \t"
@@ -1109,20 +1110,21 @@ def bin_flux(lc, columns=["flux", "flux_err"], **kwargs):
     return lc_subset.bin(**kwargs)
 
 
-def abbrev_sector_list(lcc_or_sectors_or_lc):
+def abbrev_sector_list(lcc_or_sectors_or_lc_or_sr):
     """Abbreviate a list of sectors, e.g., `1,2,3, 9` becomes `1-3, 9`."""
 
-    # OPEN 1: consider to handle SearchResult as well, in addition to
-    #         array like numbers, LightCurveCollection and TargetPixelFileCollection
-    # OPEN 2: consider to handle Kepler quarter / K2 campaign.
+    # OPEN: consider to handle Kepler quarter / K2 campaign.
 
-    sectors = lcc_or_sectors_or_lc
+    sectors = lcc_or_sectors_or_lc_or_sr
     if sectors is None:
         sectors = []
     elif isinstance(sectors, lk.collections.Collection):  # LC / TPF collection
-        sectors = [lc.meta.get("SECTOR") for lc in lcc_or_sectors_or_lc]
+        sectors = [lc.meta.get("SECTOR") for lc in lcc_or_sectors_or_lc_or_sr]
     elif isinstance(sectors, lk.LightCurve):
         sectors = sectors.meta.get("SECTORS", [sectors.meta.get("SECTOR")])  # case my custom stitched lc that has SECTORS meta
+    elif isinstance(sectors, lk.SearchResult):
+        sectors = [s for s in sectors.table["sequence_number"]]
+    # else it's assumed to be a list of sector number
 
     sectors = sectors.copy()
     sectors.sort()
@@ -1216,6 +1218,7 @@ def to_mask_in_pixel_coordinate(lc_or_tpf, mask=None):
 #
 # Astropy extension
 #
+
 
 # Specify / display time delta in hours
 # useful for specifying / displaying planet transits
