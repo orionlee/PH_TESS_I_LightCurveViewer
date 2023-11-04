@@ -97,7 +97,6 @@ def _normalize_to_percent_quiet(lc):
 
 # Plot the flux changes (not flux themselves) to get a sense of the rate of changes, not too helpful yet.
 def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window="30min"):
-
     # possible input arguments
     lc = _normalize_to_percent_quiet(lcf)
 
@@ -1021,7 +1020,7 @@ def mark_transit_times(
     axvline_kwargs_specs = [aks.copy() for aks in axvline_kwargs_specs]  # avoid modifying user's argument by making local copy
 
     # use the label in tt_specs if not specified in axvline_kwargs
-    for (a_spec, an_axvline_kwargs, idx_0_based) in zip(tt_specs, axvline_kwargs_specs, range(len(axvline_kwargs_specs))):
+    for a_spec, an_axvline_kwargs, idx_0_based in zip(tt_specs, axvline_kwargs_specs, range(len(axvline_kwargs_specs))):
         if an_axvline_kwargs.get("label") is None:
             an_axvline_kwargs["label"] = a_spec.get("label", f"dip {idx_0_based + 1}")
 
@@ -1031,14 +1030,14 @@ def mark_transit_times(
     # so that each tt set will have 1 legend
     # if we simply set legend at the end, each dip will have its own legend!
     # TODO: use `vlines_y_in_axes_coord()` helper instead.
-    for (transit_times, axvline_kwargs) in zip(tt_list, axvline_kwargs_specs):
+    for transit_times, axvline_kwargs in zip(tt_list, axvline_kwargs_specs):
         if len(transit_times) > 0 and axvline_kwargs is not None:
             axvline_kwargs = axvline_kwargs.copy()  # as we might need to modify them locally
             ymin, ymax = axvline_kwargs.pop("ymin", 0), axvline_kwargs.pop("ymax", 0.1)
             ax.axvline(transit_times[0], ymin, ymax, **axvline_kwargs)
     ax.legend(loc=legend_loc)
 
-    for (transit_times, axvline_kwargs) in zip(tt_list, axvline_kwargs_specs):
+    for transit_times, axvline_kwargs in zip(tt_list, axvline_kwargs_specs):
         if axvline_kwargs is not None:
             axvline_kwargs = axvline_kwargs.copy()  # as we might need to modify them locally
             ymin, ymax = axvline_kwargs.pop("ymin", 0), axvline_kwargs.pop("ymax", 0.1)
@@ -1217,7 +1216,6 @@ def plot_skip_data_gap(lc, wspace=0.2, figsize=(16, 4), data_gap_min_days=10, **
 
 
 def plot_centroids(lc, transit_time=None, window=None):
-
     # based on:
     # https://github.com/noraeisner/PH_Coffee_Chat/blob/4a723030ed80eeabdfb0eca49d948b97d61e35f6/False%20Positive/False%20positives%20-%20(4)%20centroid-position.ipynb
 
@@ -1571,6 +1569,9 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
         # ensure all plots have the same scale
         ax.set_xlim(lc.time.min().value, lc.time.max().value)
         ax.set_ylim(lc.flux.min().value, lc.flux.max().value)
+
+        # keep legend in a fixed location to avoid jumps between frames
+        ax.legend(loc="upper right")
 
         # set title
         if len(cycle_list_subset) < 2:
@@ -2120,7 +2121,6 @@ def plot_in_out_diff(tpf, epoch, transit_half_duration=0.25, oot_outer_relative=
 
     # loop through all of the list of PCA corrected flux vs time arrays for each marked transit-event
     for idx, tpf_filt in enumerate(tpf_list):  # idx is for each maked transit-event
-
         T0 = T0_list[idx]  # the time of the transit-like event
         t = t_list[idx]  # the time array
 
@@ -2204,7 +2204,6 @@ def plot_pixel_level_LC(
     # loop through the transits and make plot for each ( only the first is currently displayed in the pdf report)
     plot_half_width = oot_outer_relative * 1.25
     for idx, X1_original in enumerate(tpf_list):
-
         bkg = np.flip(bkg_list[idx], axis=0)
         arrshape = arrshape_list[idx]
         peak = transit_list[idx]
@@ -2238,7 +2237,6 @@ def plot_pixel_level_LC(
             ii = arrshape[1] - 1 - i  # we want to plot this such that the pixels increase from left to right and bottom to top
 
             for j in range(0, arrshape[2]):
-
                 apmask = np.zeros(arrshape[1:], dtype=np.int)
                 apmask[i, j] = 1
                 apmask = apmask.astype(bool)
