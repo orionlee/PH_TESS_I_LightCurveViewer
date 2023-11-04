@@ -214,6 +214,13 @@ def estimate_object_radius_in_r_jupiter(lc, depth):
     return r_obj_in_r_jupiter
 
 
+def _sort_chronologically(sr: lk.SearchResult):
+    # Resort the SearchResult rows, because
+    # lightkurve v2.4.2 does not honor mission (chronological)
+    # the workaround here is to resort using the pre-v2.4.2 criteria
+    sr.table.sort(["distance", "year", "mission", "sort_order", "exptime"])
+
+
 def download_lightcurves_of_tic_with_priority(
     tic, author_priority=["SPOC", "QLP", "TESS-SPOC"], download_filter_func=None, download_dir=None
 ):
@@ -227,6 +234,7 @@ def download_lightcurves_of_tic_with_priority(
         return None, None, None
 
     sr_unfiltered = sr_unfiltered[sr_unfiltered.target_name == str(tic)]  # in case we get some other nearby TICs
+    _sort_chronologically(sr_unfiltered)
 
     # filter out HLSPs not supported by lightkurve yet
     sr = sr_unfiltered[sr_unfiltered.author != "DIAMANTE"]
@@ -466,7 +474,9 @@ def filter_by_priority(
         # We might want it to be an option specified by the user.
         res_t.add_row(mission_t[0])
 
-    return lk.SearchResult(table=res_t)
+    sr = lk.SearchResult(table=res_t)
+    _sort_chronologically(sr)
+    return sr
 
 
 # Download TPF asynchronously
@@ -484,6 +494,7 @@ def search_and_download_tpf(*args, **kwargs):
     download_dir = kwargs.pop("download_dir", None)
     quality_bitmask = kwargs.pop("quality_bitmask", None)
     sr = lk.search_targetpixelfile(*args, **kwargs)  # pass the rest of the argument to search_targetpixelfile
+    _sort_chronologically(sr)
     tpf_coll = sr.download_all(download_dir=download_dir, quality_bitmask=quality_bitmask)
     return tpf_coll, sr
 
