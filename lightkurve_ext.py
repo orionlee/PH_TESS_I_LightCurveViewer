@@ -68,7 +68,9 @@ def of_sectors(*args):
     if hasattr(lk_coll_or_sr, "sector"):
         return lk_coll_or_sr[np.in1d(lk_coll_or_sr.sector, sector_nums)]
     elif hasattr(lk_coll_or_sr, "table") and lk_coll_or_sr.table["sequence_number"] is not None:
-        return lk.SearchResult(lk_coll_or_sr.table[np.in1d(lk_coll_or_sr.table["sequence_number"], sector_nums)])
+        res = lk.SearchResult(lk_coll_or_sr.table[np.in1d(lk_coll_or_sr.table["sequence_number"], sector_nums)])
+        res = _sort_chronologically(res)
+        return res
     else:
         raise TypeError(f"Unsupported type of collection: {type(lk_coll_or_sr)}")
 
@@ -217,8 +219,14 @@ def estimate_object_radius_in_r_jupiter(lc, depth):
 def _sort_chronologically(sr: lk.SearchResult):
     # Resort the SearchResult rows, because
     # lightkurve v2.4.2 does not honor mission (chronological)
-    # the workaround here is to resort using the pre-v2.4.2 criteria
-    sr.table.sort(["distance", "year", "mission", "sort_order", "exptime"])
+    # the workaround here is to resort with pre-v2.4.2 criteria
+    # Note: we must use a copy of the table
+    # because if the underlying table is actually a subset of the underlying table,
+    # the sorting seems to affect the underlying table in some cases,
+    # creating really weird / corrupted results.
+    res = lk.SearchResult(sr.table.copy())
+    res.table.sort(["distance", "year", "mission", "sort_order", "exptime"])
+    return res
 
 
 def download_lightcurves_of_tic_with_priority(
@@ -234,7 +242,7 @@ def download_lightcurves_of_tic_with_priority(
         return None, None, None
 
     sr_unfiltered = sr_unfiltered[sr_unfiltered.target_name == str(tic)]  # in case we get some other nearby TICs
-    _sort_chronologically(sr_unfiltered)
+    sr_unfiltered = _sort_chronologically(sr_unfiltered)
 
     # filter out HLSPs not supported by lightkurve yet
     sr = sr_unfiltered[sr_unfiltered.author != "DIAMANTE"]
@@ -262,6 +270,7 @@ def download_lightcurves_of_tic_with_priority(
     sr_to_download = sr
     if download_filter_func is not None:
         sr_to_download = download_filter_func(sr)
+        sr_to_download = _sort_chronologically(sr_to_download)
         if len(sr_to_download) < len(sr):
             display(
                 HTML(
@@ -475,7 +484,7 @@ def filter_by_priority(
         res_t.add_row(mission_t[0])
 
     sr = lk.SearchResult(table=res_t)
-    _sort_chronologically(sr)
+    sr = _sort_chronologically(sr)
     return sr
 
 
@@ -494,7 +503,7 @@ def search_and_download_tpf(*args, **kwargs):
     download_dir = kwargs.pop("download_dir", None)
     quality_bitmask = kwargs.pop("quality_bitmask", None)
     sr = lk.search_targetpixelfile(*args, **kwargs)  # pass the rest of the argument to search_targetpixelfile
-    _sort_chronologically(sr)
+    sr = _sort_chronologically(sr)
     tpf_coll = sr.download_all(download_dir=download_dir, quality_bitmask=quality_bitmask)
     return tpf_coll, sr
 
