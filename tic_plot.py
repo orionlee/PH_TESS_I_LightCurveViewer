@@ -2100,9 +2100,18 @@ def plot_with_aperture_n_background(
     return ax
 
 
-def plot_in_out_diff(tpf, epoch, transit_half_duration=0.25, oot_outer_relative=0.5, oot_inner_relative=0.3, plot_lc=True):
+def plot_in_out_diff(
+    tpf,
+    epoch,
+    transit_half_duration=0.25,
+    oot_outer_relative=0.5,
+    oot_inner_relative=0.3,
+    pixel_mask=None,
+    plot_lc=True,
+):
     """
     Plot the in transit average flux and the out of transit average flux and compare the two (difference image).
+    pixel_mask: optional mask to ignore specific pixels, e.g., masking out the brighter pixels of a nearby star to avoid skewing the data.
     """
 
     # based on plot_in_out_TPF() in
@@ -2131,6 +2140,9 @@ def plot_in_out_diff(tpf, epoch, transit_half_duration=0.25, oot_outer_relative=
         img_intr = tpf_filt[intr, :, :].sum(axis=0) / float(intr.sum())  # apply the masks and normalize the flux
         img_oot = tpf_filt[oot, :, :].sum(axis=0) / float(oot.sum())
         img_diff = img_oot - img_intr  # calculate the difference image (out of transit minus in-transit)
+        if pixel_mask is not None and pixel_mask.any():
+            print("INFO Some pixels masked")
+            img_diff[pixel_mask] = np.nan
 
         # ---- PLOT -------
 
@@ -2162,20 +2174,39 @@ def plot_in_out_diff(tpf, epoch, transit_half_duration=0.25, oot_outer_relative=
     plt.tight_layout()
 
     if not plot_lc:
-        return None
+        return img_diff, img_intr, img_oot, dict(intr=intr, oot=oot)
 
-    # ---- additional lightcurve plot to help visualization of the time span measured -------
-    lc = tpf.to_lightcurve().remove_nans()
-    lc = lc.truncate(T0 - oot_outer_relative * 1.25, T0 + oot_outer_relative * 1.25)
-    with plt.style.context(lk.MPLSTYLE):
-        ax = plt.figure(figsize=(6, 3)).gca()
-        ax = lc.scatter(ax=ax)
-        ax.axvline(T0, color="red", ymax=0.15, linewidth=1, linestyle="--", label="epoch")
-        ax.axvspan(T0 - transit_half_duration, T0 + transit_half_duration, facecolor="red", alpha=0.3, label="In Transit")
-        ax.axvspan(T0 - oot_outer_relative, T0 - oot_inner_relative, facecolor="green", alpha=0.3, label="Out of Transit")
-        # no label to avoid double legend
-        ax.axvspan(T0 + oot_inner_relative, T0 + oot_outer_relative, facecolor="green", alpha=0.3)
-        ax.legend(loc="upper right", fontsize="small")
+    # ---- additional lightcurve plots to help visualization of the time span measured ----
+
+    # 1. the lightcurve of the aperture pixels
+    lc_target = tpf.to_lightcurve().remove_nans()
+
+    # 2. the lightcurve of the pixel with the biggest difference flux
+    # it's useful for cases that the pixel is off target, diagnose whether the
+    # pixel has variation significantly different from the aperture such that
+    # the out-of-transit range contains skewed data, thus skewing the difference calculation.
+    # Example of such targets:  TIC 6904949
+    #  https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/subjects/91668169
+    brightest_px_yx = np.unravel_index(np.nanargmax(img_diff), img_diff.shape)
+    brightest_px_mask = np.full(tpf.flux[0].shape, False, dtype=bool)
+    brightest_px_mask[brightest_px_yx[0], brightest_px_yx[1]] = True
+    lc_brightest_px = tpf.to_lightcurve(aperture_mask=brightest_px_mask).remove_nans()
+    lc_brightest_px.label = f"Largest Flux Diff Pixel at {brightest_px_yx}"
+    axs = []
+    for lc in [lc_target, lc_brightest_px]:
+        lc = lc.truncate(T0 - oot_outer_relative * 1.25, T0 + oot_outer_relative * 1.25)
+        with plt.style.context(lk.MPLSTYLE):
+            ax = plt.figure(figsize=(6, 3)).gca()
+            ax = lc.scatter(ax=ax)
+            ax.axvline(T0, color="red", ymax=0.15, linewidth=1, linestyle="--", label="epoch")
+            ax.axvspan(T0 - transit_half_duration, T0 + transit_half_duration, facecolor="red", alpha=0.3, label="In Transit")
+            ax.axvspan(T0 - oot_outer_relative, T0 - oot_inner_relative, facecolor="green", alpha=0.3, label="Out of Transit")
+            # no label to avoid double legend
+            ax.axvspan(T0 + oot_inner_relative, T0 + oot_outer_relative, facecolor="green", alpha=0.3)
+            ax.legend(loc="upper right", fontsize="small")
+        axs.append(ax)
+
+    return img_diff, img_intr, img_oot, dict(intr=intr, oot=oot), axs
 
 
 def plot_pixel_level_LC(
