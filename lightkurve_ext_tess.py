@@ -931,7 +931,9 @@ def search_gaiadr3_of_tics(
                 if gaiadr2_id is not None:
                     stellar_summary += f" Gaia DR2 {gaiadr2_id}"
                 html += f"<pre>{stellar_summary}</pre>"
-        html = html + result._repr_html_()
+
+            with astropy.conf.set_temp("max_lines", 250):
+                html = html + result._repr_html_()
 
         # linkify Gaia DR3 ID
         for id in result["Source"]:
