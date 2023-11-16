@@ -269,6 +269,7 @@ def plot_n_annotate_lcf(
     flux_col="flux",
     xmin=None,
     xmax=None,
+    truncate_extra_buffer_time=0.0,
     t0=None,
     t_start=None,
     t_end=None,
@@ -315,13 +316,15 @@ def plot_n_annotate_lcf(
     if xmax is None and t_end is not None:
         xmax = t_end + 0.5
 
-    # implement xmin / xmax by limiting the LC itself, rather than using ax.set_xlim after the plot
+    # truncate the LC approximately around xmin/xmax, so that
     # - the Y-scale will then automatically scaled to the specified time range, rather than over entire lightcurve
     # - make plotting faster (fewer data points)
-    if xmin is not None:
-        lc = lc[lc.time.value >= xmin]
-    if xmax is not None:
-        lc = lc[lc.time.value <= xmax]
+    # - Some extra buffer is added so that if users want to tweak xmin/xmax afterwards
+    #   the data right outside xmin/xmax range would still be available for plots.
+    if xmin is not None or xmax is not None:
+        trunc_min = xmin - truncate_extra_buffer_time if xmin is not None else None
+        trunc_max = xmax + truncate_extra_buffer_time if xmax is not None else None
+        lc = lc.truncate(trunc_min, trunc_max)
 
     if lc_tweak_fn is not None:
         lc = lc_tweak_fn(lc)
@@ -422,6 +425,7 @@ def plot_n_annotate_lcf(
         ax.set_title(title_text, {"fontsize": title_fontsize})
     ax.legend(**legend_kwargs)
 
+    ax.set_xlim(xmin, xmax)
     _add_flux_origin_to_ylabel(ax, lc)
 
     ax.xaxis.label.set_size(18)
