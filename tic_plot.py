@@ -1133,7 +1133,7 @@ def plot_skip_data_gap(lc, wspace=0.2, figsize=(16, 4), data_gap_min_days=10, **
 
     xlabel_text = ""
     for i, (ax, interval) in enumerate(zip(axs, intervals)):
-        lc.truncate(interval[0], interval[1] + 0.0001).scatter(ax=ax, **kwargs)
+        scatter(lc.truncate(interval[0], interval[1] + 0.0001), ax=ax, **kwargs)
 
         # add sector start marker(s) to the current ax when in range
         while len(tstart_sector_list) > 0:
