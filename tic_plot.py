@@ -1505,14 +1505,30 @@ def fold_and_plot(lc, period, epoch_time, flux_in_mag=False, **kwargs):
     return plot_n_annotate_folded(lc_f, **kwargs), lc_f
 
 
-def fold_and_plot_odd_even(lc, period, epoch_time, figsize=(10, 5), title_extra=""):
+def fold_and_plot_odd_even(
+    lc, period, epoch_time, figsize=(10, 5), title_extra="", scatter_odd_kwargs={}, scatter_even_kwargs={}
+):
+    def put_if_not_exist(dict_obj, defaults):
+        num_values_added = 0
+        for key, val in defaults.items():
+            if key not in dict_obj.keys():
+                dict_obj[key] = val
+                num_values_added += 1
+        return num_values_added
+
     lc_folded = lc.fold(period=period, epoch_time=epoch_time, epoch_phase=0)
+
+    # apply default scatter arguments
+    scatter_odd_kwargs = scatter_odd_kwargs.copy()
+    scatter_even_kwargs = scatter_even_kwargs.copy()
+    put_if_not_exist(scatter_odd_kwargs, dict(s=4, c="r", marker=".", label="odd"))
+    put_if_not_exist(scatter_even_kwargs, dict(s=4, c="b", marker="x", label="even"))
 
     ax = lk_ax(figsize=figsize)
     lc_f_odd = lc_folded[lc_folded.odd_mask]
-    lc_f_odd.scatter(ax=ax, c="r", label="odd", marker=".", s=4)
+    lc_f_odd.scatter(ax=ax, **scatter_odd_kwargs)
     lc_f_even = lc_folded[lc_folded.even_mask]
-    lc_f_even.scatter(ax=ax, c="b", label="even", marker="x", s=4)
+    lc_f_even.scatter(ax=ax, **scatter_even_kwargs)
 
     pct01_odd = np.nanpercentile(lc_f_odd.flux, 0.1)
     pct01_even = np.nanpercentile(lc_f_even.flux, 0.1)
@@ -1538,11 +1554,11 @@ def fold_and_plot_odd_even(lc, period, epoch_time, figsize=(10, 5), title_extra=
     return ax, lc_folded
 
 
-def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(10, 5), title_extra=""):
+def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(10, 5), title_extra="", scatter_kwargs={}):
     lc_folded = lc.fold(period=period * 2, epoch_time=epoch_time, epoch_phase=period / 2)
 
     ax = lk_ax(figsize=figsize)
-    lc_folded.scatter(ax=ax)
+    lc_folded.scatter(ax=ax, **scatter_kwargs)
 
     ax.legend()
     ax.xaxis.set_label_text(
