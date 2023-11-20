@@ -1084,3 +1084,25 @@ def search_tesseb_of_tics(
         return result_all_columns, result, html
     else:
         return result_all_columns, result
+
+
+def search_kelt_fp_of_tics(targets, kelt_fp_csv_path="data/kelt_fps.csv"):
+    if not isinstance(targets, (Sequence, np.ndarray)):
+        targets = [targets]
+
+    targets = [int(t) for t in targets]
+
+    df = pd.read_csv(kelt_fp_csv_path)
+    res = df[df["TIC"].isin(targets)]
+    return res
+
+
+def download_kelt_fps_as_csv(kelt_fp_csv_path="data/kelt_fps.csv"):
+    v = Vizier()
+    v.ROW_LIMIT = -1
+    # KELT transit false positive catalog for TESS (Collins+, 2018)
+    #   https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=J/AJ/156/234
+    tb_kelt_fp = v.get_catalogs("J/AJ/156/234")[0]
+    df_kelt_fp = tb_kelt_fp.to_pandas()
+    df_kelt_fp.to_csv(kelt_fp_csv_path, index=False)
+    return df_kelt_fp
