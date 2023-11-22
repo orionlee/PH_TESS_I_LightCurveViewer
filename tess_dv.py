@@ -394,6 +394,20 @@ def _tce_info_to_html(tce_info_list):
     def row(*args):
         return "<tr>" + "".join(f"<td>{v}</td>" for v in args) + "</tr>"
 
+    # determine the entry with the longest sector range span
+    # but only if the longest span > 1
+    # It's used to highlight it in html.
+    # If the list of TCE is long,
+    # one usually starts with the ones with the longest span
+    # the marker is to help to locate it.
+    idx_longest_sector_range_span = -1
+    longest_sector_range_span = 0
+    for idx, info in enumerate(tce_info_list):
+        cur_span = info["sector_range_span"]
+        if cur_span > 1 and cur_span > longest_sector_range_span:
+            longest_sector_range_span = cur_span
+            idx_longest_sector_range_span = idx
+
     html = ""
     header = [
         ("TCE", ""),
@@ -408,7 +422,7 @@ def _tce_info_to_html(tce_info_list):
         ("OotOffset", "σ"),
         ("Codes", ""),
     ]
-    html += """<table>
+    html += """<table class="tces">
 <thead>"""
     html += "<tr>"
     html += " ".join([f"<th>{h[0]}</th>" for h in header])
@@ -421,14 +435,19 @@ def _tce_info_to_html(tce_info_list):
 <tbody>
 """
     R_EARTH_TO_R_JUPITER = 6378.1 / 71492
-    for info in tce_info_list:
+    for idx, info in enumerate(tce_info_list):
         exomast_url = f'https://exo.mast.stsci.edu/exomast_planet.html?planet={info.get("tce_id")}'
         dvs_url = f'https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
         dvm_url = f'https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvm_dataURI")}'
         dvr_url = f'https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvr_dataURI")}'
         p_i = info.get("planet", {})
+        tce_id_html = link(info.get("tce_id_short"), exomast_url)
+        if idx == idx_longest_sector_range_span:
+            # indicate this is the TCE with the longest sector range span
+            # (mark the first one if multiple TCEs have the same range span)
+            tce_id_html += " (#)"
         html += row(
-            link(info.get("tce_id_short"), exomast_url),
+            tce_id_html,
             f"""{link("dvs", dvs_url)},&emsp;{link("mini", dvm_url)},&emsp;{link("full", dvr_url)}""",
             f'{p_i.get("planetRadiusEarthRadii", 0) * R_EARTH_TO_R_JUPITER:.3f}',
             f'{p_i.get("transitEpochBtjd", 0):.4f}',
@@ -448,6 +467,14 @@ period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}"
         html += "\n"
 
     html += "</tbody></table>\n"
+    # make the TCE column left align, so that the marker "(#)" would not mess up the alignment
+    html += """
+<style>
+  table.tces tr > td:nth-of-type(1) {
+    text-align: left;
+  }
+</style>
+"""
     return html
 
 
