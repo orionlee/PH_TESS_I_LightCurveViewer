@@ -2288,7 +2288,7 @@ def plot_pixel_level_LC(
             ii = arrshape[1] - 1 - i  # we want to plot this such that the pixels increase from left to right and bottom to top
 
             for j in range(0, arrshape[2]):
-                apmask = np.zeros(arrshape[1:], dtype=np.int)
+                apmask = np.zeros(arrshape[1:], dtype=int)
                 apmask[i, j] = 1
                 apmask = apmask.astype(bool)
 
