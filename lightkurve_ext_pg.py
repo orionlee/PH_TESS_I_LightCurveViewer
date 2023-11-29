@@ -48,7 +48,13 @@ def model(pg, lc, **kwargs):
     if hasattr(pg, "get_transit_model"):  # case BLS pg
         return _bls_model(pg, lc, **kwargs)
     else:  # case LS pg
-        return pg.model(lc.time, pg.frequency_at_max_power)
+        if "frequency" in kwargs.keys():
+            frequency = kwargs["frequency"]
+        elif "period" in kwargs.keys():
+            frequency = 1 / kwargs["period"]
+        else:
+            frequency = pg.frequency_at_max_power
+        return pg.model(lc.time, frequency)
 
 
 def _bls_model(pg, lc, time=None, period=None, duration=None, transit_time=None):
@@ -77,8 +83,10 @@ def _bls_model(pg, lc, time=None, period=None, duration=None, transit_time=None)
     return model
 
 
-def plot_lc_with_model(lc, pg, plot_lc=True, plot_model=True, plot_folded_model=True, also_return_lcs=False):
-    lc_model = model(pg, lc)
+def plot_lc_with_model(lc, pg, period=None, plot_lc=True, plot_model=True, plot_folded_model=True, also_return_lcs=False):
+    if period is None:
+        period = pg.period_at_max_power
+    lc_model = model(pg, lc, period=period)
     ax1 = None
     if plot_lc:
         ax1 = lc.scatter()
@@ -93,7 +101,6 @@ def plot_lc_with_model(lc, pg, plot_lc=True, plot_model=True, plot_folded_model=
     # folded, zoom -in
     ax_f = None
     if plot_folded_model:
-        period = pg.period_at_max_power
         if hasattr(pg, "transit_time_at_max_power"):
             epoch_time = pg.transit_time_at_max_power
         else:
