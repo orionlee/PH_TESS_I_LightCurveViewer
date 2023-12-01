@@ -934,6 +934,26 @@ def estimate_transit_duration_for_circular_orbit(period, rho, b):
     - implementing the equations in section 2.2
     - see figure 1 for the concept, and section 2.2 for interpreting the result
     """
+    if isinstance(b, (list, tuple, np.ndarray)):
+        if len(b) == 2:  # in (mean, error) form
+            b_mean = b[0]
+            b_lower = b[0] - b[1]
+            b_upper = b[0] + b[1]
+        elif len(b) == 3:  # in (mean, lower error, upper error) form
+            b_mean = b[0]
+            b_lower = b[0] - b[1]
+            b_upper = b[0] + b[2]
+        else:
+            raise ValueError("b must be a scalar, (mean, error), or (mean, lower_error, upper_error)")
+        d_mean = estimate_transit_duration_for_circular_orbit(period, rho, b_mean)
+        # lower b would lead to higher duration
+        d_upper = estimate_transit_duration_for_circular_orbit(period, rho, b_lower)
+        d_lower = estimate_transit_duration_for_circular_orbit(period, rho, b_upper)
+
+        return np.array([d_mean.value, d_lower.value, d_upper.value]) * d_mean.unit
+
+    # case b is a single scalar, do the actual calc
+
     # use default units if the input is not quantity
     if not isinstance(period, u.Quantity):
         period = period * u.day
