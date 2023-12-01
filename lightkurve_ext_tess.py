@@ -831,14 +831,13 @@ def search_gaiadr3_of_tics(
             "Plx",
             "pmRA",
             "pmDE",
-            "GRVSmag",  # Gaia DR3 Gmag from Radial Velocity spectrometer
             "VarFlag",  # Gaia DR3: variability
-            "EpochPh",  # Gaia DR3: 1 if epoch photometry is available
             "RV",  # Gaia DR3
             "e_RV",  # Gaia DR3, e_RV > 1.5 km/s also possibly signifies non single star
-            "EpochRV",  # Gaia DR3
             "Dup",  # Gaia DR3: if there are multiple source/Gaia DR3 entries for the same target
             "Source",
+            "EpochPh",  # Gaia DR3: 1 if epoch photometry is available
+            "EpochRV",  # Gaia DR3: 1 if epoch RV is available
         ]
         if not add_target_as_col:
             result.remove_column("target")
