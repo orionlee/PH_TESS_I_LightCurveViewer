@@ -1324,7 +1324,7 @@ def search_nearby(
     if catalog_name == "I/350/gaiaedr3":
         columns = ["*", "epsi", "sepsi"]  # add astrometric excess noise to the output (see if a star wobbles)
     if catalog_name == "I/355/gaiadr3":
-        columns = ["*", "epsi", "sepsi", "VarFlag", "Dup", "GRVSmag"]  # also add variability and Duplicate flag
+        columns = ["*", "epsi", "sepsi", "VarFlag", "IPDfmp", "Dup", "GRVSmag"]  # also add variability and Duplicate flag
 
     with warnings.catch_warnings():
         # suppress useless warning.  https://github.com/astropy/astroquery/issues/2352
