@@ -1733,8 +1733,8 @@ def interact(
         r_lc_circle.nonselection_glyph.fill_color = "gray"
         r_lc_circle.nonselection_glyph.fill_alpha = 1.0
 
-        fig_lc.plot_height = plot_height
-        fig_lc.plot_width = plot_width
+        fig_lc.height = plot_height
+        fig_lc.width = plot_width
         fig_lc.toolbar.active_drag = get_tool_of_class(fig_lc, BoxZoomTool)
         fig_lc.toolbar.active_scroll = get_tool_of_class(fig_lc, WheelZoomTool)
         fig_lc.toolbar.active_inspect = None
@@ -1781,15 +1781,15 @@ def interact(
         out_div_default_text = "Marked times to be shown here"
         out_div = Div(text=out_div_default_text)
 
-        current_point_info_div = Div(style={"font-family": "monospace"}, width=150)
+        current_point_info_div = Div(styles={"font-family": "monospace"}, width=150)
         delta_label_div = Div(text="Delta from last mark:", visible=False)
-        delta_info_div = Div(style={"font-family": "monospace"})
+        delta_info_div = Div(styles={"font-family": "monospace"})
 
         mark_btn = Button(label="Mark", button_type="default", width=100)
         mark_label_input = TextInput(width=200, placeholder="Optional label for the mark")
 
         # UI(Glyph) and UI Model for marks
-        marks_ui_model = MarkListUiModel(mark_list, fig_lc.plot_height, lower_fraction=0, upper_fraction=0.2)
+        marks_ui_model = MarkListUiModel(mark_list, fig_lc.height, lower_fraction=0, upper_fraction=0.2)
         marks_whisker = Whisker(
             base="time",
             upper="upper",
