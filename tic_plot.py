@@ -447,15 +447,21 @@ def plot_n_annotate_lcf(
     return ax
 
 
+def _get_plot_transit_x_range(t0, duration, surround_time):
+    return t0 - (duration + surround_time) / 2, t0 + (duration + surround_time) / 2
+
+
 def plot_transit(lcf, ax, t0, duration, surround_time, **kwargs):
+    xmin, xmax = _get_plot_transit_x_range(t0, duration, surround_time)
+
     return plot_n_annotate_lcf(
         lcf,
         ax=ax,
         t0=t0 if duration > 0 else None,
         t_start=t0 - duration / 2 if duration > 0 else None,
         t_end=t0 + duration / 2 if duration > 0 else None,
-        xmin=t0 - (duration + surround_time) / 2,
-        xmax=t0 + (duration + surround_time) / 2,
+        xmin=xmin,
+        xmax=xmax,
         **kwargs,
     )
 
@@ -807,6 +813,9 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col="flux"):
 
 
 def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=None):
+    # keep track some of the UI inputs to determine user's intention.
+    last_t0, last_step = None, None  # to be inited right before creating interactive UI
+
     def _update_plot_transit_interactive(
         flux_col,
         t0,
@@ -819,7 +828,10 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
         ymin,
         ymax,
         widget_out2,
+        widget_t0,
+        widget_step,
     ):
+        nonlocal last_t0, last_step
         # for typical inline matplotlib backend, the figure needs to be recreated every time.
         ax = lk_ax(figsize=figsize)
         codes_text = "# Snippets to generate the plot"
@@ -829,6 +841,56 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
             codes_text += f"\nplot_n_annotate_lcf(lcf, ax, moving_avg_window={moving_avg_window_for_codes})"
         else:
             t0_to_use = t0 + step * period
+
+            # Possible auto adjustment of step
+
+            # case 1. handle case user changes t0,
+            # - prevent t0 goes out of range
+            # - reset the step to 0, otherwise
+            if t0 != last_t0:
+                # see if new t0 is in range
+                # - use t0 rather than t0_to_use, as we're going to reset step to 0
+                xmin, xmax = _get_plot_transit_x_range(t0, duration_hr / 24, surround_time)
+                times = lcf.time.value
+                no_data = len(times[(xmin <= times) & (times <= xmax)]) < 1
+                if no_data:  # reset to last t0
+                    t0 = last_t0
+                    t0_to_use = t0 + step * period
+                    widget_t0.value = t0
+                else:  # use the new t0, reset step to 0.
+                    step = 0
+                    t0_to_use = t0
+                    widget_step.value = step
+            # case 2. handle case user changes step, automatically adjust the step
+            # if the implied range has no LC data (data gap, before start, after end)
+            elif step != last_step:
+                xmin, xmax = _get_plot_transit_x_range(t0_to_use, duration_hr / 24, surround_time)
+                times = lcf.time.value
+                no_data = len(times[(xmin <= times) & (times <= xmax)]) < 1
+                if no_data:
+                    if step > last_step:  # pan forward
+                        times_avail = times[times > xmax]
+                        if len(times_avail) > 0:
+                            xmin_avail = times_avail[0]
+                            step = np.ceil((xmin_avail - t0) / period)
+                        else:  # reach the end of the LC, go no further
+                            step = last_step
+                        t0_to_use = t0 + step * period
+                        widget_step.value = step
+                    else:  # pan backward
+                        times_avail = times[times < xmin]
+                        if len(times_avail) > 0:
+                            xmax_avail = times_avail[-1]
+                            step = np.floor((xmax_avail - t0) / period)
+                        else:  # reach the end of the LC, go no further
+                            step = last_step
+                        t0_to_use = t0 + step * period
+                        widget_step.value = step
+
+            # okay, now record what the parameters about to plot
+            # after the auto adjustment is done
+            last_t0, last_step = t0, step
+
             plot_transit(
                 lcf,
                 ax,
@@ -928,6 +990,7 @@ ax.set_ylim({ymin_to_use}, {ymax_to_use})
         ]
     )
 
+    last_t0, last_step = t0.value, step.value
     w = interactive_output(
         _update_plot_transit_interactive,
         dict(
@@ -942,6 +1005,8 @@ ax.set_ylim({ymin_to_use}, {ymax_to_use})
             ymin=ymin,
             ymax=ymax,
             widget_out2=fixed(widget_out2),
+            widget_t0=fixed(t0),
+            widget_step=fixed(step),
         ),
     )
 
