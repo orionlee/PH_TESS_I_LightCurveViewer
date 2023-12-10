@@ -8,6 +8,7 @@ LightCurveCollection
 from __future__ import annotations
 
 import inspect
+import numbers
 import warnings
 import re
 from types import SimpleNamespace
@@ -1777,6 +1778,11 @@ def interact(
         #
         # Mark-related Glyphs, widgets and callbacks
         #
+        goto_input = TextInput(width=150, placeholder="Goto the specified time, can be a Python expression.")
+        goto_btn = Button(label="Goto", button_type="default")
+        goto_err_div = Div(styles={"font-size": "90%", "color": "red", "max-width": "30ch"}, visible=False)
+        goto_div = column(row(goto_input, goto_btn), goto_err_div)
+
         select_mark_dropdown = Dropdown(label="Select mark", disabled=True, width=200)
         out_div_default_text = "Marked times to be shown here"
         out_div = Div(text=out_div_default_text)
@@ -1899,6 +1905,32 @@ def interact(
         rr_button.on_click(pan_right)
 
         #
+        # Jump to specific time
+        #
+
+        def pan_to_time():
+            try:
+                time_new = eval(goto_input.value)
+            except BaseException:
+                # invalid expression
+                goto_err_div.visible = True
+                goto_err_div.text = "Invalid expression"
+                return False
+            if not isinstance(time_new, numbers.Number):
+                goto_err_div.visible = True
+                goto_err_div.text = "Must be a number, or an expression that is evaluated to a number."
+                return False
+
+            goto_err_div.text = ""
+            goto_err_div.visible = False
+
+            width = get_pan_width()
+            fig_lc.x_range.start = time_new - width / 2
+            fig_lc.x_range.end = time_new + width / 2
+
+        goto_btn.on_click(pan_to_time)
+
+        #
         # Overall layout
         #
         doc_layout = row(
@@ -1919,7 +1951,7 @@ def interact(
                 ),
             ),
             Spacer(width=30),
-            column(select_mark_dropdown, out_div),
+            column(goto_div, select_mark_dropdown, out_div),
         )
 
         doc.add_root(doc_layout)
