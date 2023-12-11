@@ -433,6 +433,7 @@ def validate_bls_n_report(pg, to_display=True):
         metrics("- Period error\n(half width at half max)", period_at_max_power_err),
         metrics(f"Epoch ({pg.transit_time_at_max_power.format.upper()})", pg.transit_time_at_max_power),
         metrics("Duration", pg.duration_at_max_power),
+        metrics("Duration (h)", pg.duration_at_max_power.to(u.h)),
         metrics("Depth (Model)", pg.depth_at_max_power),
         metrics("Depth (Mean)", stats["depth"][0]),  # mean of all in-transit flux
         metrics("- Depth (Mean) error", stats["depth"][1]),
@@ -511,6 +512,7 @@ def validate_tls_n_report(pg, to_display=True):
         metrics("- Period error\n(half width at half max)", pg.period_at_max_power_err),
         metrics(f"Epoch ({pg.transit_time_at_max_power.format.upper()})", pg.transit_time_at_max_power),
         metrics("Duration", pg.duration_at_max_power),
+        metrics("Duration (h)", pg.duration_at_max_power.to(u.h)),
         metrics("Depth (Model)", pg.depth_at_max_power),
         metrics("Depth (Mean)", 1 - pg._TLS_result.depth_mean[0]),  # mean of all in-transit flux, need 1 - TLS_result
         metrics("- Depth (Mean) error", pg._TLS_result.depth_mean[1]),

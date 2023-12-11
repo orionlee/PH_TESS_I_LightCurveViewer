@@ -119,7 +119,7 @@ def run_bls(
             ax_pg = lke_pg.plot_pg_n_mark_max(pg)
             _remove_fig_title(ax_pg)
 
-        ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = None, None, None
+        ax_lc_model_1, ax_lc_model_2, ax_lc_model_f, lcs = None, None, None, None
         if plot_lc_model is not False:
             # convert plot_lc_model to kwargs
             if plot_lc_model is True:
@@ -134,8 +134,13 @@ def run_bls(
                 warnings.filterwarnings("ignore", message=".*Using.*")
                 logger = logging.getLogger("lightkurve.periodogram")
                 logger.setLevel(logging.ERROR)
-                ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = lke_pg.plot_lc_with_model(lc, pg, **plot_lc_model_kwargs)
+                [ax_lc_model_1, ax_lc_model_2, ax_lc_model_f], lcs = lke_pg.plot_lc_with_model(
+                    lc, pg, also_return_lcs=True, **plot_lc_model_kwargs
+                )
                 _remove_fig_title(ax_lc_model_1, ax_lc_model_2, ax_lc_model_f)
+        else:
+            # case not plotting LC model, create a dummy to satisfy the return expression below
+            lcs = SimpleNamespace(lc=lc, lc_f=None, lc_model=None, lc_model_f=None)
 
         ax_tt_depth = None
         # ax_tt_depth = lke_pg.errorbar_transit_depth(pg) # bls has no info directly
@@ -143,6 +148,9 @@ def run_bls(
     return SimpleNamespace(
         pg=pg,
         lc=lc,
+        lc_f=lcs.lc_f,
+        lc_model=lcs.lc_model,
+        lc_model_f=lcs.lc_model_f,
         ax_pg=ax_pg,
         ax_lc_model_1=ax_lc_model_1,
         ax_lc_model_2=ax_lc_model_2,
