@@ -815,6 +815,7 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col="flux"):
 def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=None):
     # keep track some of the UI inputs to determine user's intention.
     last_t0, last_step = None, None  # to be inited right before creating interactive UI
+    codes_transit_spec = ""
 
     def _update_plot_transit_interactive(
         flux_col,
@@ -832,6 +833,7 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
         widget_step,
     ):
         nonlocal last_t0, last_step
+        nonlocal codes_transit_spec
         # for typical inline matplotlib backend, the figure needs to be recreated every time.
         ax = lk_ax(figsize=figsize)
         codes_text = "# Snippets to generate the plot"
@@ -903,18 +905,21 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
                 # fix legend to upper left to avoid clashing with the notebook nav at the upper right
                 legend_kwargs=dict(loc="upper left"),
             )
-            codes_text += f"""
-#   transit parameters - t0: BTJD {t0}, duration: {duration_hr} hours, period: {period} days
-plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, \
-moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
 
-# transit_specs for calling plot_transits()
+            codes_transit_spec = f"""# transit_specs for calling plot_transits()
 transit_specs = TransitTimeSpecList(
     dict(epoch={t0}, duration_hr={duration_hr}, period={period}, label="dip",
          sector={lcf.meta.get('SECTOR')}, steps_to_show=[{step}],
         ),
     defaults=dict(surround_time={surround_time})
 )
+"""
+            codes_text += f"""
+#   transit parameters - t0: BTJD {t0}, duration: {duration_hr} hours, period: {period} days
+plot_transit(lcf, ax, {t0_to_use}, {duration_hr} / 24, {surround_time}, \
+moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
+
+{codes_transit_spec}
 """
 
         ymin_to_use = ymin if ymin >= 0 else None
@@ -980,13 +985,36 @@ ax.set_ylim({ymin_to_use}, {ymax_to_use})
         description=r"$t_{epoch}$ mark height",
         style=desc_style,
     )
+
+    # the button is not passed to _update_plot_transit_interactive()
+    # we use it here
+    copyTransitSpecBtn = widgets.Button(
+        description="Copy Code",
+        tooltip="Copy transit_spec codes",
+    )
+
+    def transit_specs_to_clipboard(btn):
+        # the btn parameter is needed for the callback to be invoked
+
+        # possibly pyperclip under the hood, but avoid an extra dependency
+        from pandas.io.clipboard import clipboard_set
+
+        # tech note: debug by doing print() does not work here without
+        # an Output widget. See:
+        # https://ipywidgets.readthedocs.io/en/stable/examples/Widget%20Events.html
+        nonlocal codes_transit_spec
+        clipboard_set(codes_transit_spec)
+
+    copyTransitSpecBtn.on_click(transit_specs_to_clipboard)
+
+    # Layout the UI
     VB = widgets.VBox
     HB = widgets.HBox
     ui = VB(
         [
             HB([t0, duration_hr, period]),
             HB([step, surround_time, moving_avg_window]),
-            HB([ymin, ymax, t0mark_ymax]),
+            HB([ymin, ymax, t0mark_ymax, copyTransitSpecBtn]),
         ]
     )
 
