@@ -3,6 +3,7 @@
 #
 
 from collections.abc import Sequence
+import pathlib
 import re
 from types import SimpleNamespace
 import warnings
@@ -22,6 +23,9 @@ import download_utils
 import lightkurve as lk
 import lightkurve_ext as lke
 import tess_dv
+
+# Ues to resolve data files relative the the module (used by MomentumDumpsAccessor)
+_MODULE_PATH_ = pathlib.Path(__file__).parent.resolve()
 
 #
 # Misc constants
@@ -431,7 +435,7 @@ class MomentumDumpsAccessor:
 
         # cls._mom_dumps_tab = pd.read_csv("data/tess_mom_dumps.txt", sep="\t")
         # I use np.genfromtxt rather than pandas, as filtering from numpy array filtering is easier for the use case
-        cls._mom_dumps_tab = np.genfromtxt("data/tess_mom_dumps.txt", delimiter="\t", names=True)
+        cls._mom_dumps_tab = np.genfromtxt(f"{_MODULE_PATH_}/data/tess_mom_dumps.txt", delimiter="\t", names=True)
 
     @classmethod
     def refresh(cls):
