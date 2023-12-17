@@ -609,6 +609,8 @@ def get_segment_times_idx(times, break_tolerance=5):
     """
     if hasattr(times, "value"):  # convert astropy Time to raw values if needed
         times = times.value
+    if len(times) < 1:
+        return (None, None)
     dt = times[1:] - times[0:-1]
     with warnings.catch_warnings():  # Ignore warnings due to NaNs
         warnings.simplefilter("ignore", RuntimeWarning)
@@ -622,8 +624,11 @@ def get_segment_times(times, **kwargs):
     if hasattr(times, "value"):  # convert astropy Time to raw values if needed
         times = times.value
     low, high = get_segment_times_idx(times, **kwargs)
-    # add a small 1e-10 to end so that the end time is exclusive (follow convention in range)
-    return [(times[lo], times[hi - 1] + 1e-10) for lo, hi in zip(low, high)]
+    if low is None:  # edge case times is empty
+        return []
+    else:  # normal case
+        # add a small 1e-10 to end so that the end time is exclusive (follow convention in range)
+        return [(times[lo], times[hi - 1] + 1e-10) for lo, hi in zip(low, high)]
 
 
 def get_transit_times_in_range(t0, period, start, end):
