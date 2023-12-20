@@ -657,6 +657,8 @@ def _to_stellar_meta(target):
             equinox=equinox,
             pmra=pmra,
             pmdec=pmdec,
+            e_pmra=np.nan,
+            e_pmdec=np.nan,
             tess_mag=tess_mag,
             label=label,
             # additional attributes for get_tic_meta_in_html() use case
@@ -673,6 +675,7 @@ def _to_stellar_meta(target):
         row = result[0]
         ra, dec, equinox = row["ra"], row["dec"], 2000
         pmra, pmdec = row["pmRA"], row["pmDEC"]
+        e_pmra, e_pmdec = row["e_pmRA"], row["e_pmDEC"]
         tess_mag = row["Tmag"]
         tic = row["ID"]
         if tic is not None:
@@ -686,6 +689,8 @@ def _to_stellar_meta(target):
             equinox=equinox,
             pmra=pmra,
             pmdec=pmdec,
+            e_pmra=e_pmra,
+            e_pmdec=e_pmdec,
             tess_mag=tess_mag,
             label=label,
             gaiadr2_id=gaiadr2_id,
@@ -713,11 +718,22 @@ def decode_gaiadr3_nss_flag(nss_flag):
     return flags
 
 
+def _is_all_finite(num_or_num_list):
+    def is_one_finite(num):
+        return num is not None and np.isfinite(num)
+
+    if not isinstance(num_or_num_list, (list, tuple, np.ndarray)):
+        num_or_num_list = [num_or_num_list]
+    return np.all([is_one_finite(n) for n in num_or_num_list])
+
+
 def search_gaiadr3_of_tics(
     targets,
     radius_arcsec=15,
     magnitude_range=2.5,
+    pm_error_factor=None,  # e.g., 3
     pm_range_fraction=0.25,
+    pm_range_minimum=1.0,
     warn_if_all_filtered=True,
     compact_columns=True,
     also_return_html=True,
@@ -732,6 +748,16 @@ def search_gaiadr3_of_tics(
     target : int, LightCurve, TargetPixelFile, or a list of them
         targets to be searched. Either the TIC, or LightCurve/TargetPixelFile of a TIC.
 
+    pm_error_factor, pm_range_fraction, pm_range_minimum
+        range of proper motion to include in the search result,
+        with the pmRA / pmDEC of the target as the reference.
+        `pm_error_factor` is used if e_pmRA, e_pmDEC is present (case the target is from TIC catalog).
+        The pmRA range will be `e_pmRA` * `pm_error_factor` (ditto for pmDEC)
+        `pm_range_fraction` is used if e_pmRA, e_pmDEC is not present.
+        The pmRA range will be `pmRA` * `pm_range_fraction` (ditto for pmDEC)
+        In all cases if `pm_range_minimum` is defined, the range will have a minimum of
+        `+/- pm_range_minimum`.
+        It is useful to handle the case the derived range is very small and overly restrictive.
     """
 
     # OPEN:
@@ -759,6 +785,27 @@ def search_gaiadr3_of_tics(
         else:
             lower_limit, upper_limit = None, None
 
+        pmra_lower, pmra_upper, pmdec_lower, pmdec_upper = None, None, None, None
+        if _is_all_finite([pm_error_factor, t.pmra, t.e_pmra]):
+            pmra_range = t.e_pmra * pm_error_factor
+            if pm_range_minimum is not None:
+                pmra_range = max(pmra_range, pm_range_minimum)
+            pmra_lower, pmra_upper = t.pmra - pmra_range, t.pmra + pmra_range
+            pmdec_range = t.e_pmdec * pm_error_factor
+            if pm_range_minimum is not None:
+                pmdec_range = max(pmdec_range, pm_range_minimum)
+            pmdec_lower, pmdec_upper = t.pmdec - pmdec_range, t.pmdec + pmdec_range
+        elif _is_all_finite([pm_range_fraction, t.pmra]):
+            pmra_range = np.abs(t.pmra) * pm_range_fraction
+            if pm_range_minimum is not None:
+                pmra_range = max(pmra_range, pm_range_minimum)
+            pmra_lower, pmra_upper = t.pmra - pmra_range, t.pmra + pmra_range
+            pmdec_range = np.abs(t.pmdec) * pm_range_fraction
+            if pm_range_minimum is not None:
+                pmdec_range = max(pmdec_range, pm_range_minimum)
+            pmdec_lower, pmdec_upper = t.pmdec - pmdec_range, t.pmdec + pmdec_range
+
+        # print("DBG pm range for filter -  ra:", t.pmra, pmra_lower, pmra_upper, "dec: ", t.pmdec, pmdec_lower, pmdec_upper)
         a_result = lke.search_nearby(
             t.ra,
             t.dec,
@@ -769,7 +816,10 @@ def search_gaiadr3_of_tics(
             magnitude_upper_limit=upper_limit,
             pmra=t.pmra,
             pmdec=t.pmdec,
-            pm_range_fraction=pm_range_fraction,
+            pmra_lower=pmra_lower,
+            pmra_upper=pmra_upper,
+            pmdec_lower=pmdec_lower,
+            pmdec_upper=pmdec_upper,
             warn_if_all_filtered=warn_if_all_filtered,
         )
 

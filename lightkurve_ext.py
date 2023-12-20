@@ -1316,7 +1316,10 @@ def search_nearby(
     magnitude_upper_limit=None,
     pmra=None,
     pmdec=None,
-    pm_range_fraction=None,
+    pmra_lower=None,
+    pmra_upper=None,
+    pmdec_lower=None,
+    pmdec_upper=None,
     pmra_limit_column="pmRA",
     pmdec_limit_column="pmDE",
     warn_if_all_filtered=True,  # warn if PM/Mag filter filters outs all query result
@@ -1352,17 +1355,12 @@ def search_nearby(
     if magnitude_upper_limit is not None:
         result = result[(result[magnitude_limit_column] <= magnitude_upper_limit) | result[magnitude_limit_column].mask]
 
-    if pm_range_fraction is not None:
-        if pmra is not None:
-            pmra_range = np.abs(pmra) * pm_range_fraction
-            pmra_lower, pmra_upper = pmra - pmra_range, pmra + pmra_range
-            result = result[(pmra_lower <= result[pmra_limit_column]) | result[pmra_limit_column].mask]
-            result = result[(result[pmra_limit_column] <= pmra_upper) | result[pmra_limit_column].mask]
-        if pmdec is not None:
-            pmdec_range = np.abs(pmdec) * pm_range_fraction
-            pmdec_lower, pmdec_upper = pmdec - pmdec_range, pmdec + pmdec_range
-            result = result[(pmdec_lower <= result[pmdec_limit_column]) | result[pmdec_limit_column].mask]
-            result = result[(result[pmdec_limit_column] <= pmdec_upper) | result[pmdec_limit_column].mask]
+    if pmra is not None and pmra_upper is not None and pmra_lower is not None:
+        result = result[(pmra_lower <= result[pmra_limit_column]) | result[pmra_limit_column].mask]
+        result = result[(result[pmra_limit_column] <= pmra_upper) | result[pmra_limit_column].mask]
+    if pmdec is not None and pmdec_upper is not None and pmdec_lower is not None:
+        result = result[(pmdec_lower <= result[pmdec_limit_column]) | result[pmdec_limit_column].mask]
+        result = result[(result[pmdec_limit_column] <= pmdec_upper) | result[pmdec_limit_column].mask]
 
     # Calculated separation is approximate, as proper motion is not accounted for
     r_coords = SkyCoord(result["RAJ2000"], result["DEJ2000"], unit=(u.hourangle, u.deg), frame="icrs")
