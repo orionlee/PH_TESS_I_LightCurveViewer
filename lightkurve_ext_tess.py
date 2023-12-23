@@ -703,7 +703,7 @@ def _to_stellar_meta(target):
 
 
 def decode_gaiadr3_nss_flag(nss_flag):
-    """Decode NSS (NON_SINGLE_STAR) flag in Gaia DR3.
+    """Decode NSS (NON_SINGLE_STAR) flag in Gaia DR3 Main.
     Reference:
     https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_main_source_catalogue/ssec_dm_gaia_source.html#p344
     """
@@ -715,6 +715,63 @@ def decode_gaiadr3_nss_flag(nss_flag):
     ]:
         if nss_flag & mask > 0:
             flags.append(nss_type)
+    return flags
+
+
+def decode_gaiadr3_nss_solution_flag(sol_flag):
+    """Decode the flag for NSS solution in Gaia DR3 NSS 2 body orbit tables.
+    Not to be confused with the flag in Gaia DR3 Main table.
+
+    Reference:
+    https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_non--single_stars_tables/ssec_dm_nss_two_body_orbit.html#p155
+    """
+
+    bits_meaning = {
+        # for AB
+        0: "AB_No_solution_searched",
+        1: "AB_No_stochastic_solution_searched",
+        2: "AB_Failure_to_compute_a_stochastic_solution",
+        6: "AB_RV_available",
+        7: "AB_RV_used_for_perspective_acceleration_correction",
+        # for SB
+        8: "SB_BAD_UNCHECKED_NUMBER_OF_TRANSITS",
+        9: "SB_NO_MORE_VARIABLE_AFTER_FILTERING",
+        10: "SB_BAD_CHECKED_NUMBER_OF_TRANSITS",
+        11: "SB2_REDIRECTED_TO_SB1_CHAIN_NOT_ENOUGH_COUPLE_MEASURES",
+        12: "SB2_REDIRECTED_TO_SB1_CHAIN_PERIODS_NOT_COHERENT",
+        13: "SB_NO_SIGNIFICANT_PERIODS_CAN_BE_FOUND",
+        14: "SB_REFINED_SOLUTION_DOES_NOT_CONVERGE",
+        15: "SB_REFINED_SOLUTION_SINGULAR_VARIANCE_COVARIANCE_MATRIX",
+        16: "SB_CIRCULAR_SOLUTION_SINGULAR_VARIANCE_COVARIANCE_MATRIX",
+        17: "SB_TREND_SOLUTION_SINGULAR_VARIANCE_COVARIANCE_MATRIX",
+        18: "SB_REFINED_SOLUTION_NEGATIVE_DIAGONAL_OF_VARIANCE_COVARIANCE_MATRIX",
+        19: "SB_CIRCULAR_SOLUTION_NEGATIVE_DIAGONAL_OF_VARIANCE_COVARIANCE_MATRIX",
+        20: "SB_TREND_SOLUTION_NEGATIVE_DIAGONAL_OF_VARIANCE_COVARIANCE_MATRIX",
+        21: "SB_CIRCULAR_SOLUTION_DOES_NOT_CONVERGE",
+        22: "SB_LUCY_TEST_APPLIED",
+        23: "SB_TREND_SOLUTION_NOT_APPLIED",
+        24: "SB_SOLUTION_OUTSIDE_E_LOGP_ENVELOP",
+        25: "SB_PERIOD_FOUND_IN_CU7_PERIODICITY",
+        26: "SB_FORTUITOUS_SB2",
+        # for EB
+        32: "EB_No_variance-covariance_matrix",
+        # for Combined solutions
+        48: "CO_NOCOMBINATION_FOUND",
+        49: "CO_BAD_GOF_COMBINATION",
+        50: "CO_WRONG_COMPONENT_COMBINATION",
+        51: "CO_SB2_TREATED_AS_SB1",
+        52: "CO_STOCHA_TO_ORBITAL",
+        53: "CO_STOCHA_TO_MULTIPLE",
+        54: "CO_ORBITALALTERNATIVE_TO_ORBITAL",
+        55: "CO_TRIPLE_COMBINATION",
+        56: "CO_TREND_COMBINATION",
+        57: "CO_DU434_INPUT_USED",
+    }
+
+    flags = []
+    for bit, meaning in bits_meaning.items():
+        if sol_flag & 2**bit > 0:
+            flags.append(meaning)
     return flags
 
 
