@@ -322,7 +322,9 @@ def _get_ctois_in_html(tic, download_dir=None):
     return html
 
 
-def get_tic_meta_in_html(lc_or_tic, a_subject_id=None, download_dir=None, tce_filter_func=None):
+def get_tic_meta_in_html(
+    lc_or_tic, a_subject_id=None, download_dir=None, tce_filter_func=None, include_transit_model_stellar_density=False
+):
     # This function does not do the actual display,
     # so that the caller can call it in background
     # and display it wherever it's needed
@@ -373,14 +375,29 @@ def get_tic_meta_in_html(lc_or_tic, a_subject_id=None, download_dir=None, tce_fi
 
     # stellar parameters
     html += "<table>\n"
-    html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", f'{safe_m_get("radius", -1):.3f}')
-    html += prop("M<sub>S</sub> (in M<sub>☉</sub>)", f'{safe_m_get("mass", -1):.3f}')
+    s_radius = safe_m_get("radius", -1)
+    s_mass = safe_m_get("mass", -1)
+    html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", f"{s_radius:.3f}")
+    html += prop("M<sub>S</sub> (in M<sub>☉</sub>)", f"{s_mass:.3f}")
+    SOLAR_DENSITY_IN_G_CM3 = 1.408
+    if s_radius > 0 and s_mass > 0:
+        # derive rho in g / cm^3
+        s_rho = s_mass / (s_radius**3) * SOLAR_DENSITY_IN_G_CM3
+    else:
+        s_rho = -1
+    if include_transit_model_stellar_density:
+        html += prop("rho<sub>S</sub> (in g/cm<sup>3</sup>)", f"{s_rho:.3f}")
     html += prop("Magnitude (TESS)", f'{safe_m_get("tess_mag", -1):.2f}')
     html += prop("T_eff (in K)", safe_m_get("teff", -1))
     html += "</table>\n"
 
     html += "<p>TCEs:</p>"
-    html += tess_dv._get_tces_in_html(tic_id, download_dir=download_dir, tce_filter_func=tce_filter_func)
+    html += tess_dv._get_tces_in_html(
+        tic_id,
+        download_dir=download_dir,
+        tce_filter_func=tce_filter_func,
+        include_transit_model_stellar_density=include_transit_model_stellar_density,
+    )
 
     # TOIs/CTOIs
     html += "<p>TOIs / CTOIs:</p>"

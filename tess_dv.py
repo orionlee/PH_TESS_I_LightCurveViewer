@@ -148,6 +148,9 @@ def parse_dvr_xml(file_path):
             orbitalPeriodDays=param_value(params_dict, "orbitalPeriodDays"),
             transitDepthPpm=param_value(params_dict, "transitDepthPpm"),
             minImpactParameter=param_value(params_dict, "minImpactParameter"),
+            # stellar density from transit model
+            starDensitySolarDensity=param_value(params_dict, "starDensitySolarDensity"),
+            starDensitySolarDensityErr=param_value(params_dict, "starDensitySolarDensity", "uncertainty"),
         )
 
         # centroid offsets, under <dv:centroidResults><dv:differenceImageMotionResults> element
@@ -384,7 +387,7 @@ def filter_top_2_tces_for_eb(tce_infos):
 #
 
 
-def _tce_info_to_html(tce_info_list):
+def _tce_info_to_html(tce_info_list, include_transit_model_stellar_density=False):
     if len(tce_info_list) < 1:
         return "No TCEs."
 
@@ -420,8 +423,11 @@ def _tce_info_to_html(tce_info_list):
         ("Impact P.", "<i>b</i>"),
         ("TicOffset", "σ"),
         ("OotOffset", "σ"),
-        ("Codes", ""),
     ]
+    if include_transit_model_stellar_density:
+        header.append(("rho", "g/cm<sup>3</sup>"))
+        header.append(("e_rho", "g/cm<sup>3</sup>"))
+    header.append(("Codes", ""))
     html += """<table class="tces">
 <thead>"""
     html += "<tr>"
@@ -435,6 +441,7 @@ def _tce_info_to_html(tce_info_list):
 <tbody>
 """
     R_EARTH_TO_R_JUPITER = 6378.1 / 71492
+    SOLAR_DENSITY_IN_G_CM3 = 1.408
     for idx, info in enumerate(tce_info_list):
         exomast_url = f'https://exo.mast.stsci.edu/exomast_planet.html?planet={info.get("tce_id")}'
         dvs_url = f'https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
@@ -446,7 +453,7 @@ def _tce_info_to_html(tce_info_list):
             # indicate this is the TCE with the longest sector range span
             # (mark the first one if multiple TCEs have the same range span)
             tce_id_html += " (#)"
-        html += row(
+        row_args = [
             tce_id_html,
             f"""{link("dvs", dvs_url)},&emsp;{link("mini", dvm_url)},&emsp;{link("full", dvr_url)}""",
             f'{p_i.get("planetRadiusEarthRadii", 0) * R_EARTH_TO_R_JUPITER:.3f}',
@@ -457,13 +464,18 @@ def _tce_info_to_html(tce_info_list):
             f'{p_i.get("minImpactParameter", 0):.2f}',
             f'{p_i.get("meanSkyOffsetSigTic", -1):.2f}',
             f'{p_i.get("meanSkyOffsetSigOot", -1):.2f}',
-            # code fragments to so that users can easily use a TCE as an entry in transit_specs
+        ]
+        if include_transit_model_stellar_density:
+            row_args.append(f'{p_i.get("starDensitySolarDensity", 0) * SOLAR_DENSITY_IN_G_CM3:.2f}')
+            row_args.append(f'{p_i.get("starDensitySolarDensityErr", 0) * SOLAR_DENSITY_IN_G_CM3:.2f}')
+        row_args.append(  # code fragments to so that users can easily use a TCE as an entry in transit_specs
             f"""\
 <input type="text" style="margin-left: 3ch; font-size: 90%; color: #666; width: 10ch;"
     onclick="this.select();" readonly
     value='epoch={p_i.get("transitEpochBtjd", 0):.4f}, duration_hr={p_i.get("transitDurationHours", 0):.4f}, \
-period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}",'>""",
+period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}",'>"""
         )
+        html += row(*row_args)
         html += "\n"
 
     html += "</tbody></table>\n"
@@ -478,10 +490,10 @@ period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}"
     return html
 
 
-def _get_tces_in_html(tic, download_dir=None, tce_filter_func=None):
+def _get_tces_in_html(tic, download_dir=None, include_transit_model_stellar_density=False, tce_filter_func=None):
     # For TCEs, query MAST download / parse results (the _dvr.xml), then show:
     # - basic planet parameters and orbital info
     # - TODO: red flags in vetting report
     # see: https://archive.stsci.edu/missions-and-data/tess/data-products
     tce_info_list = get_tce_infos_of_tic(tic, download_dir=download_dir, tce_filter_func=tce_filter_func)
-    return _tce_info_to_html(tce_info_list)
+    return _tce_info_to_html(tce_info_list, include_transit_model_stellar_density=include_transit_model_stellar_density)
