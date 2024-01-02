@@ -22,6 +22,9 @@ data/*.csv
 data/*.txt
 data/*/*
 
+# Exported Plots
+targets/plots
+
 # Elenaor-generated file
 /maxsector.py
 

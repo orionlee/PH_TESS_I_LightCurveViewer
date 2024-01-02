@@ -20,7 +20,7 @@ import astropy
 from astropy.io import fits
 from astropy import coordinates as coord
 from astropy.coordinates import SkyCoord
-from astropy.table import Table
+from astropy.table import QTable, Table
 from astropy.time import Time
 import astropy.units as u
 
@@ -1050,14 +1050,17 @@ def normalized_flux_val_to_mag(flux_val, base_mag):
     return base_mag + 2.5 * np.log10(1 / flux_val)
 
 
-def to_flux_in_mag_by_normalization(lc, base_mag_header_name="TESSMAG"):
+def to_flux_in_mag_by_normalization(lc, base_mag_header_name=None):
     """Convert the a lightcurve's flux to magnitude via a normalized lightcurve with a known average / base magnitude."""
     if lc.flux.unit is u.mag:
         return lc
 
     lc = lc.copy()
 
-    base_mag = lc.meta.get(base_mag_header_name)
+    if base_mag_header_name is not None:
+        base_mag = lc.meta.get(base_mag_header_name)
+    else:
+        base_mag = lc.meta.get("TESSMAG", lc.meta.get("KEPMAG"))  # Try TESS or Kepler as base
     if base_mag is None:
         raise ValueError(f"The given lightcurve does not have base magnitude in {base_mag_header_name} header ")
 
@@ -1091,6 +1094,61 @@ def to_hjd_utc(t_obj: Time, sky_coord: SkyCoord) -> Time:
     t_hjd_utc = t_local_jd_utc + ltt_helio
 
     return t_hjd_utc
+
+
+def convert_lc_time_to_hjd_utc(lc, target_coord, cache_dir=".", cache_key=None):
+    """Convert the lightcurve's time to HJD UTC, with the HJD time cached in disk."""
+
+    # a reasonable default for TESS / Kepler / K2 based lc
+    def get_cache_key(lc):
+        target_str = lc.meta.get("LABEL", "").replace(" ", "_")
+        author = lc.meta.get("AUTHOR", None)
+        if author is not None:
+            target_str = f"{target_str}_{author}"
+        sectors_str = "_".join([str(s) for s in lc.meta.get("SECTORS", [])])
+        if sectors_str == "":
+            sectors_str = lc.meta.get("SECTOR", "na")
+        return f"""hjd_{target_str}_{sectors_str}.txt"""
+
+    def time_in_hjd_utc(lc, target_coord, cache_dir):
+        # actual time conversion to HJD UTC
+        # it can be take a while (close to 1 minute for 160K)
+        # so we support caching the result persistently
+        hjd_time_val = None
+        nonlocal cache_key
+        if cache_key is None:
+            cache_key = get_cache_key(lc)
+        cache_file = f"{cache_dir}/hjd/{cache_key}"
+        if (os.path.exists(cache_file)) and (os.path.getsize(cache_file) > 0):
+            hjd_time_val = np.genfromtxt(cache_file)
+            #  ensure the cached time is compatible with the input LC
+            if len(lc) == len(hjd_time_val):
+                return hjd_time_val
+            else:
+                print(f"The cached HJD time in {cache_file} has different length. discard it.")
+                hjd_time_val = None
+
+        # else cache miss
+        if not isinstance(target_coord, SkyCoord):
+            target_coord = SkyCoord(target_coord["ra"], target_coord["dec"], unit=(u.deg, u.deg), frame="icrs")
+        hjd_time_val = to_hjd_utc(lc.time, target_coord).value
+
+        # write to cache
+        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+        np.savetxt(cache_file, hjd_time_val, fmt="%f", header="hjd")
+        return hjd_time_val
+
+    # the main logic
+    hjd_time_val = time_in_hjd_utc(lc, target_coord, cache_dir)
+
+    # create a new LC object with the HJD time.
+    # It does not modify the time of an existing LC object, because it is extremely slow.
+    data = QTable(data=lc)
+    data.remove_column("time")
+    lc_hjd = lc.__class__(time=Time(hjd_time_val, format="jd", scale="utc"), data=data)
+    lc_hjd.meta.update(lc.meta)
+
+    return lc_hjd
 
 
 HAS_BOTTLENECK = False
