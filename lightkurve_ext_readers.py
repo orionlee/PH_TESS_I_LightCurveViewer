@@ -3,6 +3,7 @@
 #
 
 import re
+import urllib
 
 from astropy.io import fits
 from astropy.table import Table
@@ -83,7 +84,6 @@ def read_superwasp_dr1_data(superwasp_id):
     csv_url = f"https://wasp.cerit-sc.cz/csv?object={quote_plus(superwasp_id)}"
 
     with fits.open(fits_url) as hdul:
-
         jd_ref = hdul[0].header.get("JD_REF")
         # unsure if the HJD here is in UTC
         time = Time(hdul[1].data["TMID"] / 86400 + jd_ref, format="jd", scale="utc")
@@ -171,4 +171,52 @@ def read_astroimagej_tbl(
         }
     )
 
+    return lc
+
+
+def read_hipparcos_data(url):
+    """Read Hipparcos and Tycho Epoch Photometry hosted on Vizier.
+    https://cdsarc.cds.unistra.fr/viz-bin/VizieR?-meta&-meta.ucd&-source=I/239
+    """
+
+    def get_hip_id(url):
+        """Extract HIP ID from Vizier's data URL"""
+        # e.g.,
+        #  https://cdsarc.cds.unistra.fr/viz-bin/nph-Plot/Vgraph/txt?I%2f239%2f.%2f17076&0&P=0&-Y&mag&-y&-&-&-
+        #  https://cdsarc.cds.unistra.fr/viz-bin/nph-Plot/Vgraph/txt?I/239/17076
+        matches = re.match(".*txt[?]([^&]+)", url)
+        if matches is None:
+            return None
+        param = urllib.parse.unquote(matches[1])
+        if param.startswith("I/239/"):  # I/239/ or I/239/.
+            try:
+                hip_id = int(re.sub("^I/239/([.]/)?", "", param))
+                return hip_id
+            except Exception:
+                # Unexpected pattern
+                return None
+        else:
+            # unrecognized pattern
+            return None
+
+    tab = Table.read(url, format="ascii")
+    time = tab["col1"]  # JD-2440000
+    # Time in TT scale
+    # reference: EAS doc "The Hipparcos and Tycho Catalogues", sections 1.2.3 and 1.2.6
+    # https://www.cosmos.esa.int/documents/532822/552851/vol1_all.pdf/99adf6e3-6893-4824-8fc2-8d3c9cbba2b5
+    time = Time(time + 2440000, format="jd", scale="tt")
+    flux = tab["col2"]  # mag
+    flux = flux * u.mag
+    flux_err = tab["col3"]  # (error)
+    flux_err = flux_err * u.mag
+
+    lc = lk.LightCurve(time=time, flux=flux, flux_err=flux_err)
+    lc.meta["FILEURL"] = url
+
+    hip_id = get_hip_id(url)
+    if hip_id is not None:
+        # mimic convention used in TESS SPOC Lightcurve objects
+        lc.meta["TARGETID"] = hip_id
+        lc.meta["OBJECT"] = f"HIP {hip_id}"
+        lc.meta["LABEL"] = f"HIP {hip_id}"
     return lc
