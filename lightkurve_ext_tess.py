@@ -379,10 +379,8 @@ def get_tic_meta_in_html(
     s_mass = safe_m_get("mass", -1)
     html += prop("R<sub>S</sub> (in R<sub>☉</sub>)", f"{s_radius:.3f}")
     html += prop("M<sub>S</sub> (in M<sub>☉</sub>)", f"{s_mass:.3f}")
-    SOLAR_DENSITY_IN_G_CM3 = 1.408
     if s_radius > 0 and s_mass > 0:
-        # derive rho in g / cm^3
-        s_rho = s_mass / (s_radius**3) * SOLAR_DENSITY_IN_G_CM3
+        s_rho = lke.estimate_rho(s_mass, s_radius, return_unit=u.g / u.cm**3).value
     else:
         s_rho = -1
     if include_transit_model_stellar_density:

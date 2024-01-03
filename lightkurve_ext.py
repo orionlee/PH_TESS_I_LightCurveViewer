@@ -1255,6 +1255,31 @@ def abbrev_sector_list(lcc_or_sectors_or_lc_or_sr):
 
 
 #
+# Misc. generic astronomy helpers
+#
+
+RHO_sun = astropy.constants.M_sun / (4 / 3 * np.pi * astropy.constants.R_sun**3)
+
+
+def estimate_rho(mass, radius, return_unit=None):
+    """Estimate density based on mass and radius.
+    mass / radius is assumed to be in the units of M_sun, R_sun respectively,
+    if they are not of `Quantity` type.
+    """
+    if not isinstance(mass, u.Quantity):
+        mass = mass * astropy.constants.M_sun
+    if not isinstance(radius, u.Quantity):
+        radius = radius * astropy.constants.R_sun
+
+    rho = mass / (4 / 3 * np.pi * radius**3)
+    if return_unit is None:  # return in the unit of solar density
+        rho = rho / RHO_sun
+    else:
+        rho = rho.to(return_unit)
+    return rho
+
+
+#
 # TargetPixelFile helpers
 #
 
