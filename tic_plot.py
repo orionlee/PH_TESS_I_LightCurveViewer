@@ -1664,7 +1664,12 @@ def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(10, 5), title_extr
 
 
 def calc_cycles(lc: FoldedLightCurve):
-    cycle_epoch_start = lc.epoch_time - lc.period / 2
+    epoch_time = lc.meta.get("EPOCH_TIME")
+    if epoch_time is None:
+        # explicit check needed (cannot be the default value in get() function call above)
+        # because lightkurve fold() will put an explicit None in meta if epoch_time is not specified.
+        epoch_time = lc.time.min()
+    cycle_epoch_start = epoch_time - lc.period / 2
     cycles = np.asarray(np.floor(((lc.time_original - cycle_epoch_start) / lc.period).value), dtype=int)
     # the cycle where epoch is set as 0, adjust it so that the first cycle is 0
     cycles = cycles - cycles.min()
