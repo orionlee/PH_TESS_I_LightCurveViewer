@@ -1,0 +1,5 @@
+tic,has_etv,comments,period,epoch_p,epoch_s,num_sectors,time_span,time_start,time_end
+272650576,N?,Data possibly too sparse,16.256833,1699.2054,1691.7634,16,1169.78,1683.35,2853.14
+353894978,N,VSX Period to SB Period ~ 1:3.,3.341824,1685.6442120000002,1683.9733,28,1279.23,1683.35,2962.58
+30034081,N,VSX Period to SB Period ~ 7:5 . Period used is ~2X of the VSX period,4.689246,1413.897423,1411.5528,30,1797.24,1410.9,3208.14
+420962954,,Likely to be too sparse (2 or 3 sectors),
