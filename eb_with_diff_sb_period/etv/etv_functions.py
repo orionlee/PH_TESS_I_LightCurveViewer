@@ -8,7 +8,7 @@ from scipy.interpolate import PchipInterpolator
 from scipy.interpolate import interp1d
 from os.path import basename, exists
 import sys  
-sys.path.insert(1, '/Users/neisner/Documents/code/utils/')
+# sys.path.insert(1, '/Users/neisner/Documents/code/utils/')
 import filters
 import norm
 import emcee
@@ -447,14 +447,15 @@ def fit_each_eclipse(data, n_transits, t0, period, mean_alpha0, mean_alpha1, mea
             x = np.array(x[mask])
             y = np.array(y[mask]) 
             yerr = np.array(yerr[mask])
-            
+
+            # convert x from time (JD-like) time to normalized phase, with t0 as midpoint (0)
             x = np.array([-0.5+( ( t - t0-0.5*period) % period) / period for t in x])
             
             if len(x) > min_number_data:
 
                 print (transit_time, mean_alpha0, mean_alpha1, mean_t0)
                 
-                start_vals = [mean_alpha0, mean_alpha1, mean_t0]
+                start_vals = [mean_alpha0, mean_alpha1, 0]  # use 0 instead of mean_t0, as x is shifted to be 0 for t0
                 
                 pos = list(get_starting_positions(start_vals,nwalkers=64))[0]
                 
