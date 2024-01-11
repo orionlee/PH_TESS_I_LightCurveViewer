@@ -176,7 +176,7 @@ def _flip_yaxis_for_mag(ax, lc, plot_kwargs):
     y_column = plot_kwargs.get("column", "flux")
     # invert y-axis only when it hasn't been inverted
     # to support multiple scatter/plot/errorbar calls on the same ax object
-    if lc[y_column].unit is u.mag and ax.get_ylim()[1] > ax.get_ylim()[0]:
+    if lc[y_column].unit == u.mag and ax.get_ylim()[1] > ax.get_ylim()[0]:
         ax.invert_yaxis()
     return ax
 
