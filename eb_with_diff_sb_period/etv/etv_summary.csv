@@ -4,4 +4,5 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 30034081,N,VSX Period to SB Period ~ 7:5 . Period used is ~2X of the VSX period,4.689246,45.1,45.23,1413.897423,1411.5528,30,1797.24,1410.9,3208.14
 420962954,,Likely to be too sparse (2 or 3 sectors) for ETV,
 382101519,N,included 7 sectors of 200s TESS-SPOC data to increase the time span,0.672261,30.74,,2036.4003,,20,1145.86,2036.28,3182.14
+180943676,FP,"FP, as ETV Period ~= SB Period. VSX entry refers to a nearby EB with similar brightness.",8.418147,8.28,0.39,1471.4196,1475.5596,4,759.29,1468.27,2227.57
 
