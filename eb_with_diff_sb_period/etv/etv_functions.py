@@ -485,6 +485,8 @@ def fit_each_eclipse(data, n_transits, t0, period, mean_alpha0, mean_alpha1, mea
                     writer = csv.writer(f, delimiter=',')
                     writer.writerow([i, transit_time, mean_t0_fit, stdv_t0_fit, mean_alpha0_fit, mean_alpha1_fit, mean_d, mean_Tau])
             else:  
+                if (len(x) > 0):
+                    print(f"Time {transit_time} does not have enough data points: {len(x)}")
                 continue
         else:
             print ("Number {} has already been completed -- skip".format(i))
