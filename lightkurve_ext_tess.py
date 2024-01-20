@@ -799,6 +799,56 @@ def _is_all_finite(num_or_num_list):
     return np.all([is_one_finite(n) for n in num_or_num_list])
 
 
+def linkify_gaiadr3_result_html(result: Table, max_num_rows=999):
+    """Return Gaia DR3 Vizier Search Result in HtML, with links back to Vizier"""
+
+    # the linkify depends on Source column.
+    # so simply return html if Source is not there
+    if "Source" not in result.colnames:
+        with astropy.conf.set_temp("max_lines", max_num_rows):
+            return result._repr_html_()
+
+    # the result table content is to be tweaked for linkify implementation
+    # so we use a copy.
+    result = result.copy()
+
+    # Include the source for variable and NSS when applicable
+    # They will be used for reformatting as link.
+    if "VarFlag" in result.colnames:
+        c = np.char.add(result["VarFlag"], result["Source"].astype(str))
+        c[result["VarFlag"] != "VARIABLE"] = "NOT_AVAILABLE"
+        result["VarFlag"] = c
+    if "NSS" in result.colnames:
+        c = np.char.add(result["NSS"].astype(str), result["Source"].astype(str))
+        c = np.char.add(np.full_like(c, "NSS"), c)
+        c[result["NSS"] == 0] = "0"
+        result["NSS"] = c
+
+    with astropy.conf.set_temp("max_lines", max_num_rows):
+        html = result._repr_html_()
+
+    # linkify Gaia DR3 Source, Variable and NSS
+    for id in result["Source"]:
+        # the long URL includes both Gaia DR3 Main and Astrophysical, with frequently used columns included.
+        gaiadr3_url = f"https://vizier.cds.unistra.fr/viz-bin/VizieR-4?-ref=VIZ6578bb1b54eda&-to=-4b&-from=-4&-this=-4&%2F%2Fsource=I%2F355%2Fgaiadr3&%2F%2Ftables=I%2F355%2Fgaiadr3&%2F%2Ftables=I%2F355%2Fparamp&-out.max=50&%2F%2FCDSportal=http%3A%2F%2Fcdsportal.u-strasbg.fr%2FStoreVizierData.html&-out.form=HTML+Table&%2F%2Foutaddvalue=default&-order=I&-oc.form=sexa&-out.src=I%2F355%2Fgaiadr3%2CI%2F355%2Fparamp&-nav=cat%3AI%2F355%26tab%3A%7BI%2F355%2Fgaiadr3%7D%26tab%3A%7BI%2F355%2Fparamp%7D%26key%3Asource%3DI%2F355%2Fgaiadr3%26HTTPPRM%3A&-c=&-c.eq=J2000&-c.r=++2&-c.u=arcmin&-c.geom=r&-source=&-x.rs=10&-source=I%2F355%2Fgaiadr3+I%2F355%2Fparamp&-out.orig=standard&-out=RA_ICRS&-out=DE_ICRS&-out=Source&Source={id}&-out=Plx&-out=PM&-out=pmRA&-out=pmDE&-out=sepsi&-out=IPDfmp&-out=RUWE&-out=Dup&-out=Gmag&-out=BPmag&-out=RPmag&-out=BP-RP&-out=RV&-out=e_RV&-out=VarFlag&-out=NSS&-out=XPcont&-out=XPsamp&-out=RVS&-out=EpochPh&-out=EpochRV&-out=MCMCGSP&-out=MCMCMSC&-out=Teff&-out=logg&-out=%5BFe%2FH%5D&-out=Dist&-out=A0&-out=HIP&-out=PS1&-out=SDSS13&-out=SKYM2&-out=TYC2&-out=URAT1&-out=AllWISE&-out=APASS9&-out=GSC23&-out=RAVE5&-out=2MASS&-out=RAVE6&-out=RAJ2000&-out=DEJ2000&-out=Pstar&-out=PWD&-out=Pbin&-out=ABP&-out=ARP&-out=GMAG&-out=Rad&-out=SpType-ELS&-out=Rad-Flame&-out=Lum-Flame&-out=Mass-Flame&-out=Age-Flame&-out=Flags-Flame&-out=Evol&-out=z-Flame&-meta.ucd=0&-meta=0&-usenav=1&-bmark=GET"
+        html = html.replace(
+            f">{id}<",
+            f"><a target='vizier_gaia_dr3' href='{gaiadr3_url}'>{id}</a><",
+        )
+
+        gaiadr3_var_url = f"https://vizier.cds.unistra.fr/viz-bin/VizieR-4?-ref=VIZ65ac1f481b91d6&-to=-4b&-from=-3&-this=-4&%2F%2Fsource=%2BI%2F358%2Fvarisum%2BI%2F358%2Fvclassre%2BI%2F358%2Fveb%2BI%2F358%2Fvcc%2BI%2F358%2Fvst&%2F%2Fc=06%3A59%3A36.3+%2B23%3A28%3A51.14&%2F%2Ftables=I%2F358%2Fvarisum&%2F%2Ftables=I%2F358%2Fvclassre&%2F%2Ftables=I%2F358%2Fvcc&%2F%2Ftables=I%2F358%2Fveb&%2F%2Ftables=I%2F358%2Fvst&-out.max=50&%2F%2FCDSportal=http%3A%2F%2Fcdsportal.u-strasbg.fr%2FStoreVizierData.html&-out.form=HTML+Table&-out.add=_r&%2F%2Foutaddvalue=default&-sort=_r&-order=I&-oc.form=sexa&-out.src=I%2F358%2Fvarisum%2CI%2F358%2Fvclassre%2CI%2F358%2Fveb%2CI%2F358%2Fvcc%2CI%2F358%2Fvst&-nav=cat%3AI%2F358%26tab%3A%7BI%2F358%2Fvarisum%7D%26tab%3A%7BI%2F358%2Fvclassre%7D%26tab%3A%7BI%2F358%2Fvcc%7D%26tab%3A%7BI%2F358%2Fveb%7D%26tab%3A%7BI%2F358%2Fvst%7D%26key%3Asource%3D%2BI%2F358%2Fvarisum%2BI%2F358%2Fvclassre%2BI%2F358%2Fveb%2BI%2F358%2Fvcc%2BI%2F358%2Fvst%26key%3Ac%3D06%3A59%3A36.3+%2B23%3A28%3A51.14%26pos%3A06%3A59%3A36.3+%2B23%3A28%3A51.14%28+60+arcsec%29%26HTTPPRM%3A&-c=&-c.eq=J2000&-c.r=+60&-c.u=arcsec&-c.geom=r&-source=&-x.rs=10&-source=I%2F358%2Fvarisum+I%2F358%2Fvclassre+I%2F358%2Fveb+I%2F358%2Fvcc+I%2F358%2Fvst&-out.orig=standard&-out=Source&Source={id}&-out=RA_ICRS&-out=DE_ICRS&-out=TimeG&-out=DurG&-out=Gmagmean&-out=TimeBP&-out=DurBP&-out=BPmagmean&-out=TimeRP&-out=DurRP&-out=RPmagmean&-out=VCR&-out=VRRLyr&-out=VCep&-out=VPN&-out=VST&-out=VLPV&-out=VEB&-out=VRM&-out=VMSO&-out=VAGN&-out=Vmicro&-out=VCC&-out=SolID&-out=Classifier&-out=Class&-out=ClassSc&-out=Rank&-out=TimeRef&-out=Freq&-out=magModRef&-out=PhaseGauss1&-out=sigPhaseGauss1&-out=DepthGauss1&-out=PhaseGauss2&-out=sigPhaseGauss2&-out=DepthGauss2&-out=AmpCHP&-out=PhaseCHP&-out=ModelType&-out=Nparam&-out=rchi2&-out=PhaseE1&-out=DurE1&-out=DepthE1&-out=PhaseE2&-out=DurE2&-out=DepthE2&-out=Per&-out=T0G&-out=T0BP&-out=T0RP&-out=HG0&-out=HG1&-out=HG2&-out=HG3&-out=HG4&-out=HG5&-out=HBP0&-out=HBP1&-out=HBP2&-out=HBP3&-out=HBP4&-out=HBP5&-out=HRP0&-out=HRP1&-out=HRP2&-out=HRP3&-out=HRP4&-out=HRP5&-out=Gmodmean&-out=BPmodmean&-out=RPmodmean&-out=Mratiomin&-out=alpha&-out=Ampl&-out=NfoVTrans&-out=FoVAbbemean&-out=NTimeScale&-out=TimeScale&-out=Variogram&-meta.ucd=2&-meta=1&-meta.foot=1&-usenav=1&-bmark=GET"
+        html = html.replace(
+            f">VARIABLE{id}<",
+            f"><a target='vizier_gaia_dr3_var' href='{gaiadr3_var_url}'>VARIABLE</a><",
+        )
+
+        gaiadr3_nss_url = f"https://vizier.cds.unistra.fr/viz-bin/VizieR-4?-ref=VIZ65a1a2351812e4&-to=-4b&-from=-3&-this=-4&%2F%2Fsource=I%2F357&%2F%2Ftables=I%2F357%2Ftboasb1c&%2F%2Ftables=I%2F357%2Ftboeb&%2F%2Ftables=I%2F357%2Ftboes&%2F%2Ftables=I%2F357%2Ftbooc&%2F%2Ftables=I%2F357%2Ftbooac&%2F%2Ftables=I%2F357%2Ftbooavc&%2F%2Ftables=I%2F357%2Ftbootsc&%2F%2Ftables=I%2F357%2Ftbootsvc&%2F%2Ftables=I%2F357%2Ftbosb1&%2F%2Ftables=I%2F357%2Ftbosb1c&%2F%2Ftables=I%2F357%2Ftbosb2&%2F%2Ftables=I%2F357%2Ftbosb2c&%2F%2Ftables=I%2F357%2Facc7&%2F%2Ftables=I%2F357%2Facc9&%2F%2Ftables=I%2F357%2Flinspec1&%2F%2Ftables=I%2F357%2Flinspec2&%2F%2Ftables=I%2F357%2Fvimfl&-out.max=50&%2F%2FCDSportal=http%3A%2F%2Fcdsportal.u-strasbg.fr%2FStoreVizierData.html&-out.form=HTML+Table&-out.add=_r&%2F%2Foutaddvalue=default&-sort=_r&-order=I&-oc.form=sexa&-out.src=I%2F357%2Ftboasb1c%2CI%2F357%2Ftboeb%2CI%2F357%2Ftboes%2CI%2F357%2Ftbooc%2CI%2F357%2Ftbooac%2CI%2F357%2Ftbooavc%2CI%2F357%2Ftbootsc%2CI%2F357%2Ftbootsvc%2CI%2F357%2Ftbosb1%2CI%2F357%2Ftbosb1c%2CI%2F357%2Ftbosb2%2CI%2F357%2Ftbosb2c%2CI%2F357%2Facc7%2CI%2F357%2Facc9%2CI%2F357%2Flinspec1%2CI%2F357%2Flinspec2%2CI%2F357%2Fvimfl&-nav=cat%3AI%2F357%26tab%3A%7BI%2F357%2Ftboasb1c%7D%26tab%3A%7BI%2F357%2Ftboeb%7D%26tab%3A%7BI%2F357%2Ftboes%7D%26tab%3A%7BI%2F357%2Ftbooc%7D%26tab%3A%7BI%2F357%2Ftbooac%7D%26tab%3A%7BI%2F357%2Ftbooavc%7D%26tab%3A%7BI%2F357%2Ftbootsc%7D%26tab%3A%7BI%2F357%2Ftbootsvc%7D%26tab%3A%7BI%2F357%2Ftbosb1%7D%26tab%3A%7BI%2F357%2Ftbosb1c%7D%26tab%3A%7BI%2F357%2Ftbosb2%7D%26tab%3A%7BI%2F357%2Ftbosb2c%7D%26tab%3A%7BI%2F357%2Facc7%7D%26tab%3A%7BI%2F357%2Facc9%7D%26tab%3A%7BI%2F357%2Flinspec1%7D%26tab%3A%7BI%2F357%2Flinspec2%7D%26tab%3A%7BI%2F357%2Fvimfl%7D%26key%3Asource%3DI%2F357%26HTTPPRM%3A&-c=&-c.eq=J2000&-c.r=++2&-c.u=arcmin&-c.geom=r&-source=&-x.rs=10&-source=I%2F357%2Ftboasb1c+I%2F357%2Ftboeb+I%2F357%2Ftboes+I%2F357%2Ftbooc+I%2F357%2Ftbooac+I%2F357%2Ftbooavc+I%2F357%2Ftbootsc+I%2F357%2Ftbootsvc+I%2F357%2Ftbosb1+I%2F357%2Ftbosb1c+I%2F357%2Ftbosb2+I%2F357%2Ftbosb2c+I%2F357%2Facc7+I%2F357%2Facc9+I%2F357%2Flinspec1+I%2F357%2Flinspec2+I%2F357%2Fvimfl&-out.orig=standard&-out=Source&Source={id}&-out=NSSmodel&-out=RA_ICRS&-out=DE_ICRS&-out=Plx&-out=pmRA&-out=pmDE&-out=ATI&-out=BTI&-out=FTI&-out=GTI&-out=CTI&-out=HTI&-out=Per&-out=Tperi&-out=ecc&-out=Vcm&-out=Flags&-out=_RA.icrs&-out=_DE.icrs&-out=ffactp&-out=ffacts&-out=inc&-out=Tratio&-out=Teclp&-out=Tecls&-out=Durp&-out=Durs&-out=K1&-out=MassRatio&-out=K2&-out=dpmRA&-out=dpmDE&-out=ddpmRA&-out=ddpmDE&-out=Velmean&-out=dVel%2Fdt&-out=dVel%2Fdt2&-out=RAVIM&-out=DEVIM&-meta.ucd=2&-meta=1&-meta.foot=1&-usenav=1&-bmark=GET"
+        html = re.sub(
+            rf">NSS(\d){id}<", rf"><a target='vizier_gaia_dr3_nss' href='{gaiadr3_nss_url}'>&ensp;\1&ensp;</a><", html
+        )
+    return html
+
+
 def search_gaiadr3_of_tics(
     targets,
     radius_arcsec=15,
@@ -981,17 +1031,7 @@ def search_gaiadr3_of_tics(
                     stellar_summary += f" Gaia DR2 {gaiadr2_id}"
                 html += f"<pre>{stellar_summary}</pre>"
 
-            with astropy.conf.set_temp("max_lines", 250):
-                html = html + result._repr_html_()
-
-        # linkify Gaia DR3 ID
-        for id in result["Source"]:
-            # the long URL includes both Gaia DR3 Main and Astrophysical, with frequently used columns included.
-            gaiadr3_url = f"https://vizier.cds.unistra.fr/viz-bin/VizieR-4?-ref=VIZ6578bb1b54eda&-to=-4b&-from=-4&-this=-4&%2F%2Fsource=I%2F355%2Fgaiadr3&%2F%2Ftables=I%2F355%2Fgaiadr3&%2F%2Ftables=I%2F355%2Fparamp&-out.max=50&%2F%2FCDSportal=http%3A%2F%2Fcdsportal.u-strasbg.fr%2FStoreVizierData.html&-out.form=HTML+Table&%2F%2Foutaddvalue=default&-order=I&-oc.form=sexa&-out.src=I%2F355%2Fgaiadr3%2CI%2F355%2Fparamp&-nav=cat%3AI%2F355%26tab%3A%7BI%2F355%2Fgaiadr3%7D%26tab%3A%7BI%2F355%2Fparamp%7D%26key%3Asource%3DI%2F355%2Fgaiadr3%26HTTPPRM%3A&-c=&-c.eq=J2000&-c.r=++2&-c.u=arcmin&-c.geom=r&-source=&-x.rs=10&-source=I%2F355%2Fgaiadr3+I%2F355%2Fparamp&-out.orig=standard&-out=RA_ICRS&-out=DE_ICRS&-out=Source&Source={id}&-out=Plx&-out=PM&-out=pmRA&-out=pmDE&-out=sepsi&-out=IPDfmp&-out=RUWE&-out=Dup&-out=Gmag&-out=BPmag&-out=RPmag&-out=BP-RP&-out=RV&-out=e_RV&-out=VarFlag&-out=NSS&-out=XPcont&-out=XPsamp&-out=RVS&-out=EpochPh&-out=EpochRV&-out=MCMCGSP&-out=MCMCMSC&-out=Teff&-out=logg&-out=%5BFe%2FH%5D&-out=Dist&-out=A0&-out=HIP&-out=PS1&-out=SDSS13&-out=SKYM2&-out=TYC2&-out=URAT1&-out=AllWISE&-out=APASS9&-out=GSC23&-out=RAVE5&-out=2MASS&-out=RAVE6&-out=RAJ2000&-out=DEJ2000&-out=Pstar&-out=PWD&-out=Pbin&-out=ABP&-out=ARP&-out=GMAG&-out=Rad&-out=SpType-ELS&-out=Rad-Flame&-out=Lum-Flame&-out=Mass-Flame&-out=Age-Flame&-out=Flags-Flame&-out=Evol&-out=z-Flame&-meta.ucd=0&-meta=0&-usenav=1&-bmark=GET"
-            html = html.replace(
-                f">{id}<",
-                f"><a target='vizier_gaia_dr3' href='{gaiadr3_url}'>{id}</a><",
-            )
+        html += linkify_gaiadr3_result_html(result)
 
         # remove the Table length=n message
         result_len = len(result)
