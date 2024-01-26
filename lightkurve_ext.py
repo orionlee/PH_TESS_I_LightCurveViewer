@@ -1046,6 +1046,40 @@ def select_flux(lc, flux_cols):
     raise ValueError(f"'column {flux_cols}' not found")
 
 
+def correct_crowding(lc_sap: lk.LightCurve, crowdsap=None, flfrcsap=None):
+    """Create crowding corrected lightcurve based on SAP_FLUX lightcurve.
+    # based on / see: https://heasarc.gsfc.nasa.gov/docs/tess/UnderstandingCrowding.html
+    """
+    # warn users if lc_sap is likely to be non-SAP
+    flux_origin = lc_sap.meta.get("FLUX_ORIGIN")
+    if flux_origin is not None and "sap_flux" != flux_origin:
+        warnings.warn(
+            f"correct_crowding(): supplied lightcurve is likely not SAP based, with FLUX_ORIGIN: {flux_origin}. "
+            "Corrected lightcurve returned might not be valid."
+        )
+
+    if crowdsap is None:
+        crowdsap = lc_sap.meta["CROWDSAP"]
+    if flfrcsap is None:
+        flfrcsap = lc_sap.meta["FLFRCSAP"]
+
+    median_flux = np.nanmedian(lc_sap.flux)
+    excess_flux = (1 - crowdsap) * median_flux
+    # note: a **constant** amount of flux is removed, so a dip would be proportionally deeper
+    flux_excess_removed = lc_sap.flux - excess_flux
+    flux_corr = flux_excess_removed / flfrcsap
+
+    # Calculate the new uncertainties
+    flux_err_corr = lc_sap.flux_err / flfrcsap
+
+    # OPEN: should we copy the entire lc_sap instead?
+    lc_corr = type(lc_sap)(time=lc_sap.time, flux=flux_corr, flux_err=flux_err_corr)
+    lc_corr.meta.update(lc_sap.meta)
+    lc_corr.meta["CROWDSAP"] = crowdsap
+    lc_corr.meta["FLFRCSAP"] = flfrcsap
+    return lc_corr
+
+
 def normalized_flux_val_to_mag(flux_val, base_mag):
     return base_mag + 2.5 * np.log10(1 / flux_val)
 
