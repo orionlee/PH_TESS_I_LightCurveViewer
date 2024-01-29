@@ -141,12 +141,12 @@ def trend_removal_interact(period_a, t0_a, data, **kwargs):
     fig.subplots_adjust(bottom=0.2)
 
     axes[0].plot(ph_original,flux_original,marker = '.', lw = 0, color = 'grey')
-    axes[0].plot(ph_cut,flux_cut,marker = '.', lw = 0, color = 'k')
+    axes[0].plot(ph_cut,flux_cut,marker = '.', lw = 0, color = 'k', label="flux")
     
-    axes[0].plot(ph_original,flux_original_period_a_model,marker = '.', lw = 0, color = 'darkorange', ms = 2)
+    axes[0].plot(ph_original,flux_original_period_a_model,marker = '.', lw = 0, color = 'darkorange', ms = 2, label="binary_model")
     
     
-    axes[1].plot(ph_original,flux_original_sub_period_a,'k.', alpha = 0.5)
+    axes[1].plot(ph_original,flux_original_sub_period_a,'k.', alpha = 0.5, label = "flux_sub_binary")
     
     axes[0].set_ylabel(r'$Flux$',fontsize=18)
     axes[1].set_ylabel(r'$Flux$',fontsize=18)
@@ -162,6 +162,9 @@ def trend_removal_interact(period_a, t0_a, data, **kwargs):
     axes[1].tick_params(axis="y",direction="inout") #, pad= -20)
     axes[1].tick_params(axis="x",direction="inout") #, pad= -17)   
     axes[1].tick_params(axis='both', length = 5, left='on', top='on', right='on', bottom='on')
+
+    axes[0].legend()
+    axes[1].legend()
 
 
     #plt.savefig('/Users/Nora/Documents/research/projects/fluffy/figs/sig_removal.png', dpi = 300)
@@ -238,20 +241,24 @@ def detrend_suz(data, T_dur = 10, plot = True, **kwargs):
         fig, ax = plt.subplots(figsize=figsize)
 
         # plot the original data
-        plt.plot(data.time,data.flux,'.', color = 'k', ms = 1) 
+        plt.plot(data.time,data.flux,'.', color = 'k', ms = 1, label = 'flux') 
 
         # plot the data minus the binary signal
-        plt.plot(data.time,data.flux_sub_binary+1,'.')
+        plt.plot(data.time,data.flux_sub_binary+1,'.', label = 'flux_sub_binary + 1')
 
         # plot the model that was fit to the binary model
-        plt.plot(data.time,((ff*1.2)+1),'.', color = 'orange')
+        plt.plot(data.time,((ff*1.2)+1),'.', color = 'orange', label = '~interp1d(flux_sub_binary) + 1')
+
+        plt.legend()
 
         # make a second figure with the detrended data
         fig, ax = plt.subplots(figsize=figsize)
 
         #plt.plot(alltime, allflux,'.k', ms = 1)
-        plt.plot(data.time, data.flux_detrended,'.r', alpha = 1, ms = 1)
+        plt.plot(data.time, data.flux_detrended,'.r', alpha = 1, ms = 1, label = 'flux_detrended')
 
+        plt.legend()
+    
     return data
 
 
