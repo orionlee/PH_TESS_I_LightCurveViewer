@@ -6,4 +6,5 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 382101519,N,included 7 sectors of 200s TESS-SPOC data to increase the time span,0.672261,30.74,,2036.4003,,20,1145.86,2036.28,3182.14
 180943676,FP,"FP, as ETV Period ~= SB Period. VSX entry refers to a nearby EB with similar brightness.",8.418147,8.28,0.39,1471.4196,1475.5596,4,759.29,1468.27,2227.57
 4713510,FP,"NEB. Actual EB is TIC 4713433",
+52368472,Y?,Possibly ETV. Another possibility is the period not precise enough.,0.3258265,4.52,3.37,1325.422,1325.5856,4,1882.84,1325.3,3208.14
 
