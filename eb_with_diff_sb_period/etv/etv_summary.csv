@@ -2,11 +2,13 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 272650576,N?,"No changes in O-C in primary; scatter in O-C is secondary, unsure if there is any pattern.",16.256833,23.81,13.44,1699.2054,1691.7634,16,1169.78,1683.35,2853.14
 353894978,N,VSX Period to SB Period ~ 1:3.,3.341824,21.64,21.53,1685.6442120000002,1683.9733,28,1279.23,1683.35,2962.58
 30034081,N,VSX Period to SB Period ~ 7:5 . Period used is ~2X of the VSX period,4.689246,45.1,45.23,1413.897423,1411.5528,30,1797.24,1410.9,3208.14
-420962954,,Likely to be too sparse (2 or 3 sectors) for ETV,
+420962954,S,Likely to be too sparse (2 or 3 sectors) for ETV,
 382101519,N,included 7 sectors of 200s TESS-SPOC data to increase the time span,0.672261,30.74,,2036.4003,,20,1145.86,2036.28,3182.14
 180943676,FP,"FP, as Orbital Period ~= SB Period. VSX entry refers to a nearby EB with similar brightness.",8.418147,8.28,0.39,1471.4196,1475.5596,4,759.29,1468.27,2227.57
 4713510,FP,"NEB. Actual EB is TIC 4713433",
 52368472,Y?,Possibly ETV. Another possibility is the period not precise enough.,0.3258265,4.52,3.37,1325.422,1325.5856,4,1882.84,1325.3,3208.14
 20239565,FP,"FP, as Orbital Period ~= SB Period. VSX period is ~1/4 of actual period.",
 231922417,Y?,"Possibly ETV on primary and secondary. QLP data. Yellow flag: limited cadence in early sectors (< BTJD 1520), as few as 5 points in a modeled eclipse in early sectors (30 min cadence data + short eclipse duration).",0.687161,8.68,3.82,1438.3228,1438.6668,6,816.07,1437.99,2254.06
+36883123,S,1 or 2 sectors only,
+57297550,N,2 sectors of 2min cadence + 2 sectors of 10min cadence.,0.3822312,18.92,21.23,1955.9687,1956.1598156,4,787.28,1955.8,2743.08
 
