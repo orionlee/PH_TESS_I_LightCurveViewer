@@ -24,6 +24,17 @@ def shift_flux(lc, lc_ref, inplace=False):
         return lc
 
 
+def combine_multi_bands_and_shift(lc_dict, shift_to):
+    res = {}
+    lc_ref = lc_dict[shift_to]
+    for band, lc in lc_dict.items():
+        lc = lc.copy()  # ensure users who further modify the result won't affect the source
+        if band != shift_to:
+            shift_flux(lc, lc_ref=lc_ref, inplace=True)
+        res[band] = lc
+    return res
+
+
 def combine_tess_n_k2(lc_tess, lc_k2, shift_to_tess=True):
     lc_tess = lc_tess.copy()  # ensure users who further modify the result won't affect the source
     lc_k2 = lc_k2.copy()
@@ -43,6 +54,103 @@ def get_label_of_source(lc_dict, source):
         return f"{source} {sign_str}{mag_shift:.4f}"
     else:
         return source
+
+
+def plot_tess_n_ztf(lc_combined_dict, figsize, target_name):
+    ax = tplt.lk_ax(figsize=figsize)
+    ax.invert_yaxis()
+
+    # scatter plot for the dense TESS data, error is relatively small
+    lc = lc_combined_dict["TESS"]
+    ax.scatter(lc.time.value, lc.flux.value, c="#3AF", s=0.1, alpha=1.0, label=get_label_of_source(lc_combined_dict, "TESS"))
+
+    # scatter plot for ZTF data
+    lc = lc_combined_dict["ZTF"]
+    # ax.scatter(lc.time.value, lc.flux.value, c="green", s=1.0, alpha=1.0, label=get_label_of_source(lc_combined_dict, "ZTF"))
+    ax.errorbar(
+        x=lc.time.value,
+        y=lc.flux.value,
+        yerr=lc.flux_err.value,
+        marker=".",
+        c="green",
+        linewidth=0.5,
+        ls="none",
+        label=get_label_of_source(lc_combined_dict, "ZTF"),
+    )
+
+    ax.legend()
+    ax.set_xlabel("Time [HJD]")
+    ax.set_ylabel("Magnitude")
+    ax.set_title(f"""{target_name}""")
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: format(int(x), ",")))  # thousands separator
+    return ax
+
+
+def fold_n_plot_tess_n_ztf(
+    lc_combined_dict, period, epoch: Time, phase_scale, target_coord=None, figsize=(8, 4), target_name=None, ax=None
+):
+    def fold_at_scale(lc, **kwargs):
+        if lc is None:
+            return None
+        kwargs = kwargs.copy()
+        kwargs["period"] = kwargs["period"] * phase_scale
+        lc_f = lc.fold(**kwargs)
+        return lc_f
+
+    from astropy.coordinates import SkyCoord
+
+    if epoch.format == "jd" and epoch.scale == "utc":
+        # if already in HJD UTC, avoid unnecessary conversion which would also have undesirable effect on precision
+        epoch_hjd = epoch
+    else:
+        epoch_hjd = lke.to_hjd_utc(epoch, SkyCoord(target_coord["ra"], target_coord["dec"], unit=(u.deg, u.deg), frame="icrs"))
+
+    lc_tess_f = fold_at_scale(lc_combined_dict.get("TESS"), epoch_time=epoch_hjd, period=period, normalize_phase=True)
+    lc_ztf_f = fold_at_scale(lc_combined_dict.get("ZTF"), epoch_time=epoch_hjd, period=period, normalize_phase=True)
+
+    if ax is None:
+        ax = tplt.lk_ax(figsize=figsize)
+
+    ax.invert_yaxis()
+
+    if lc_tess_f is not None and len(lc_tess_f) > 0:
+        ax.scatter(
+            lc_tess_f.time * phase_scale,
+            lc_tess_f.flux.value,
+            c="#3AF",
+            s=0.1,
+            alpha=1.0,
+            label=get_label_of_source(lc_combined_dict, "TESS"),
+        )
+
+    if lc_ztf_f is not None and len(lc_ztf_f) > 0:
+        ax.errorbar(
+            x=lc_ztf_f.time * phase_scale,
+            y=lc_ztf_f.flux.value,
+            yerr=lc_ztf_f.flux_err.value,
+            marker=".",
+            c="green",
+            linewidth=0.5,
+            ls="none",
+            label=get_label_of_source(lc_combined_dict, "ZTF"),
+        )
+
+    ax.legend()
+    ax.set_xlabel("Phase")
+    ax.set_ylabel("Magnitude")
+    time_all = np.array([])
+    if lc_tess_f is not None:
+        time_all = np.concatenate([time_all, lc_tess_f.time_original.to_value("jd")])
+    if lc_ztf_f is not None:
+        time_all = np.concatenate([time_all, lc_ztf_f.time_original.to_value("jd")])
+    plot_time_span = time_all.max() - time_all.min()
+    ax.set_title(
+        f"""{target_name}
+    period: {period}d, epoch={epoch_hjd.value}, time span: {plot_time_span:.0f}d
+    """
+    )
+
+    return ax, {"TESS": lc_tess_f, "ZTF": lc_ztf_f}
 
 
 def plot_tess_n_k2(lc_combined_dict, figsize, target_name):

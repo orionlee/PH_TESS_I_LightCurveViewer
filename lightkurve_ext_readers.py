@@ -174,6 +174,62 @@ def read_astroimagej_tbl(
     return lc
 
 
+def read_ztf_csv(
+    url=None,
+    time_column="hjd",
+    time_format="jd",
+    time_scale="utc",
+    flux_column="mag",
+    flux_err_column="magerr",
+):
+    """Return ZTF Archive lightcurve files in IPAC Table tbl"""
+    # Note: First tried to read ZTF's ipac table .tbl, but got
+    # TypeError: converter type does not match column type
+    # unsure what the offending column is though.
+
+    def get_required_column(tab, colname):
+        if colname not in tab.colnames:
+            raise ValueError(f"Required column {colname} is not found")
+        return tab[colname]
+
+    tab = Table.read(
+        url,
+        format="ascii.csv",
+        converters={
+            "oid": np.uint64,
+            "expid": np.uint64,
+            "filefracday": np.uint64,
+        },
+    )
+
+    time = get_required_column(tab, time_column)
+    time = Time(time, format=time_format, scale=time_scale)
+    flux = get_required_column(tab, flux_column)
+    flux_err = get_required_column(tab, flux_err_column)
+
+    lc = lk.LightCurve(
+        time=time,
+        flux=flux,
+        flux_err=flux_err,
+        data=tab,
+    )
+
+    # assign units
+    for col in ["flux", "flux_err", flux_column, flux_err_column, "limitmag"]:
+        if col in lc.colnames:
+            lc[col] = lc[col] * u.mag
+
+    lc.meta.update(
+        {
+            "FILEURL": url,
+            "FLUX_ORIGIN": flux_column,
+            "TIME_ORIGIN": time_column,
+        }
+    )
+
+    return lc
+
+
 def read_hipparcos_data(url):
     """Read Hipparcos and Tycho Epoch Photometry hosted on Vizier.
     https://cdsarc.cds.unistra.fr/viz-bin/VizieR?-meta&-meta.ucd&-source=I/239
