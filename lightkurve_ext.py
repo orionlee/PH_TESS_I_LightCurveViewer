@@ -1107,6 +1107,26 @@ def to_flux_in_mag_by_normalization(lc, base_mag_header_name=None):
     return lc
 
 
+def to_normalized_flux_from_mag(lc):
+    """Convert the a lightcurve's flux from magnitude to normalized flux."""
+    if lc.flux.unit is not u.mag:
+        raise ValueError("The flux must be in magnitude")
+
+    lc = lc.copy()
+
+    median_flux_mag = np.nanmedian(lc.flux.value)
+
+    flux_delta_mag = lc.flux.value - median_flux_mag
+
+    flux_norm = 1 / np.power(10, flux_delta_mag / 2.5)
+    flux_err_norm = 1 / np.power(10, lc.flux_err.value / 2.5)  # OPEN: should recheck
+
+    lc.flux = flux_norm * u.dimensionless_unscaled
+    lc.flux_err = flux_err_norm * u.dimensionless_unscaled
+    lc.meta["NORMALIZED"] = True
+    return lc
+
+
 def ratio_to_mag(val_in_ratio):
     """Convert normalized transit depth to magnitude."""
     return 2.5 * np.log10(1 / (1 - val_in_ratio))
