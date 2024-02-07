@@ -1703,6 +1703,9 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
         )
 
     lc = lc.remove_nans()  # remove any potential empty frames with no flux
+    if lc.meta.get("LABEL") is None:
+        # supply a dummy label, to avoid matplotlib warnings when doing scatter()
+        lc.meta["LABEL"] = "Folded Lightcurve"
     if ax is None:
         ax = lk_ax()
 
