@@ -353,7 +353,7 @@ def run_mcmc_initial_fit(data, start_vals, nruns = 1000, plot_chains = False, pl
     mean_d = np.median(flat_samples[:,3])
     mean_Tau = np.median(flat_samples[:,4])
 
-    inds = np.random.randint(len(flat_samples), size=1000)
+    inds = np.random.randint(len(flat_samples), size=nruns)
 
     if plot == True:
         fig, axes = plt.subplots(figsize=figsize, sharex=True)
