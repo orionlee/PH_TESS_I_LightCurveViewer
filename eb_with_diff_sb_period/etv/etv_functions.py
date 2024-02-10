@@ -6,13 +6,30 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.interpolate import PchipInterpolator
 from scipy.interpolate import interp1d
+import logging
 from os.path import basename, exists
+import os
+import multiprocessing
+from multiprocessing import Pool
 import sys
 
 # sys.path.insert(1, '/Users/neisner/Documents/code/utils/')
 import filters
 import norm
 import emcee
+
+
+log = logging.getLogger(__name__)
+
+
+def enable_info_log_for_jupyter():
+    "Enable INFO logging for the module in Jupyter environment."
+    log.setLevel(logging.INFO)
+    # in Jupyter, INFO logging by default is not sent to anywhere (no handler)
+    # so we have to add one
+    if not getattr(log, "_stdout_handler_added", False):
+        log.addHandler(logging.StreamHandler(stream=sys.stdout))
+        log._stdout_handler_added = True
 
 
 def phase_data(time, t0, period):
@@ -314,81 +331,157 @@ def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, **
 # for the mcmc
 
 
-def run_mcmc_initial_fit(data, start_vals, nruns=1000, plot_chains=False, plot=True, **kwargs):
+class EmceePoolContext:
+    """A Context Manager to manage `Pool` instances with `emcee` specific tweaks."""
 
+    def __init__(self, pool: Pool, auto_close: bool):
+        self.pool = pool
+        self.auto_close = auto_close
+        self._existing_omp_num_threads = None
+
+    def __enter__(self):
+        if self.pool is not None:
+            # case parallel emcee is enabled,
+            # turn off numpy parallel operations to avoid possible conflicts:
+            # see: https://emcee.readthedocs.io/en/stable/tutorials/parallel/#parallel
+            self._existing_omp_num_threads = os.environ.get("OMP_NUM_THREADS", None)
+            os.environ["OMP_NUM_THREADS"] = "1"
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if self.pool is not None:
+            if self._existing_omp_num_threads is None:
+                del os.environ["OMP_NUM_THREADS"]
+            else:
+                os.environ["OMP_NUM_THREADS"] = self._existing_omp_num_threads
+
+        if self.pool is not None and self.auto_close:
+            self.pool.close()
+
+
+def _parse_pool_param(pool):
+    """
+    Parse the `pool` parameter shared by various mcmc functions.
+    It allows caller to pass a `Pool` instance or various shorthands
+    """
+    if pool is None:
+        return None, False  # <-- is pool_from_caller
+
+    if isinstance(pool, multiprocessing.pool.Pool):
+        # multiprocessing.pool.Pool is the class, while
+        # multiprocessing.Pool is a factory function to create the instances
+        is_pool_from_caller = True
+    else:
+        is_pool_from_caller = False
+        if pool == "all":
+            num_processes_to_use = os.cpu_count()
+            log.info(f"emcee parallel enabled, use all {num_processes_to_use} CPUs.")
+            pool = Pool(num_processes_to_use)
+        elif isinstance(pool, int):
+            if pool > 0:
+                num_processes_to_use = pool
+            else:
+                # use all but {pool} CPUs
+                num_processes_to_use = os.cpu_count() - (-pool)
+            log.info(f"emcee parallel enabled, use {num_processes_to_use} CPUs.")
+            pool = Pool(num_processes_to_use)
+        else:
+            raise TypeError(
+                '`pool` must be None, "all", '
+                "int (for num processes, negative to use all but the specified num. of CPUs), "
+                "or a `Pool` instance."
+            )
+        return pool, is_pool_from_caller
+
+
+def run_mcmc_initial_fit(
+    data,
+    start_vals,
+    nruns=1000,
+    discard=600,
+    thin=15,
+    pool=None,
+    plot_chains=False,
+    plot=True,
+    **kwargs,
+):
     figsize = kwargs.get("figsize", (8, 4))
+    figsize_chains = kwargs.get("figsize_chains", (8, 12))
 
-    pos = list(get_starting_positions(start_vals, nwalkers=128))[0]
+    pool, is_pool_from_caller = _parse_pool_param(pool)
 
-    nwalkers = 128
-    ndim = len(start_vals)
+    with EmceePoolContext(pool, auto_close=not is_pool_from_caller):
+        pos = list(get_starting_positions(start_vals, nwalkers=128))[0]
 
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, args=(data.phase, data.flux, data.err))
+        nwalkers = 128
+        ndim = len(start_vals)
 
-    sampler.run_mcmc(pos, nruns, progress=True, store=True)
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, args=(data.phase, data.flux, data.err), pool=pool)
 
-    tau = sampler.get_autocorr_time(tol=0)
+        sampler.run_mcmc(pos, nruns, progress=True, store=True)
 
-    samples = sampler.get_chain()
-    labels = ["alpha0", "alpha1", "t0", "d", "Tau"]
+        tau = sampler.get_autocorr_time(tol=0)
 
-    if plot_chains == True:
+        samples = sampler.get_chain()
+        labels = ["alpha0", "alpha1", "t0", "d", "Tau"]
 
-        fig, axes = plt.subplots(5, figsize=figsize, sharex=True)
+        if plot_chains == True:
 
-        for i in range(ndim):
-            ax = axes[i]
-            ax.plot(samples[:, :, i], "k", alpha=0.3)
-            ax.set_xlim(0, len(samples))
-            ax.set_ylabel(labels[i])
-            ax.yaxis.set_label_coords(-0.1, 0.5)
+            fig, axes = plt.subplots(ndim, figsize=figsize_chains, sharex=True)
 
-        axes[-1].set_xlabel("step number")
-        plt.show()
+            for i in range(ndim):
+                ax = axes[i]
+                ax.plot(samples[:, :, i], "k", alpha=0.3)
+                ax.set_xlim(0, len(samples))
+                ax.set_ylabel(labels[i])
+                ax.yaxis.set_label_coords(-0.1, 0.5)
 
-    flat_samples = sampler.get_chain(discard=600, thin=15, flat=True)
+            axes[-1].set_xlabel("step number")
+            plt.show()
 
-    mean_alpha0 = np.median(flat_samples[:, 0])
-    mean_alpha1 = np.median(flat_samples[:, 1])
-    mean_t0 = np.median(flat_samples[:, 2])
-    mean_d = np.median(flat_samples[:, 3])
-    mean_Tau = np.median(flat_samples[:, 4])
+        flat_samples = sampler.get_chain(discard=discard, thin=thin, flat=True)
 
-    inds = np.random.randint(len(flat_samples), size=nruns)
+        mean_alpha0 = np.median(flat_samples[:, 0])
+        mean_alpha1 = np.median(flat_samples[:, 1])
+        mean_t0 = np.median(flat_samples[:, 2])
+        mean_d = np.median(flat_samples[:, 3])
+        mean_Tau = np.median(flat_samples[:, 4])
 
-    if plot == True:
-        fig, axes = plt.subplots(figsize=figsize, sharex=True)
+        inds = np.random.randint(len(flat_samples), size=nruns)
 
-        for ind in inds:
-            sample = flat_samples[ind]
+        if plot == True:
+            fig, axes = plt.subplots(figsize=figsize, sharex=True)
+
+            for ind in inds:
+                sample = flat_samples[ind]
+                plt.plot(
+                    data.phase,
+                    coshgauss_model_fit(data.phase, *sample),
+                    "C1",
+                    lw=0,
+                    marker=".",
+                    markersize=0.1,
+                    alpha=0.1,
+                    zorder=1,
+                )
+
+            plt.errorbar(data.phase, data.flux, yerr=data.err, fmt=".k", capsize=0, zorder=-2)
+
             plt.plot(
                 data.phase,
-                coshgauss_model_fit(data.phase, sample[0], sample[1], sample[2], sample[3], sample[4]),
-                "C1",
+                coshgauss_model_fit(data.phase, mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau),
                 lw=0,
                 marker=".",
-                alpha=0.1,
+                markersize=0.5,
+                alpha=1,
                 zorder=2,
+                color="red",
             )
 
-        plt.errorbar(data.phase, data.flux, yerr=data.err, fmt=".k", capsize=0, zorder=-2)
+            plt.xlabel("x")
+            plt.ylabel("y")
+            plt.show()
 
-        plt.plot(
-            data.phase,
-            coshgauss_model_fit(data.phase, mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau),
-            lw=0,
-            marker=".",
-            markersize=0.5,
-            alpha=1,
-            zorder=2,
-            color="red",
-        )
-
-        plt.xlabel("x")
-        plt.ylabel("y")
-        plt.show()
-
-    return mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau
+        return mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau
 
 
 # now that we have the best fit model, we fit this model to each individual eclipse using mcmc
@@ -439,7 +532,18 @@ def get_starting_positions_fitting(start_vals, nwalkers=128):
 
 
 def fit_each_eclipse(
-    data, n_transits, t0, period, mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau, outfile_path, min_number_data=20
+    data,
+    n_transits,
+    t0,
+    period,
+    mean_alpha0,
+    mean_alpha1,
+    mean_t0,
+    mean_d,
+    mean_Tau,
+    outfile_path,
+    pool=None,
+    min_number_data=20,
 ):
 
     if exists("{}".format(outfile_path)):
@@ -488,11 +592,17 @@ def fit_each_eclipse(
                 ndim = len(start_vals)
 
                 # start the mcmc fitting
-                sampler2 = emcee.EnsembleSampler(nwalkers, ndim, log_probability_fitting, args=(x, y, yerr, mean_d, mean_Tau))
+                # Note: parallel option (pool is not None) seems to be significantly slower
+                # for some reason.
+                pool_instance, is_pool_from_caller = _parse_pool_param(pool)
+                with EmceePoolContext(pool_instance, auto_close=not is_pool_from_caller):
+                    sampler2 = emcee.EnsembleSampler(
+                        nwalkers, ndim, log_probability_fitting, args=(x, y, yerr, mean_d, mean_Tau), pool=pool_instance
+                    )
 
-                sampler2.run_mcmc(pos, 10000, progress=True)
+                    sampler2.run_mcmc(pos, 10000, progress=True)
 
-                flat_samples2 = sampler2.get_chain(discard=400, thin=15, flat=True)
+                    flat_samples2 = sampler2.get_chain(discard=400, thin=15, flat=True)
 
                 mean_alpha0_fit = np.nanmedian(flat_samples2[:, 0])
                 mean_alpha1_fit = np.nanmedian(flat_samples2[:, 1])
