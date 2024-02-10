@@ -9,6 +9,7 @@ import logging
 import os
 import multiprocessing
 from multiprocessing import Pool
+import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,6 +19,43 @@ import emcee
 from etv_functions import phase_data, get_starting_positions
 
 log = logging.getLogger(__name__)
+
+
+def enable_info_log_for_jupyter():
+    "Enable INFO logging for the module in Jupyter environment."
+    log.setLevel(logging.INFO)
+    # in Jupyter, INFO logging by default is not sent to anywhere (no handler)
+    # so we have to add one
+    if not getattr(log, "_stdout_handler_added", False):
+        log.addHandler(logging.StreamHandler(stream=sys.stdout))
+        log._stdout_handler_added = True
+
+
+class EmceePoolContext:
+    """A Context Manager to manage `Pool` instances with `emcee` specific tweaks."""
+
+    def __init__(self, pool: Pool, auto_close: bool):
+        self.pool = pool
+        self.auto_close = auto_close
+        self._existing_omp_num_threads = None
+
+    def __enter__(self):
+        if self.pool is not None:
+            # case parallel emcee is enabled,
+            # turn off numpy parallel operations to avoid possible conflicts:
+            # see: https://emcee.readthedocs.io/en/stable/tutorials/parallel/#parallel
+            self._existing_omp_num_threads = os.environ.get("OMP_NUM_THREADS", None)
+            os.environ["OMP_NUM_THREADS"] = "1"
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if self.pool is not None:
+            if self._existing_omp_num_threads is None:
+                del os.environ["OMP_NUM_THREADS"]
+            else:
+                os.environ["OMP_NUM_THREADS"] = self._existing_omp_num_threads
+
+        if self.pool is not None and self.auto_close:
+            self.pool.close()
 
 
 def _parse_pool_param(pool):
@@ -34,21 +72,24 @@ def _parse_pool_param(pool):
         is_pool_from_caller = True
     else:
         is_pool_from_caller = False
-        if pool == "default":
-            # defaulted to use about 80% of the CPUs
-            num_processes_to_use = max(1, int(os.cpu_count() * 0.8))
-            log.info(f"emcee parallel enabled, defaulted to use {num_processes_to_use} CPUs.")
-            pool = Pool(num_processes_to_use)
-        elif pool == "all":
+        if pool == "all":
             num_processes_to_use = os.cpu_count()
             log.info(f"emcee parallel enabled, use all {num_processes_to_use} CPUs.")
             pool = Pool(num_processes_to_use)
         elif isinstance(pool, int):
-            num_processes_to_use = pool
+            if pool > 0:
+                num_processes_to_use = pool
+            else:
+                # use all but {pool} CPUs
+                num_processes_to_use = os.cpu_count() - (-pool)
             log.info(f"emcee parallel enabled, use {num_processes_to_use} CPUs.")
             pool = Pool(num_processes_to_use)
         else:
-            raise TypeError('`pool` must be None, "default", int (for num processes), or a `Pool` instance.')
+            raise TypeError(
+                '`pool` must be None, "all", '
+                "int (for num processes, negative to use all but the specified num. of CPUs), "
+                "or a `Pool` instance."
+            )
         return pool, is_pool_from_caller
 
 
@@ -69,13 +110,7 @@ def run_mcmc_initial_fit_p(
 
     pool, is_pool_from_caller = _parse_pool_param(pool)
 
-    try:
-        if pool is not None:
-            # case parallel emcee is enabled,
-            # turn off numpy parallel operations to avoid possible conflicts:
-            # see: https://emcee.readthedocs.io/en/stable/tutorials/parallel/#parallel
-            os.environ["OMP_NUM_THREADS"] = "1"
-
+    with EmceePoolContext(pool, auto_close=not is_pool_from_caller):
         pos = list(get_starting_positions(start_vals, nwalkers=128))[0]
 
         nwalkers = 128
@@ -160,11 +195,6 @@ def run_mcmc_initial_fit_p(
                 std_p=np.std(flat_samples[:, 5]),
             )
             return mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau, mean_p, stats
-    finally:
-        if pool is not None:
-            del os.environ["OMP_NUM_THREADS"]  # TODO: should restore the original value
-        if pool is not None and not is_pool_from_caller:
-            pool.close()
 
 
 def log_prior_p(theta):
