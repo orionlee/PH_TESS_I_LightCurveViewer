@@ -1,5 +1,5 @@
 tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,time_span,time_start,time_end
-272650576,N?,"No changes in O-C in primary; scatter in O-C is secondary, unsure if there is any pattern.",16.256833,23.81,13.44,1699.2054,1691.7634,16,1169.78,1683.35,2853.14
+272650576,N?,"No changes in O-C in primary; scatter in O-C is secondary, unsure if there is any pattern. Data possibly too sparse. Results from using period from TCE1 and MCMC are similar.",16.256853,23.81,13.44,1699.2054,1691.7634,16,1169.78,1683.35,2853.14
 353894978,N,VSX Period to SB Period ~ 1:3 but no ETV. No difference after using a refined period from MCMC fit.,3.341826,21.64,21.53,1685.644213,1683.9733,29,1629.29,1683.35,3312.65
 30034081,N,VSX Period to SB Period ~ 7:5 . Period used is ~2X of the VSX period,4.689246,45.1,45.23,1413.897423,1411.5528,30,1797.24,1410.9,3208.14
 420962954,FP,"FP, as Orbial Period (0.997d) ~= SB Period. The VSX period VSX Period (0.66d) is inaccurate.",
@@ -13,5 +13,3 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 57297550,N,2 sectors of 2min cadence + 2 sectors of 10min cadence.,0.3822312,18.92,21.23,1955.9687,1956.1598156,4,787.28,1955.8,2743.08
 417497545,Y?,Possible ETV for secondary. scattered O-C for primary.  Only 3 sectors of data,4.758531,11.61,1.68,1715.4782,1713.0967,3,1141.77,1711.37,2853.14
 440051305,Y?,Mightbe ETV for both primary and secondary in 2 separate sectors. The trend of primary is opposite of the one of secondary.,0.3296727,13.82,12.98,1764.7304973,1764.89533365,2,1117.43,1764.69,2882.12
-
-
