@@ -548,6 +548,19 @@ def fit_each_eclipse(
     min_number_data=20,
 ):
 
+    # to be used by MCMC in the loop later to start the search, constant within a call.
+    start_vals = (mean_alpha0, mean_alpha1, 0)  # use 0 instead of mean_t0, as x is shifted to be 0 for t0 (in the codes below)
+
+    # validate `start_vals` are within acceptable range
+    # - If MCMC walk starts from range outside of `log_prior_fitting()`, MCMC will almost certainly end up
+    #   aimlessly bouncing around the starting values, because at every iteration, the fitness, as determined
+    #   by log likelihood, would consistently be `-np.inf`, effectively not giving any feedback to MCMC.
+    if not np.isfinite(log_prior_fitting(start_vals)):
+        raise ValueError(
+            f"Supplied `(alpha0, alpha1)`, `{mean_alpha0, mean_alpha1}`, is out of the acceptable range "
+            "defined by `log_prior_fitting()`. The fitted result would be meaningless."
+        )
+
     if exists("{}".format(outfile_path)):
         print("Existing manifest file found, will skip previously processed LCs and append to end of manifest file")
         sys.stdout.flush()
@@ -585,8 +598,6 @@ def fit_each_eclipse(
             if len(x) > min_number_data:
 
                 print(transit_time, mean_alpha0, mean_alpha1, mean_t0)
-
-                start_vals = [mean_alpha0, mean_alpha1, 0]  # use 0 instead of mean_t0, as x is shifted to be 0 for t0
 
                 pos = list(get_starting_positions(start_vals, nwalkers=64))[0]
 
