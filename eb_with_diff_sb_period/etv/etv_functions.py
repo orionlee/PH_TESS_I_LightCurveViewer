@@ -12,6 +12,7 @@ import os
 import multiprocessing
 from multiprocessing import Pool
 import sys
+import psutil
 
 # sys.path.insert(1, '/Users/neisner/Documents/code/utils/')
 import filters
@@ -363,6 +364,16 @@ def _parse_pool_param(pool):
     Parse the `pool` parameter shared by various mcmc functions.
     It allows caller to pass a `Pool` instance or various shorthands
     """
+    def cpu_count():
+        # Return number of actual physical CPUs,
+        # discounting logical ones due to, e.g., hyper-threading.
+        #
+        # The MCMC work below to be parallelized is CPU intensive,
+        # such that the apparent advantage from hyper-threading is
+        # next to nothing (and possibly worse).
+        # So number of physical CPUs is used as the basis.
+        return psutil.cpu_count(logical=False)
+
     if pool is None:
         return None, False  # <-- is pool_from_caller
 
@@ -373,7 +384,7 @@ def _parse_pool_param(pool):
     else:
         is_pool_from_caller = False
         if pool == "all":
-            num_processes_to_use = os.cpu_count()
+            num_processes_to_use = cpu_count()
             log.info(f"emcee parallel enabled, use all {num_processes_to_use} CPUs.")
             pool = Pool(num_processes_to_use)
         elif isinstance(pool, int):
@@ -381,7 +392,7 @@ def _parse_pool_param(pool):
                 num_processes_to_use = pool
             else:
                 # use all but {pool} CPUs
-                num_processes_to_use = os.cpu_count() - (-pool)
+                num_processes_to_use = cpu_count() - (-pool)
             log.info(f"emcee parallel enabled, use {num_processes_to_use} CPUs.")
             pool = Pool(num_processes_to_use)
         else:
