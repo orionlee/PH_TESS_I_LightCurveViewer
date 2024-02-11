@@ -492,7 +492,9 @@ def run_mcmc_initial_fit(
 def log_prior_fitting(theta):
     alpha0, alpha1, t0 = theta
 
-    if (0.95 < alpha0 < 1.1) and (-0.16 < alpha1 < 0) and (-0.5 < t0 < 0.5):
+    # old condition:
+    # if (0.95 < alpha0 < 1.1) and (-0.16 < alpha1 < 0) and (-0.5 < t0 < 0.5):
+    if (0 < alpha0 < 10) and (-10 < alpha1 < 0) and (-0.5 < t0 < 0.5):
         return 0.0
 
     return -np.inf
