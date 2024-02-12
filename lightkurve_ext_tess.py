@@ -999,6 +999,7 @@ def search_gaiadr3_of_tics(
             "Gmag",
             "BPmag",
             "BP-RP",
+            "Vmag",  # calculated locally from Gmag and BP-RP
             "Teff",  # "Tefftemp" in Gaia DR2 / Gaia EDR3
             "RUWE",
             "sepsi",

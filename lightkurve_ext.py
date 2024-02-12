@@ -1484,6 +1484,13 @@ def search_nearby(
     if len(result) < 1:  # handle no search result case
         return None
     result = result[catalog_name]
+
+    # Convert Gaia DR3 mag to Vmag
+    if catalog_name in ["I/355/gaiadr3", "I/350/gaiaedr3"] and all([c in result.columns for c in ["Gmag", "BP-RP"]]):
+        result["Vmag"] = gaia_dr3_mag_to_vmag(result["Gmag"], result["BP-RP"])
+        result["Vmag"].info.unit = result["Gmag"].info.unit
+        result["Vmag"].info.description = "V-band mean magnitude, derived from Gmag and BP-RP."
+
     result_pre_filter = result
 
     if magnitude_lower_limit is not None:
@@ -1507,7 +1514,7 @@ def search_nearby(
     result.sort("separation")
 
     # tweak default format to make magnitudes and separation more succinct
-    for col in ["separation", "RPmag", "Gmag", "BPmag", "BP-RP", "GRVSmag"]:
+    for col in ["separation", "RPmag", "Gmag", "BPmag", "BP-RP", "GRVSmag", "Vmag"]:
         if col in result.colnames:
             result[col].info.format = ".3f"
 
