@@ -1515,3 +1515,16 @@ def search_nearby(
         warnings.warn(f"All query results filtered due to mag/PM filter. Num. of entries pre-filter: {len(result_pre_filter)}")
 
     return result
+
+
+def gaia_dr3_mag_to_vmag(gmag, b_minus_r):
+    """
+    Convert Gaia DR3 magnitude (`Gmag` and `BP-RP`) to Johnson V.
+
+    Based on Table 5.9 in Gaia DR3 Documentation, Section 5.5.1 Photometric relationships with other photometric systems:
+    https://gea.esac.esa.int/archive/documentation/GDR3/Data_processing/chap_cu5pho/cu5pho_sec_photSystem/cu5pho_ssec_photRelations.html
+
+    Applicable to Gaia EDR3 data as well: The formula is identical.
+    """
+    g_minus_v = -0.02704 + 0.01424 * b_minus_r - 0.2156 * b_minus_r**2 + 0.01426 * b_minus_r**3
+    return gmag - g_minus_v
