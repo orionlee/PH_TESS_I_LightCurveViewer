@@ -46,27 +46,36 @@ def combine_tess_n_k2(lc_tess, lc_k2, shift_to_tess=True):
     return {"TESS": lc_tess, "K2": lc_k2}
 
 
-def get_label_of_source(lc_dict, source):
+def get_label_of_source(lc_dict, source, mag_shift_precision=3):
     lc = lc_dict[source]
     mag_shift = lc.meta.get("FLUX_SHIFT", None)
     if mag_shift is not None and mag_shift != 0:
         sign_str = "+" if mag_shift > 0 else ""
-        return f"{source} {sign_str}{mag_shift:.4f}"
+        mag_shift_rounded = np.round(mag_shift, mag_shift_precision)
+        return f"{source} {sign_str}{mag_shift_rounded}"
     else:
         return source
 
 
-def plot_tess_n_ztf(lc_combined_dict, figsize, target_name):
+def plot_tess_n_ztf(lc_combined_dict, figsize, target_name, mag_shift_precision=3):
     ax = tplt.lk_ax(figsize=figsize)
     ax.invert_yaxis()
 
     # scatter plot for the dense TESS data, error is relatively small
     lc = lc_combined_dict["TESS"]
-    ax.scatter(lc.time.value, lc.flux.value, c="#3AF", s=0.1, alpha=1.0, label=get_label_of_source(lc_combined_dict, "TESS"))
+    ax.scatter(
+        lc.time.value,
+        lc.flux.value,
+        c="#3AF",
+        s=0.1,
+        alpha=1.0,
+        label=get_label_of_source(lc_combined_dict, "TESS", mag_shift_precision),
+    )
 
     # scatter plot for ZTF data
-    lc = lc_combined_dict["ZTF"]
-    # ax.scatter(lc.time.value, lc.flux.value, c="green", s=1.0, alpha=1.0, label=get_label_of_source(lc_combined_dict, "ZTF"))
+    # TODO: do not assume ZTF data must be in ZTF g
+    lc = lc_combined_dict["ZTF g"]
+    # ax.scatter(lc.time.value, lc.flux.value, c="green", s=1.0, alpha=1.0, label=get_label_of_source(lc_combined_dict, "ZTF g", mag_shift_precision))
     ax.errorbar(
         x=lc.time.value,
         y=lc.flux.value,
@@ -75,7 +84,7 @@ def plot_tess_n_ztf(lc_combined_dict, figsize, target_name):
         c="green",
         linewidth=0.5,
         ls="none",
-        label=get_label_of_source(lc_combined_dict, "ZTF"),
+        label=get_label_of_source(lc_combined_dict, "ZTF g", mag_shift_precision),
     )
 
     ax.legend()
@@ -87,7 +96,15 @@ def plot_tess_n_ztf(lc_combined_dict, figsize, target_name):
 
 
 def fold_n_plot_tess_n_ztf(
-    lc_combined_dict, period, epoch: Time, phase_scale, target_coord=None, figsize=(8, 4), target_name=None, ax=None
+    lc_combined_dict,
+    period,
+    epoch: Time,
+    phase_scale,
+    target_coord=None,
+    figsize=(8, 4),
+    target_name=None,
+    mag_shift_precision=3,
+    ax=None,
 ):
     def fold_at_scale(lc, **kwargs):
         if lc is None:
@@ -106,7 +123,8 @@ def fold_n_plot_tess_n_ztf(
         epoch_hjd = lke.to_hjd_utc(epoch, SkyCoord(target_coord["ra"], target_coord["dec"], unit=(u.deg, u.deg), frame="icrs"))
 
     lc_tess_f = fold_at_scale(lc_combined_dict.get("TESS"), epoch_time=epoch_hjd, period=period, normalize_phase=True)
-    lc_ztf_f = fold_at_scale(lc_combined_dict.get("ZTF"), epoch_time=epoch_hjd, period=period, normalize_phase=True)
+    # TODO: do not assume ZTF data must be in ZTF g
+    lc_ztf_f = fold_at_scale(lc_combined_dict.get("ZTF g"), epoch_time=epoch_hjd, period=period, normalize_phase=True)
 
     if ax is None:
         ax = tplt.lk_ax(figsize=figsize)
@@ -120,7 +138,7 @@ def fold_n_plot_tess_n_ztf(
             c="#3AF",
             s=0.1,
             alpha=1.0,
-            label=get_label_of_source(lc_combined_dict, "TESS"),
+            label=get_label_of_source(lc_combined_dict, "TESS", mag_shift_precision),
         )
 
     if lc_ztf_f is not None and len(lc_ztf_f) > 0:
@@ -132,7 +150,7 @@ def fold_n_plot_tess_n_ztf(
             c="green",
             linewidth=0.5,
             ls="none",
-            label=get_label_of_source(lc_combined_dict, "ZTF"),
+            label=get_label_of_source(lc_combined_dict, "ZTF g", mag_shift_precision),
         )
 
     ax.legend()
@@ -150,7 +168,7 @@ def fold_n_plot_tess_n_ztf(
     """
     )
 
-    return ax, {"TESS": lc_tess_f, "ZTF": lc_ztf_f}
+    return ax, {"TESS": lc_tess_f, "ZTF g": lc_ztf_f}
 
 
 def plot_tess_n_k2(lc_combined_dict, figsize, target_name):
