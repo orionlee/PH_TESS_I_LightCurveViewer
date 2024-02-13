@@ -29,14 +29,26 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
             asas_sn_uuid = match[2]
 
     # print("DBG1: url=", url)
-    tab = Table.read(url, format="ascii")
+    tab = Table.read(
+        url,
+        format="ascii.csv",
+        comment="#",  # SkyPatrol v2 tweak: it has comments begin with "#" (metadata like info)
+    )
     # print("DBG2: colnames=", tab.colnames)
 
+    # SkyPatrol v2 tweak: lower case the column name, the logic does not hurt v1 data
+    for c in tab.colnames:
+        tab.rename_column(c, c.lower())
+    # SkyPatrol v2 tweak: rename columns to be v1 like
+    for colname, colname_new in [("jd", "hjd"), ("flux error", "flux_err"), ("mag error", "mag_err")]:
+        if colname in tab.colnames:
+            tab.rename_column(colname, colname_new)
+
     # make columns follow Lightkurve convention
-    if "flux(mJy)" in tab.colnames:
+    if "flux(mjy)" in tab.colnames:
         # column flux(mJy) shows up in csv from path "/variables/" or "/sky-patrol/coordinate/"
         # for csv from path "/photometry/" , the column is simply flux
-        tab.rename_column("flux(mJy)", "flux")
+        tab.rename_column("flux(mjy)", "flux")
 
     for c in tab.colnames:
         tab.rename_column(c, re.sub(" ", "_", c.lower()))
@@ -50,7 +62,8 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
     tab["flux_err"].unit = u.dimensionless_unscaled
 
     # SkyPatrol csv contains rows with mag / flux as 99.99, presumably the underlying data is bad
-    tab = tab[tab["mag"] < 99.99]
+    tab = tab[tab["mag"] < 99.99]  # for SkyPatrol v1
+    tab = tab[tab["mag_err"] < 99.99]  # for SkyPatrol v2
 
     lc = lk.LightCurve(time=Time(tab["hjd"], format="jd", scale="utc"), data=tab)
 
@@ -181,11 +194,23 @@ def read_ztf_csv(
     time_scale="utc",
     flux_column="mag",
     flux_err_column="magerr",
+    mask_func=lambda lc: lc["catflags"] != 0,
 ):
-    """Return ZTF Archive lightcurve files in IPAC Table tbl"""
+    """Return ZTF Archive lightcurve files in IPAC Table csv.
+
+    Parameters
+    ----------
+    mask_func : function, optional
+        a function that returns a boolean mask given a `Lightcurve` object
+        of the data. Cadences with `True` will be masked out.
+        Pass `None` to disable masking.
+        The default is to exclude cadences where `catflags` is not 0, the
+        guideline for VSX submission.
+        https://www.aavso.org/vsx/index.php?view=about.notice
+    """
     # Note: First tried to read ZTF's ipac table .tbl, but got
-    # TypeError: converter type does not match column type
-    # unsure what the offending column is though.
+    #   TypeError: converter type does not match column type
+    # due to: https://github.com/astropy/astropy/issues/15989
 
     def get_required_column(tab, colname):
         if colname not in tab.colnames:
@@ -196,9 +221,9 @@ def read_ztf_csv(
         url,
         format="ascii.csv",
         converters={
-            "oid": np.uint64,
-            "expid": np.uint64,
-            "filefracday": np.uint64,
+            "oid": np.int64,
+            "expid": np.int64,
+            "filefracday": np.int64,
         },
     )
 
@@ -226,6 +251,10 @@ def read_ztf_csv(
             "TIME_ORIGIN": time_column,
         }
     )
+
+    if mask_func is not None:
+        mask = mask_func(lc)
+        lc = lc[~mask]
 
     return lc
 
