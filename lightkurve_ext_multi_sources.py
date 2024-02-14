@@ -2,7 +2,9 @@
 # Lightkurve extension for use cases for combining data from multiple sources, e.g., for VSX submission.
 #
 
-from astropy.time import Time
+from copy import deepcopy
+
+from astropy.time import Time, TimeDelta
 from astropy import units as u
 import numpy as np
 
@@ -24,12 +26,27 @@ def shift_flux(lc, lc_ref, inplace=False):
         return lc
 
 
-def combine_multi_bands_and_shift(lc_dict, shift_to):
+def combine_multi_bands_and_shift(lc_dict, split_lc_to_multi_bands=True, shift_to=None):
+    def split_some_lcs_to_multi_bands(lc_dict):
+        """Helper to split single ASAS-SN (and possibly other) lc to multiple ones by bands"""
+        new_dict = {}
+        for band, lc in lc_dict.items():
+            if band == "ASAS-SN":
+                for filter in np.unique(lc.filter):
+                    lc_of_filter = lc[lc.filter == filter]
+                    new_dict[f"ASAS-SN {filter}"] = lc_of_filter
+            else:
+                new_dict[band] = lc
+        return new_dict
+
+    if split_lc_to_multi_bands:
+        lc_dict = split_some_lcs_to_multi_bands(lc_dict)
+
     res = {}
-    lc_ref = lc_dict[shift_to]
+    lc_ref = lc_dict[shift_to] if shift_to is not None else None
     for band, lc in lc_dict.items():
         lc = lc.copy()  # ensure users who further modify the result won't affect the source
-        if band != shift_to:
+        if lc_ref is not None and band != shift_to:
             shift_flux(lc, lc_ref=lc_ref, inplace=True)
         res[band] = lc
     return res
@@ -55,6 +72,99 @@ def get_label_of_source(lc_dict, source, mag_shift_precision=3):
         return f"{source} {sign_str}{mag_shift_rounded}"
     else:
         return source
+
+
+# the default plot options support the pattern that
+# the first lc is from high cadences plot such as TESS / Kepler,
+# and the remaining LCs are from ground-based observations,
+# with relatively sparse data and larger errors.
+DEFAULT_MULTI_BANDS_PLOT_OPTIONS = [
+    (
+        "scatter",
+        dict(
+            c="#3AF",
+            s=0.1,
+            alpha=1.0,
+        ),
+    ),
+    (
+        "errorbar",
+        dict(
+            marker=".",
+            c="green",
+            linewidth=0.5,
+            ls="none",
+        ),
+    ),
+    (
+        "errorbar",
+        dict(
+            marker=".",
+            c="pink",
+            linewidth=0.5,
+            ls="none",
+        ),
+    ),
+    (
+        "errorbar",
+        dict(
+            marker=".",
+            c="violet",
+            linewidth=0.5,
+            ls="none",
+        ),
+    ),
+    (
+        "errorbar",
+        dict(
+            marker=".",
+            c="orange",
+            linewidth=0.5,
+            ls="none",
+        ),
+    ),
+]
+
+
+def plot_multi_bands(
+    lc_combined_dict, figsize, target_name, phase_scale=None, ax=None, plot_options=None, mag_shift_precision=2
+):
+    if ax is None:
+        ax = tplt.lk_ax(figsize=figsize)
+    ax.invert_yaxis()
+
+    if plot_options is None:
+        plot_options = DEFAULT_MULTI_BANDS_PLOT_OPTIONS
+    plot_options = deepcopy(plot_options)  # avoid modifying the original copy
+
+    for i, band in enumerate(lc_combined_dict):
+        lc = lc_combined_dict[band]
+        plot_funcname, plot_kwargs = plot_options[i]
+        if plot_funcname == "errorbar":
+            plot_kwargs["yerr"] = lc.flux_err.value
+        plot_func = getattr(ax, plot_funcname)
+        plot_label = get_label_of_source(lc_combined_dict, band, mag_shift_precision)
+        x_vals = lc.time.value
+        if phase_scale is not None:  # support 2X phase plot
+            x_vals *= phase_scale
+        plot_func(x_vals, lc.flux.value, label=plot_label, **plot_kwargs)
+    ax.legend()
+
+    if isinstance(lc.time, Time):
+        xlabel = f"Time [{lc.time.format.upper()}]"
+    elif isinstance(lc.time, TimeDelta):
+        xlabel = f"Phase [{lc.time.format.upper()}]"
+    else:  # normalized phase
+        xlabel = "Phase"
+    ax.set_xlabel(xlabel)
+
+    ax.set_ylabel("Magnitude")
+    ax.set_title(f"""{target_name}""")
+
+    if lc.time.min().value > 10000:  # probably JD / MJD
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: format(int(x), ",")))  # thousands separator
+
+    return ax
 
 
 def plot_tess_n_ztf(lc_combined_dict, figsize, target_name, mag_shift_precision=3):
@@ -93,6 +203,72 @@ def plot_tess_n_ztf(lc_combined_dict, figsize, target_name, mag_shift_precision=
     ax.set_title(f"""{target_name}""")
     ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: format(int(x), ",")))  # thousands separator
     return ax
+
+
+def fold_n_plot_multi_bands(
+    lc_combined_dict,
+    period,
+    epoch: Time,
+    phase_scale,
+    target_coord=None,
+    target_name=None,
+    duration_hr=None,  # used for plotting purpose only
+    mag_shift_precision=2,
+    figsize=(8, 4),
+    ax=None,
+    plot_options=None,
+):
+    def fold_at_scale(lc, **kwargs):
+        if lc is None:
+            return None
+        kwargs = kwargs.copy()
+        kwargs["period"] = kwargs["period"] * phase_scale
+        lc_f = lc.fold(**kwargs)
+        return lc_f
+
+    from astropy.coordinates import SkyCoord
+
+    if epoch.format == "jd" and epoch.scale == "utc":
+        # if already in HJD UTC, avoid unnecessary conversion which would also have undesirable effect on precision
+        epoch_hjd = epoch
+    else:
+        epoch_hjd = lke.to_hjd_utc(epoch, SkyCoord(target_coord["ra"], target_coord["dec"], unit=(u.deg, u.deg), frame="icrs"))
+
+    lc_f_combined_dict = {}
+    for band, lc in lc_combined_dict.items():
+        lc_f = fold_at_scale(lc, epoch_time=epoch_hjd, period=period, normalize_phase=True)
+        lc_f_combined_dict[band] = lc_f
+
+    ax = plot_multi_bands(
+        lc_f_combined_dict,
+        figsize=figsize,
+        target_name=target_name,
+        phase_scale=phase_scale,
+        ax=ax,
+        plot_options=plot_options,
+        mag_shift_precision=mag_shift_precision,
+    )
+
+    if duration_hr is not None:
+        duration_phase = duration_hr / 24 / period
+        ax.axvline(0 - duration_phase / 2, linestyle="--", c="blue")
+        ax.axvline(0 + duration_phase / 2, linestyle="--", c="blue")
+
+    # Set phase plot specific title
+    time_all = np.array([])
+    for lc in lc_combined_dict.values():
+        time_all = np.concatenate([time_all, lc.time.to_value("jd")])
+    plot_time_span = time_all.max() - time_all.min()
+
+    title = f"""{target_name}
+    period: {period} d"""
+    if period < 1 / 24:
+        period_min = round(period * 24 * 60, 3)
+        title += f" ({period_min} m)"
+    title += f", epoch={epoch_hjd.value}, time span: {plot_time_span:.0f}d"
+    ax.set_title(title)
+
+    return ax, lc_f_combined_dict
 
 
 def fold_n_plot_tess_n_ztf(
