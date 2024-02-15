@@ -2170,7 +2170,9 @@ def scatter_partition_by(lc, partition_by_column, ax=None, **kwargs):
 
     for val in np.unique(lc[partition_by_column]):
         scatter(lc[lc[partition_by_column] == val], ax=ax, label=f"{partition_by_column} {val}", **kwargs)
-    ax.set_title(lc.label)
+    label = lc.meta.get("LABEL")
+    if label is not None:
+        ax.set_title(label)
     return ax
 
 
