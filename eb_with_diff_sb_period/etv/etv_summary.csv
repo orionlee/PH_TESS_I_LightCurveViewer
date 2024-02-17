@@ -14,3 +14,4 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 417497545,Y?,Possible ETV for secondary. scattered O-C for primary.  Only 3 sectors of data,4.758531,11.61,1.68,1715.4782,1713.0967,3,1141.77,1711.37,2853.14
 440051305,Y?,Mightbe ETV for both primary and secondary in 2 separate sectors. The trend of primary is opposite of the one of secondary.,0.3296727,13.82,12.98,1764.7304973,1764.89533365,2,1117.43,1764.69,2882.12
 342645261,?,O-C suggests some variation but unclear if it's scatter or real trend. Data is too sparse.,7.14609,44.51,43.77,2010.4276,2014.3065,3,758.71,2010.27,2768.98
+266769521,FP,"NEB. Actual EB is TIC 266769522, which has no significant EB - SB period difference",
