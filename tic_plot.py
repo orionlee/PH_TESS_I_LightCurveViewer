@@ -1085,7 +1085,8 @@ def mark_transit_times(
     skip_no_transit_plot=False,
     mark_data_gap=False,
     legend_loc=None,
-    lc_plot_func_name="scatter",
+    plot_func_name="scatter",
+    plot_kwargs=None,
     ax=None,
 ):
     """Plot the given LC, and mark the transit times based on `tt_specs`."""
@@ -1105,7 +1106,13 @@ def mark_transit_times(
     #
     if ax is None:
         ax = lk_ax(figsize=(12, 4))
-    ax = getattr(lc, lc_plot_func_name)(ax=ax, color="black", label=f"{lc.label} s.{getattr(lc, 'sector', 'N/A')}")
+    if plot_kwargs is None:
+        plot_kwargs = {}
+    plot_kwargs = plot_kwargs.copy()
+    # apply default arguments
+    plot_kwargs.setdefault("color", "black")
+    plot_kwargs.setdefault("label", f"{lc.label} s.{getattr(lc, 'sector', 'N/A')}")
+    ax = getattr(lc, plot_func_name)(ax=ax, **plot_kwargs)
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.tick_params(axis="x", which="minor", length=4)
     ax.yaxis.set_minor_locator(AutoMinorLocator())
