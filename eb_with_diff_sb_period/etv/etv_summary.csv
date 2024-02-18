@@ -16,3 +16,4 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 342645261,?,O-C suggests some variation but unclear if it's scatter or real trend. Data is too sparse.,7.14609,44.51,43.77,2010.4276,2014.3065,3,758.71,2010.27,2768.98
 266769521,FP,"NEB. Actual EB is TIC 266769522, which has no significant EB - SB period difference",
 273874851,Y?,"O-C suggests some variation that might be a trend. Eclipses signficantly shallower afer a long gap, around BTJD 2400, possibly due to contamination of nearby TIC 1881902473 (<1 arcsec away, delta mag +0.7).",2.045206,59.91,10.73,1683.4792,1684.5072,5,1169.78,1683.36,2853.14
+305633328,N?,"O-C has small scatter (< 1 min amplitude), probably insignificant.",2.503475,47.35,43.38,1711.6776750000001,1712.9294125000001,5,1170.73,1711.38,2882.12
