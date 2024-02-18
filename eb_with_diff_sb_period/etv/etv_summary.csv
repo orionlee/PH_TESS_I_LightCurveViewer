@@ -19,3 +19,4 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 305633328,N?,"O-C has small scatter (< 1 min amplitude), probably insignificant.",2.503475,47.35,43.38,1711.6776750000001,1712.9294125000001,5,1170.73,1711.38,2882.12
 377192658,FP,"NEB. Actual EB is TIC 377192659, which has no significant EB - SB period difference",
 346767664,Y?,There might be some long-term ETV (with period in hundreds or thousands of days). Data is too sparse to be sure.,7.394695,47.94,46.85,1629.2126,1633.6323949999999,3,1499.23,1625.0,3124.22
+68164464,Skip,Not enough data (1 TESS sector). Also observed during K2 campaign 2 (EPIC 203011840). The data (~80 days) is still too sparse (for ~15 day period),
