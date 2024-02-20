@@ -21,3 +21,4 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 346767664,Y?,There might be some long-term ETV (with period in hundreds or thousands of days). Data is too sparse to be sure.,7.394695,47.94,46.85,1629.2126,1633.6323949999999,3,1499.23,1625.0,3124.22
 68164464,Skip,Not enough data (1 TESS sector). Also observed during K2 campaign 2 (EPIC 203011840). The data (~80 days) is still too sparse (for ~15 day period),
 11546041,Y?,Mightbe ETV for both primary and secondary in 2 separate sectors. The trend of primary is opposite of the one of secondary.,0.406796,13.91,7.43,1385.920564,1385.7217640000001,2,757.28,1385.94,2143.22
+449256892,Skip,Not enough data (1 TESS sector).,
