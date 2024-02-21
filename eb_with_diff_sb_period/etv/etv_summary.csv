@@ -25,3 +25,4 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 154453805,Y?,Appear to have ETV with long term trend (100+ days). EB : SB Period ~= 1:3.07 . Unsure if the preriod is sufficiently precise though.,1.0917498,29.81,23.33,1816.5730105,1817.1188854,8,1146.47,1816.12,2962.58
 138819130,FP,"Actual EB Period is ~10.77 d, consistent with SB result from Gaia DR3. VSX period of ~3.59 d has problems: i) it is not an EB period (based on KELT SB1 result), ii) KELT SB1 result does not agree with Gaia DR3 NSS.",
 38383256,Y?,The trend of primary is opposite of the one of secondary. Sector 70 QLP data is omitted for expediency (depth is different). Gaia DR3 Var classifies it as a DSCT like.,0.2907787,18.28,19.3,1386.2376,1386.0943213,4,1112.92,1385.97,2498.89
+140141922,Skip,"Not enough data (2 TESS sectors. A handful of cycles only, with ~8.7 day period.)",8.715623,29.82,27.82,1417.2003794999996,1412.8425679999996,2,759.0,1410.95,2169.95
