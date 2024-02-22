@@ -29,3 +29,4 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 233738458,FP,O-C scatter < 1 min amplitude. Gaia DR3 NSS is probably incorrect in this case. SB Period from SB9 is about the same as EB Period (14.63 d). https://sb9.astro.ulb.ac.be//DisplayFull.cgi?1068+2,14.364654,8.54,,1696.6327,,27,1656.21,1683.35,3339.57
 22513851,FP,"TESS observation (only 2 dips) is consistent with Gaia DR3 NSS (~50.178 d). VSX Period is not consistent with TESS observation. It is based on KELT SB1 data. Unsure why it is imported as an EA.",
 8444713,FP,"Actual EB Period is ~9.41 d, consistent with SB1 result from Gaia DR3. VSX Period is about half of the acutal period."
+276232142,N?,"O-C almost constant (scatter of < 0.5 min range), with the exception of the lone 30 min cadence sector 19.",1.25493366,44.38,,1816.3598895599998,,5,1120.57,1816.12,2936.69
