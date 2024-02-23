@@ -31,3 +31,4 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 8444713,FP,"Actual EB Period is ~9.41 d, consistent with SB1 result from Gaia DR3. VSX Period is about half of the acutal period."
 276232142,N?,"O-C almost constant (scatter of < 0.5 min range), with the exception of the lone 30 min cadence sector 19.",1.25493366,44.38,,1816.3598895599998,,5,1120.57,1816.12,2936.69
 305832152,?,"O-C suggests tiny variation (range ~0.2 min), unclear if there is a real trend.",1.5430672,45.67,45.26,1765.4424,1766.2139336,3,1145.36,1764.69,2910.05
+99725941,Skip,"Likely FP, but not enough data (3 secondary eclipses and 2 primary eclipses far apart). The VSX Period is uncertain (one potential period). The EB Period from VSX matched TESS data. Gaia DR3 NSS has AB and SB2. AB Period matches TESS observation. SB Period is close too.",
