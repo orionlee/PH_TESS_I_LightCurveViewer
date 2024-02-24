@@ -22,7 +22,7 @@ import astropy.units as u
 import download_utils
 import lightkurve as lk
 import lightkurve_ext as lke
-import tess_dv
+import tess_dv_fast
 
 # Ues to resolve data files relative the the module (used by MomentumDumpsAccessor)
 _MODULE_PATH_ = pathlib.Path(__file__).parent.resolve()
@@ -390,12 +390,13 @@ def get_tic_meta_in_html(
     html += "</table>\n"
 
     html += "<p>TCEs:</p>"
-    html += tess_dv._get_tces_in_html(
-        tic_id,
-        download_dir=download_dir,
-        tce_filter_func=tce_filter_func,
-        include_transit_model_stellar_density=include_transit_model_stellar_density,
-    )
+
+    # TODO: not yet implemented in tess_dv_fast
+    #   tce_filter_func=tce_filter_func,
+    # Note: tess_dv_fast cannot support
+    #   include_transit_model_stellar_density=include_transit_model_stellar_density,
+    df_tces = tess_dv_fast.get_tce_infos_of_tic(tic_id)
+    html += tess_dv_fast.display_tce_infos(df_tces, return_as="html")
 
     # TOIs/CTOIs
     html += "<p>TOIs / CTOIs:</p>"
