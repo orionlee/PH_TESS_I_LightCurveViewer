@@ -1,5 +1,6 @@
 import os
 import re
+import sqlite3
 import numpy as np
 import pandas as pd
 
@@ -8,6 +9,7 @@ import download_utils
 DATA_BASE_DIR = "data/tess_dv_fast"
 
 TCESTATS_FILENAME = f"tess_tcestats.csv"
+TCESTATS_DBNAME = f"tess_tcestats.db"
 
 # csv source: https://archive.stsci.edu/tess/bulk_downloads/bulk_downloads_tce.html
 """javascript
@@ -274,26 +276,53 @@ def download_all_data():
         print(f"DEBUG Download to {filepath} from: {url}")
         download_utils.download_file(url, filename=filename, download_dir=DATA_BASE_DIR)
 
+    # convert the csv into a sqlite db for speedier query by ticid
+    print(f"DEBUG Convert master tcestats csv to sqlite db...")
+    _export_tcestats_as_db()
 
-R_EARTH_TO_R_JUPITER = 6378.1 / 71492
 
-_df_all = None
+def _export_tcestats_as_db():
+    db_path = f"{DATA_BASE_DIR}/{TCESTATS_DBNAME}"
+    df = read_tcestats_csv()
+    with sqlite3.connect(db_path) as con:
+        df.to_sql("tess_tcestats", con, if_exists="replace")
+
+        # nice-to-have, but not critical
+        sql_index = "create index tess_tcestats_ticid on tess_tcestats(ticid);"
+        cursor = con.cursor()
+        cursor.execute(sql_index)
+        cursor.close()
+
+
+def read_tcestats_csv():
+    # for ~230k rows of TCE stats data, it took 4-10secs, taking up 200+Mb memory.
+    csv_path = f"{DATA_BASE_DIR}/{TCESTATS_FILENAME}"
+    return pd.read_csv(csv_path, comment="#", dtype={"tce_sectors": str})
+
+
+def _query_tcestats_from_db(sql):
+    db_path = f"{DATA_BASE_DIR}/{TCESTATS_DBNAME}"
+    with sqlite3.connect(db_path) as con:
+        return pd.read_sql(sql, con)
+
+
+def _get_tcestats_of_tic_from_db(tic):
+    return _query_tcestats_from_db(f"select * from tess_tcestats where ticid = {tic}")
 
 
 # TODO: support tce_filter_func parameter, e.g.,
 def get_tce_infos_of_tic(tic):
-    global _df_all
-    # OPEN: consider to read the file line by line to get the lines of a TIC,
-    # rather than keeping the whole df in memory (about 200-300Mb)
-    if _df_all is None:
-        _df_all = pd.read_csv(
-            f"{DATA_BASE_DIR}/{TCESTATS_FILENAME}",
-            comment="#",
-            dtype={"tce_sectors": str},
-        )
-    df = _df_all[_df_all.ticid == tic].copy()
+    df = _get_tcestats_of_tic_from_db(tic)
+    df = _add_helpful_columns_to_tcestats(df)
 
-    # add convenience columns
+    return df
+
+
+R_EARTH_TO_R_JUPITER = 6378.1 / 71492
+
+
+def _add_helpful_columns_to_tcestats(df):
+    # 1. add convenience columns
 
     # id to construct exomast URL, e.g., TIC232646881S0073S0073TCE1
     # it can serves as a unique ID for the TCE too.
@@ -312,18 +341,21 @@ def get_tce_infos_of_tic(tic):
     df["tce_dicco_msky_sig"] = df["tce_dicco_msky"] / df["tce_dicco_msky_err"]  # OotOffset sig
     # Note: model's stellar density, `starDensitySolarDensity` in dvr xml, is not available in csv
 
-    # links to data products
+    # 2. add links to data products
     report_cols = dict(
         # dtype=object: for arbitrary string length
         dvs=np.full_like(df.index, "", dtype=object),
         dvm=np.full_like(df.index, "", dtype=object),
         dvr=np.full_like(df.index, "", dtype=object),
+        dvr_xml=np.full_like(df.index, "", dtype=object),
+        dvt_fits=np.full_like(df.index, "", dtype=object),
     )
 
     for i in range(len(df)):
+        tic = df.iloc[i]["ticid"]
         sectors = df.iloc[i]["sectors"]
         planet_num = df.iloc[i]["tce_plnt_num"]
-        report_dict = get_dv_products(tic, sectors, planet_num)
+        report_dict = _get_dv_products(tic, sectors, planet_num)
         for type in report_cols.keys():
             report_cols[type][i] = report_dict[type]
 
@@ -333,7 +365,7 @@ def get_tce_infos_of_tic(tic):
     return df
 
 
-def get_dv_products(tic, sectors, planet_num):
+def _get_dv_products(tic, sectors, planet_num):
     # sectors: the value of sectors column in csv, e.g., s0002-s0072
     sector_start, sector_end = sectors.split("-")
     if sector_start == sector_end:
