@@ -1459,6 +1459,7 @@ def search_nearby(
     pmdec_upper=None,
     pmra_limit_column="pmRA",
     pmdec_limit_column="pmDE",
+    include_gaiadr3_astrophysical=False,
     warn_if_all_filtered=True,  # warn if PM/Mag filter filters outs all query result
 ):
     """Stars around the given coordinate from Gaia DR2/EDR3, etc."""
@@ -1471,19 +1472,25 @@ def search_nearby(
     if catalog_name == "I/355/gaiadr3":
         columns = ["*", "epsi", "sepsi", "VarFlag", "IPDfmp", "Dup", "GRVSmag"]  # also add variability and Duplicate flag
 
+    if catalog_name == "I/355/gaiadr3" and include_gaiadr3_astrophysical:
+        catalog_names_in_query = ["I/355/gaiadr3", "I/355/paramp"]
+        columns = columns + ["SpType-ELS"]
+    else:
+        catalog_names_in_query = catalog_name
+
     with warnings.catch_warnings():
         # suppress useless warning.  https://github.com/astropy/astroquery/issues/2352
         warnings.filterwarnings(
             "ignore", category=astropy.units.UnitsWarning, message="Unit 'e' not supported by the VOUnit standard"
         )
-        result = Vizier(columns=columns).query_region(
+        result_all = Vizier(columns=columns).query_region(
             c1,
-            catalog=[catalog_name],
+            catalog=catalog_names_in_query,
             radius=Angle(radius_arcsec, "arcsec"),
         )
-    if len(result) < 1:  # handle no search result case
+    if len(result_all) < 1:  # handle no search result case
         return None
-    result = result[catalog_name]
+    result = result_all[catalog_name]
 
     # Convert Gaia DR3 mag to Vmag
     if catalog_name in ["I/355/gaiadr3", "I/350/gaiaedr3"] and all([c in result.columns for c in ["Gmag", "BP-RP"]]):
@@ -1521,7 +1528,16 @@ def search_nearby(
     if warn_if_all_filtered and len(result) == 0 and len(result_pre_filter) > 0:
         warnings.warn(f"All query results filtered due to mag/PM filter. Num. of entries pre-filter: {len(result_pre_filter)}")
 
-    return result
+    if catalog_name == "I/355/gaiadr3" and include_gaiadr3_astrophysical:
+        result_paramp = result_all["I/355/paramp"]
+        # only Sources in the filtered main result
+        result_paramp = result_paramp[np.isin(result_paramp["Source"], result["Source"])]
+        for col in ["Pstar", "Pbin", "PWD"]:  # tweak default format
+            if col in result_paramp.colnames:
+                result_paramp[col].info.format = ".2f"
+        return result, result_paramp
+    else:
+        return result
 
 
 def gaia_dr3_mag_to_vmag(gmag, b_minus_r):

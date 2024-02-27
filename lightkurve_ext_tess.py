@@ -860,6 +860,7 @@ def search_gaiadr3_of_tics(
     warn_if_all_filtered=True,
     compact_columns=True,
     also_return_html=True,
+    also_return_astrophysical=False,  # defaulted to False for backward compatibility
     verbose_html=True,
     include_nss_summary_in_html=True,
 ):
@@ -896,7 +897,8 @@ def search_gaiadr3_of_tics(
         add_target_as_col = False
         targets = [targets]
 
-    result_list = []
+    # _paramp: Gaia DR3 Astrophysical, "I/355/paramp"
+    result_list, result_paramp_list = [], []
 
     targets = np.asarray([_to_stellar_meta(t) for t in targets])
     targets = targets[targets != None]
@@ -929,7 +931,7 @@ def search_gaiadr3_of_tics(
             pmdec_lower, pmdec_upper = t.pmdec - pmdec_range, t.pmdec + pmdec_range
 
         # print("DBG pm range for filter -  ra:", t.pmra, pmra_lower, pmra_upper, "dec: ", t.pmdec, pmdec_lower, pmdec_upper)
-        a_result = lke.search_nearby(
+        a_result, a_result_paramp = lke.search_nearby(
             t.ra,
             t.dec,
             equinox=f"J{t.equinox}",
@@ -943,6 +945,7 @@ def search_gaiadr3_of_tics(
             pmra_upper=pmra_upper,
             pmdec_lower=pmdec_lower,
             pmdec_upper=pmdec_upper,
+            include_gaiadr3_astrophysical=True,
             warn_if_all_filtered=warn_if_all_filtered,
         )
 
@@ -951,11 +954,13 @@ def search_gaiadr3_of_tics(
             a_result["target_gaia_dr2_source"] = [gaiadr2_id for i in range(0, len(a_result))]
 
             result_list.append(a_result)
+            result_paramp_list.append(a_result_paramp)
 
     with warnings.catch_warnings():
         # Avoid spurious "MergeConflictWarning: Cannot merge meta key 'null' types <class 'float'>
         #  and <class 'float'>, choosing null=nan [astropy.utils.metadata]"
-        result = astropy.table.vstack(result_list) if len(result_list) > 0 else []
+        result = astropy.table.vstack(result_list) if len(result_list) > 0 else Table()
+        result_paramp = astropy.table.vstack(result_paramp_list) if len(result_paramp_list) > 0 else Table()
 
     if len(result) < 1:
         if also_return_html:
@@ -987,6 +992,7 @@ def search_gaiadr3_of_tics(
         flag_column_values.append(flag)
     result.add_column(flag_column_values, name="flag")
     result_all_columns = result
+    result_paramp_all_columns = result_paramp
 
     if compact_columns:  # select the most useful columns
         # prefer RA/DEC in Epoch 2000 as they can be compared more easily with those those in TESS LC metadata
@@ -1020,6 +1026,22 @@ def search_gaiadr3_of_tics(
         ]
         if not add_target_as_col:
             result.remove_column("target")
+        result_paramp = result_paramp[
+            "Source",
+            "Pstar",
+            "Pbin",
+            "Teff",
+            "logg",
+            "__Fe_H_",
+            "Dist",
+            "GMAG",
+            "Rad",
+            "SpType-ELS",
+            "Rad-Flame",
+            "Mass-Flame",
+            "Lum-Flame",
+            "Age-Flame",
+        ]
 
     if also_return_html:
         html = ""
@@ -1034,10 +1056,16 @@ def search_gaiadr3_of_tics(
                 html += f"<pre>{stellar_summary}</pre>"
 
         html += linkify_gaiadr3_result_html(result)
-
         # remove the Table length=n message
         result_len = len(result)
         html = html.replace(f"<i>Table length={result_len}</i>", "")
+
+        html += '<div style="padding-top: 6px; font-size: 120%;">Gaia DR3 Astrophysical parameters:<div>'
+        with astropy.conf.set_temp("max_lines", 999):
+            html += result_paramp._repr_html_()
+        # remove the Table length=n message
+        result_paramp_len = len(result_paramp)
+        html = html.replace(f"<i>Table length={result_paramp_len}</i>", "")
 
         if include_nss_summary_in_html:
             with warnings.catch_warnings():
@@ -1065,10 +1093,16 @@ def search_gaiadr3_of_tics(
     <a target ="_doc_gaiadr3_vizier" href="https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=I/355/gaiadr3">Column descption on Vizier</a> &nbsp; | &nbsp;
     <a target="_doc_gaiadr3_datamodel" href="https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_main_source_catalogue/ssec_dm_gaia_source.html">data model doc on ESA</a>
 """
-
-        return result_all_columns, result, html
     else:
-        return result_all_columns, result
+        html = None
+
+    return_list = [result_all_columns, result]
+    if also_return_astrophysical:
+        return_list += [result_paramp_all_columns, result_paramp]
+    if html is not None:
+        return_list.append(html)
+
+    return return_list
 
 
 from astroquery.vizier import Vizier
