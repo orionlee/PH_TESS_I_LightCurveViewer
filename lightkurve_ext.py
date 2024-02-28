@@ -1474,7 +1474,12 @@ def search_nearby(
 
     if catalog_name == "I/355/gaiadr3" and include_gaiadr3_astrophysical:
         catalog_names_in_query = ["I/355/gaiadr3", "I/355/paramp"]
-        columns = columns + ["SpType-ELS"]
+        columns = columns + [
+            "SpType-ELS",  # spectral type
+            # emission line star class (beStar, etc). See CLASSLABEL_ESPELS, 20.2.1 astrophysical_parameters, Gaia DR3 doc
+            "ClassELS",
+            "f_ClassELS",
+        ]
     else:
         catalog_names_in_query = catalog_name
 
