@@ -426,12 +426,12 @@ def display_tce_infos(df, return_as=None):
 
     df = df.sort_values(by=["tce_num_sectors", "exomast_id"], ascending=[False, True])
 
-    # TODO: set the precision for period, duration_hr, etc.
     df["Codes"] = (
         "epoch=" + df["tce_time0bt"].astype(str) + ", "
         "duration_hr=" + df["tce_duration"].astype(str) + ", "
         "period=" + df["tce_period"].astype(str) + ", "
-        "label=" + '"' + df["exomast_id"].str.replace(r"TIC\d+", "", regex=True).str.lower() + '",'
+        "label=" + '"' + df["exomast_id"].str.replace(r"TIC\d+", "", regex=True).str.lower() + '", '
+        "transit_depth_percent=" + df["tce_depth_pct"].map("{:.4f}".format) + ","
     )
 
     df = df.rename(

@@ -179,7 +179,9 @@ def add_transit_as_codes_column_to_df(df, headers, label_value_func):
         + df["_period_nan_fixed"].map("{:.6f}".format)
         + ', label="'
         + label_value_func(df)
-        + '",'
+        + '", transit_depth_percent='
+        + df[h.DEPTH_PCT].map("{:.4f}".format)
+        + ","
     )
     df.drop(columns=["_period_nan_fixed"], inplace=True)  # drop the temp column
     return df

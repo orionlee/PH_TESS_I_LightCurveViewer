@@ -656,11 +656,13 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
 
 
 class TransitTimeSpec(dict):
+
     def __init__(
         self,
         epoch: float = None,
         period: float = None,
         duration_hr: float = None,
+        transit_depth_percent: float = None,
         sector: int = None,
         steps_to_show: list = None,
         surround_time: float = None,
@@ -671,6 +673,8 @@ class TransitTimeSpec(dict):
         self["epoch"] = epoch
         self["period"] = period
         self["duration_hr"] = duration_hr
+        # depth is used occasionally, for typical plotting, it is not used
+        self["transit_depth_percent"] = transit_depth_percent
 
         # used for plotting
         self["sector"] = sector
@@ -725,6 +729,10 @@ class TransitTimeSpecList(list):
     @property
     def duration(self):
         return self.duration_hr / 24
+
+    @property
+    def transit_depth_percent(self):
+        return self._spec_property_values("transit_depth_percent")
 
     @property
     def label(self):
