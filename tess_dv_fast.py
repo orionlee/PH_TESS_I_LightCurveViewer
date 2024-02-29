@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import re
 import sqlite3
 import numpy as np
@@ -6,7 +7,8 @@ import pandas as pd
 
 import download_utils
 
-DATA_BASE_DIR = "data/tess_dv_fast"
+
+DATA_BASE_DIR = f"{Path(__file__).parent}/data/tess_dv_fast"
 
 TCESTATS_FILENAME = f"tess_tcestats.csv"
 TCESTATS_DBNAME = f"tess_tcestats.db"
