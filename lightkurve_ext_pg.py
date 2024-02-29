@@ -623,3 +623,35 @@ def iterative_sine_fit(
         lc_in = lc_residual
 
     return dict(pgs=pg, lc_models=lc_models, lc_residuals=lc_residuals, lc_input=lc)
+
+
+def remove_harmonics(lc, pg, base_frequency, num_harmonics):
+    """remove the first {num_harmonics} harmonics of the orbital period frequency"""
+
+    # the LC needs to be normalized to 1, in order for the subtractions to work
+    lc_residual = lc.normalize()
+    t = lc.time
+    for n in range(1, num_harmonics + 1):
+        flux_model = pg._LS_object.model(t, base_frequency * n)
+        lc_model = lk.LightCurve(time=t, flux=flux_model).normalize()
+        lc_residual = lc_residual / lc_model
+
+    return lc_residual
+
+
+def create_model_lc_of_frequencies(t_or_lc, pg, frequencies):
+    """Create a model lightcurve based of the requested frequencies in the specified times."""
+    if isinstance(t_or_lc, lk.LightCurve):
+        t = t_or_lc.time
+    elif isinstance(t_or_lc, Time):
+        t = t_or_lc
+    else:
+        raise TypeError(f"Parameter lc_or_t must be a LightCurve or Time object. Actual: {type(t_or_lc)}")
+
+    lc_model = lk.LightCurve(time=t.copy(), flux=np.ones_like(t))
+    for f in frequencies:
+        flux_model = pg._LS_object.model(t, f)
+        lc_model_of_f = lk.LightCurve(time=t.copy(), flux=flux_model).normalize()
+        # OPEN: double check to ensure the addition is sound
+        lc_model = lc_model + (lc_model_of_f - 1)
+    return lc_model
