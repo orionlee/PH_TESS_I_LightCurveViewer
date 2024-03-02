@@ -210,7 +210,6 @@ def fold_n_plot_multi_bands(
     period,
     epoch: Time,
     phase_scale,
-    target_coord=None,
     target_name=None,
     duration_hr=None,  # used for plotting purpose only
     mag_shift_precision=2,
@@ -228,15 +227,9 @@ def fold_n_plot_multi_bands(
 
     from astropy.coordinates import SkyCoord
 
-    if epoch.format == "jd" and epoch.scale == "utc":
-        # if already in HJD UTC, avoid unnecessary conversion which would also have undesirable effect on precision
-        epoch_hjd = epoch
-    else:
-        epoch_hjd = lke.to_hjd_utc(epoch, SkyCoord(target_coord["ra"], target_coord["dec"], unit=(u.deg, u.deg), frame="icrs"))
-
     lc_f_combined_dict = {}
     for band, lc in lc_combined_dict.items():
-        lc_f = fold_at_scale(lc, epoch_time=epoch_hjd, period=period, normalize_phase=True)
+        lc_f = fold_at_scale(lc, epoch_time=epoch, period=period, normalize_phase=True)
         lc_f_combined_dict[band] = lc_f
 
     ax = plot_multi_bands(
@@ -265,7 +258,7 @@ def fold_n_plot_multi_bands(
     if period < 1 / 24:
         period_min = round(period * 24 * 60, 3)
         title += f" ({period_min} m)"
-    title += f", epoch={epoch_hjd.value}, time span: {plot_time_span:.0f}d"
+    title += f", epoch={epoch.format.upper()} {epoch.value}, time span: {plot_time_span:.0f}d"
     ax.set_title(title)
 
     return ax, lc_f_combined_dict
