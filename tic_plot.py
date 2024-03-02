@@ -812,6 +812,16 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col="flux"):
     return w
 
 
+def number_of_decimal_places(num, min=0):
+    if isinstance(num, int):
+        return min
+    if isinstance(num, (float, str)):
+        # https://stackoverflow.com/a/26231848
+        num_decimals = str(num)[::-1].find(".")
+        return max(num_decimals, min)
+    raise TypeError(f"num must be a number or number-like string. Actual: {type(num)}")
+
+
 def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=None):
     # keep track some of the UI inputs to determine user's intention.
     last_t0, last_step = None, None  # to be inited right before creating interactive UI
@@ -945,16 +955,23 @@ ax.set_ylim({ymin_to_use}, {ymax_to_use})
     if defaults is None:
         defaults = {}
 
+    w_val = defaults.get("epoch", -1)
+    w_step = 1 / 10 ** number_of_decimal_places(w_val, 2)
+    w_val = float(w_val)  # in case it's specified as string to signify decimal places
     t0 = widgets.FloatText(
-        value=defaults.get("epoch", -1),
-        step=0.01,
+        value=w_val,
+        step=w_step,
         description=r"$t_{epoch}$, -1 for unspecified",
         style=desc_style,
     )
-    duration_hr = widgets.FloatText(
-        value=defaults.get("duration_hr", 1), step=0.1, description="duration (hours)", style=desc_style
-    )
-    period = widgets.FloatText(value=defaults.get("period", 999), step=0.01, description="period (days)", style=desc_style)
+    w_val = defaults.get("duration_hr", 1)
+    w_step = 1 / 10 ** number_of_decimal_places(w_val, 1)
+    w_val = float(w_val)  # in case it's specified as string to signify decimal places
+    duration_hr = widgets.FloatText(value=w_val, step=w_step, description="duration (hours)", style=desc_style)
+    w_val = defaults.get("period", 1)
+    w_step = 1 / 10 ** number_of_decimal_places(w_val, 2)
+    w_val = float(w_val)  # in case it's specified as string to signify decimal places
+    period = widgets.FloatText(value=w_val, step=w_step, description="period (days)", style=desc_style)
     step = widgets.IntText(
         value=defaults.get("step", 0), description=r"cycle (0 for transit at $t_{epoch}$)", style=desc_style
     )
