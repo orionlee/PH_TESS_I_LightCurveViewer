@@ -305,3 +305,60 @@ def read_hipparcos_data(url):
         lc.meta["OBJECT"] = f"HIP {hip_id}"
         lc.meta["LABEL"] = f"HIP {hip_id}"
     return lc
+
+
+def read_asas3(url, flux_column="mag_3", grade_mask=["A", "B", "C"]):
+    # https://www.astrouw.edu.pl/cgi-asas/asas_cgi_get_data?083112-3906.8,asas3
+
+    # OPEN: ASAS3 data is actually a series of data, each series is a dataset,
+    # possibly with slightly different mean magnitude, target positions, etc.
+    # for now we just treat them as one single dataset
+    headers = [
+        "HJD",
+        "MAG_3",
+        "MAG_0",
+        "MAG_1",
+        "MAG_2",
+        "MAG_4",
+        "MER_3",
+        "MER_0",
+        "MER_1",
+        "MER_2",
+        "MER_4",
+        "GRADE",
+        "FRAME",
+    ]
+    headers = [h.lower() for h in headers]  # Lightkurve convention is to use lower case for column names
+    tab = Table.read(url, format="ascii", comment="#", names=headers)
+
+    for n in range(0, 5):
+        # rename mag error columns to follow Lightkurve convention
+        tab.rename_column(f"mer_{n}", f"mag_{n}_err")
+
+        # c, ce = f"mag_{n}", f"mag_{n}_err"  # shorthand for the current mag / mag err column
+        # convert the magic 99.999 (not measured) to nan
+        tab[f"mag_{n}"][tab[f"mag_{n}"] == 99.999] = np.nan
+        tab[f"mag_{n}_err"][tab[f"mag_{n}_err"] == 99.999] = np.nan
+
+        # add units
+        tab[f"mag_{n}"] = tab[f"mag_{n}"] * u.mag
+        tab[f"mag_{n}_err"] = tab[f"mag_{n}_err"] * u.mag
+
+    time = Time(tab["hjd"] + 2450000, format="jd", scale="utc")
+    tab.remove_column("hjd")
+    lc = lk.LightCurve(time=time, flux=tab[flux_column.lower()], flux_err=tab[f"{flux_column.lower()}_err"], data=tab)
+
+    lc = lc[np.isin(lc["grade"], grade_mask)]
+
+    lc.meta["FLUX_ORIGIN"] = flux_column.lower()
+    lc.meta["FILEURL"] = url
+
+    # deduce ASAS id, if the URL is the standard form from ASAS3 web site
+    asas_id_match = re.search(r"https://www.astrouw.edu.pl/cgi-asas/asas_cgi_get_data[?]([0-9.+-]+)", url)
+    if asas_id_match is not None:
+        asas_id = asas_id_match[1]
+    else:
+        asas_id = None
+    if asas_id is not None:
+        lc.meta["LABEL"] = f"ASAS {asas_id}"
+    return lc
