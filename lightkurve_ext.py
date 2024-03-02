@@ -1158,8 +1158,13 @@ def to_hjd_utc(t_obj: Time, sky_coord: SkyCoord) -> Time:
     return t_hjd_utc
 
 
-def convert_lc_time_to_hjd_utc(lc, target_coord, cache_dir=".", cache_key=None):
-    """Convert the lightcurve's time to HJD UTC, with the HJD time cached in disk."""
+def convert_lc_time_to_hjd_utc(lc, target_coord, cache_dir=".", cache_key=None, cache_key_suffix=None):
+    """Convert the lightcurve's time to HJD UTC, with the HJD time cached in disk.
+
+    `cache_key_suffix`: optional, applicable only when `cache_key` is `None`. It lets user to
+    identify different variants of the same LC (which may have slightly different sets of cadence),
+     e.g., one with outliers removed, detrended, etc.
+    """
 
     # a reasonable default for TESS / Kepler / K2 based lc
     def get_cache_key(lc):
@@ -1170,7 +1175,10 @@ def convert_lc_time_to_hjd_utc(lc, target_coord, cache_dir=".", cache_key=None):
         sectors_str = "_".join([str(s) for s in lc.meta.get("SECTORS", [])])
         if sectors_str == "":
             sectors_str = lc.meta.get("SECTOR", "na")
-        return f"""hjd_{target_str}_{sectors_str}.txt"""
+        if cache_key_suffix is None:
+            return f"hjd_{target_str}_{sectors_str}.txt"
+        else:
+            return f"hjd_{target_str}_{sectors_str}_{cache_key_suffix}.txt"
 
     def time_in_hjd_utc(lc, target_coord, cache_dir):
         # actual time conversion to HJD UTC
