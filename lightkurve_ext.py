@@ -264,7 +264,8 @@ def download_lightcurves_of_tic_with_priority(
             msg = msg + f" ; {num_fast} fast (20secs) products."
         print(msg)
 
-    display(sr)
+    with astropy.conf.set_temp("max_lines", -1):
+        display(sr)
 
     # let caller to optionally further restrict a subset to be downloaded
     sr_to_download = sr
