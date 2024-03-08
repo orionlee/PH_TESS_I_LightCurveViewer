@@ -1552,11 +1552,23 @@ def search_nearby(
 
     if catalog_name == "I/355/gaiadr3" and include_gaiadr3_astrophysical:
         result_paramp = result_all["I/355/paramp"]
+
         # only Sources in the filtered main result
         result_paramp = result_paramp[np.isin(result_paramp["Source"], result["Source"])]
+
+        # ensure the result is sorted in the same order as the main result
+        # we jumped through hoops to avoid merging conflicts of the metadata
+        # the metadata from main table is really unwanted.
+        tmp = result["Source", "separation"].copy()
+        tmp.meta.clear()
+        tmp["Source"].info.description = None
+        result_paramp = astropy.table.join(result_paramp, tmp, join_type="left", keys="Source")
+        result_paramp.sort("separation")
+
         for col in ["Pstar", "Pbin", "PWD"]:  # tweak default format
             if col in result_paramp.colnames:
                 result_paramp[col].info.format = ".2f"
+
         return result, result_paramp
     else:
         return result

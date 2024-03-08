@@ -1037,6 +1037,9 @@ def search_gaiadr3_of_tics(
         if not add_target_as_col:
             result.remove_column("target")
         result_paramp = result_paramp[
+            # include separation is included, to make it easier to cross-reference
+            # a row with the main result above
+            "separation",
             "Source",
             "Pstar",
             "Pbin",
