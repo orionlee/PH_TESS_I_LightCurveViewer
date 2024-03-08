@@ -1496,6 +1496,15 @@ def search_nearby(
             # emission line star class (beStar, etc). See CLASSLABEL_ESPELS, 20.2.1 astrophysical_parameters, Gaia DR3 doc
             "ClassELS",
             "f_ClassELS",
+            "Evol",  # stellar evolution stage
+            "Flags-Flame",
+            # include errors for mass / radius
+            "b_Rad",
+            "B_Rad",
+            "b_Rad-Flame",
+            "B_Rad-Flame",
+            "b_Mass-Flame",
+            "B_Mass-Flame",
         ]
     else:
         catalog_names_in_query = catalog_name

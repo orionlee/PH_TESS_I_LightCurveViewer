@@ -1055,6 +1055,8 @@ def search_gaiadr3_of_tics(
             "Mass-Flame",
             "Lum-Flame",
             "Age-Flame",
+            "Evol",
+            "Flags-Flame",
         ]
 
     if also_return_html:
