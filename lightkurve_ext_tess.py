@@ -398,7 +398,7 @@ def get_tic_meta_in_html(
     # Note: tess_dv_fast cannot support
     #   include_transit_model_stellar_density=include_transit_model_stellar_density,
     df_tces = tess_dv_fast.get_tce_infos_of_tic(tic_id)
-    html += tess_dv_fast.display_tce_infos(df_tces, return_as="html")
+    html += tess_dv_fast.display_tce_infos(df_tces, return_as="html", no_tce_html="<p>No TCE.</p>")
 
     # TOIs/CTOIs
     html += "<p>TOIs / CTOIs:</p>"

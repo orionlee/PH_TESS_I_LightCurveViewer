@@ -423,7 +423,7 @@ def _get_dv_products(tic, sectors, planet_num):
     return a_res
 
 
-def display_tce_infos(df, return_as=None):
+def display_tce_infos(df, return_as=None, no_tce_html=None):
     from IPython.display import display, HTML
 
     df = df.sort_values(by=["tce_num_sectors", "exomast_id"], ascending=[False, True])
@@ -505,6 +505,8 @@ def display_tce_infos(df, return_as=None):
         html = html.replace(">Depth</th>", ">Depth<br>%</th>", 1)
         html = html.replace(">TicOffset</th>", ">TicOffset<br>σ</th>", 1)
         html = html.replace(">OotOffset</th>", ">OotOffset<br>σ</th>", 1)
+        if len(df) < 1 and no_tce_html is not None:
+            html = no_tce_html
         if return_as is None:
             return display(HTML(html))
         elif return_as == "html":
