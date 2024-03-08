@@ -1483,15 +1483,15 @@ def search_nearby(
 
     c1 = SkyCoord(ra, dec, equinox=equinox, frame="icrs", unit="deg")
     Vizier.ROW_LIMIT = -1
-    columns = ["*"]
+    columns = ["*", "+_r"]  # include and sorted by angular separation. "_r" is the generic Vizier-calculated column for it.
     if catalog_name == "I/350/gaiaedr3":
-        columns = ["*", "epsi", "sepsi"]  # add astrometric excess noise to the output (see if a star wobbles)
+        columns += ["epsi", "sepsi"]  # add astrometric excess noise to the output (see if a star wobbles)
     if catalog_name == "I/355/gaiadr3":
-        columns = ["*", "epsi", "sepsi", "VarFlag", "IPDfmp", "Dup", "GRVSmag"]  # also add variability and Duplicate flag
+        columns += ["epsi", "sepsi", "VarFlag", "IPDfmp", "Dup", "GRVSmag"]  # also add variability and Duplicate flag
 
     if catalog_name == "I/355/gaiadr3" and include_gaiadr3_astrophysical:
         catalog_names_in_query = ["I/355/gaiadr3", "I/355/paramp"]
-        columns = columns + [
+        columns += [
             "SpType-ELS",  # spectral type
             # emission line star class (beStar, etc). See CLASSLABEL_ESPELS, 20.2.1 astrophysical_parameters, Gaia DR3 doc
             "ClassELS",
@@ -1544,13 +1544,6 @@ def search_nearby(
         result = result[(pmdec_lower <= result[pmdec_limit_column]) | result[pmdec_limit_column].mask]
         result = result[(result[pmdec_limit_column] <= pmdec_upper) | result[pmdec_limit_column].mask]
 
-    # Calculated separation is approximate, as proper motion is not accounted for
-    r_coords = SkyCoord(result["RAJ2000"], result["DEJ2000"], unit=(u.hourangle, u.deg), frame="icrs")
-    sep = r_coords.separation(c1).to(u.arcsec)
-    result["separation"] = sep
-
-    result.sort("separation")
-
     # tweak default format to make magnitudes and separation more succinct
     for col in ["separation", "RPmag", "Gmag", "BPmag", "BP-RP", "GRVSmag", "Vmag"]:
         if col in result.colnames:
@@ -1564,15 +1557,6 @@ def search_nearby(
 
         # only Sources in the filtered main result
         result_paramp = result_paramp[np.isin(result_paramp["Source"], result["Source"])]
-
-        # ensure the result is sorted in the same order as the main result
-        # we jumped through hoops to avoid merging conflicts of the metadata
-        # the metadata from main table is really unwanted.
-        tmp = result["Source", "separation"].copy()
-        tmp.meta.clear()
-        tmp["Source"].info.description = None
-        result_paramp = astropy.table.join(result_paramp, tmp, join_type="left", keys="Source")
-        result_paramp.sort("separation")
 
         for col in ["Pstar", "Pbin", "PWD"]:  # tweak default format
             if col in result_paramp.colnames:

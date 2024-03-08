@@ -1009,7 +1009,7 @@ def search_gaiadr3_of_tics(
         result = result[
             "target",
             "flag",
-            "separation",
+            "_r",  # angular separation
             "Source",
             "RPmag",  # prioritize RPmag, as its pass band is close to TESS
             "Gmag",
@@ -1037,9 +1037,9 @@ def search_gaiadr3_of_tics(
         if not add_target_as_col:
             result.remove_column("target")
         result_paramp = result_paramp[
-            # include separation is included, to make it easier to cross-reference
+            # separation "_r" is included, to make it easier to cross-reference
             # a row with the main result above
-            "separation",
+            "_r",
             "Source",
             "Pstar",
             "Pbin",
