@@ -6,25 +6,25 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 382101519,N?,"Constant O-C (in the range of 0.3 minute), after using a more precise (8 decimal points) period .",0.67225924,30.76,,2036.4003,,20,1145.86,2036.28,3182.14
 180943676,FP,"FP, as Orbital Period ~= SB Period. VSX entry refers to a nearby EB with similar brightness.",8.418147,8.28,0.39,1471.4196,1475.5596,4,759.29,1468.27,2227.57
 4713510,FP,"NEB. Actual EB is TIC 4713433",
-52368472,Y?,Possibly ETV. Another possibility is the period not precise enough. Period from MCMC fit shows similar result.,0.3258262,4.52,3.37,1325.422,1325.5856,4,1882.84,1325.3,3208.14
+52368472,Y?,Possible long-term non-linear (2000+ d) change with amplitude ~5min. Another possibility is the period not precise enough. Period from MCMC fit shows similar result.,0.3258262,4.52,3.37,1325.422,1325.5856,4,1882.84,1325.3,3208.14
 20239565,FP,"FP, as Orbital Period ~= SB Period. VSX period is ~1/4 of actual period.",
 231922417,Y?,"Possibly ETV on primary and secondary. QLP data. Yellow flag: limited cadence in early sectors (< BTJD 1520), as few as 5 points in a modeled eclipse in early sectors (30 min cadence data + short eclipse duration).",0.687161,8.68,3.82,1438.3228,1438.6668,6,816.07,1437.99,2254.06
-36883123,Y?,Mightbe ETV for both primary and secondary in 2 separate sectors. The trend of primary is opposite of the one of secondary.,0.335270895,10.31,9.75,1411.0491,1411.2167354475,2,759.04,1410.91,2169.95
-57297550,Y?,"The O-C scatter seems to follow a pattern, possibly periodic. The trend of primary is opposite of the one of secondary. 2 sectors of 2min cadence + 2 sectors of 10min cadence.",0.3822312,18.92,21.23,1955.9687,1956.1598156,4,787.28,1955.8,2743.08
+36883123,Y?,Mightbe long-term change (800 d) with amplitude ~2min in 2 sectors. The trend of primary is opposite of the one of secondary.,0.335270895,10.31,9.75,1411.0491,1411.2167354475,2,759.04,1410.91,2169.95
+57297550,Y?,"Mightbe long-term (~800 d) change  with ampltiude ~4imin. The trend of primary is opposite of the one of secondary. 2 sectors of 2min cadence + 2 sectors of 10min cadence.",0.3822312,18.92,21.23,1955.9687,1956.1598156,4,787.28,1955.8,2743.08
 417497545,Y?,Possible ETV for secondary. scattered O-C for primary.  Only 3 sectors of data,4.758531,11.61,1.68,1715.4782,1713.0967,3,1141.77,1711.37,2853.14
-440051305,Y?,Mightbe ETV for both primary and secondary in 2 separate sectors. The trend of primary is opposite of the one of secondary.,0.3296727,13.82,12.98,1764.7304973,1764.89533365,2,1117.43,1764.69,2882.12
+440051305,Y?,Mightbe long-term (1000+ d) change with ampltiude ~2imin for both primary and secondary in 2 sectors. The trend of primary is opposite of the one of secondary.,0.3296727,13.82,12.98,1764.7304973,1764.89533365,2,1117.43,1764.69,2882.12
 342645261,?,O-C suggests some variation but unclear if it's scatter or real trend. Data is too sparse.,7.14609,44.51,43.77,2010.4276,2014.3065,3,758.71,2010.27,2768.98
 266769521,FP,"NEB. Actual EB is TIC 266769522, which has no significant EB - SB period difference",
-273874851,Y?,"O-C suggests some variation that might be a trend. Eclipses signficantly shallower afer a long gap, around BTJD 2400, possibly due to contamination of nearby TIC 1881902473 (<1 arcsec away, delta mag +0.7).",2.045206,59.91,10.73,1683.4792,1684.5072,5,1169.78,1683.36,2853.14
+273874851,Y?,"Possible long-term (1000+ d) non-linear change, with ~4 min amplitude for primary. Eclipses signficantly shallower afer a long gap, around BTJD 2400, possibly due to contamination of nearby TIC 1881902473 (<1 arcsec away, delta mag +0.7).",2.045206,59.91,10.73,1683.4792,1684.5072,5,1169.78,1683.36,2853.14
 305633328,N?,"O-C has small scatter (< 1 min amplitude), probably insignificant.",2.503475,47.35,43.38,1711.6776750000001,1712.9294125000001,5,1170.73,1711.38,2882.12
 377192658,FP,"NEB. Actual EB is TIC 377192659, which has no significant EB - SB period difference",
 346767664,Y?,There might be some long-term ETV (with period in hundreds or thousands of days). Data is too sparse to be sure.,7.394695,47.94,46.85,1629.2126,1633.6323949999999,3,1499.23,1625.0,3124.22
 68164464,Skip,Not enough data (1 TESS sector). Also observed during K2 campaign 2 (EPIC 203011840). The data (~80 days) is still too sparse (for ~15 day period),
-11546041,Y?,Mightbe ETV for both primary and secondary in 2 separate sectors. The trend of primary is opposite of the one of secondary.,0.406796,13.91,7.43,1385.920564,1385.7217640000001,2,757.28,1385.94,2143.22
+11546041,Y?,Possible ETV for both primary and secondary in 2 separate sectors. Short-term (~6 d) change and long-term (700+ d) change. The trend of primary is opposite of the one of secondary.,0.406796,13.91,7.43,1385.920564,1385.7217640000001,2,757.28,1385.94,2143.22
 449256892,Skip,Not enough data (1 TESS sector).,
-154453805,Y?,Appear to have ETV with long term trend (100+ days). EB : SB Period ~= 1:3.07 . Unsure if the preriod is sufficiently precise though.,1.0917498,29.81,23.33,1816.5730105,1817.1188854,8,1146.47,1816.12,2962.58
+154453805,Y,Long-term (100+ d) non-linear change with amplitude ~12 / 15 min in priamry / secondary. EB : SB Period ~= 1:3.07 . Unsure if the preriod is sufficiently precise though.,1.0917498,29.81,23.33,1816.5730105,1817.1188854,8,1146.47,1816.12,2962.58
 138819130,FP,"Inaccurate VSX Period (~3.59 d). Actual EB Period is ~10.77 d, consistent with SB result from Gaia DR3.",
-38383256,Y?,The trend of primary is opposite of the one of secondary. Sector 70 QLP data is omitted for expediency (depth is different). Gaia DR3 Var classifies it as a DSCT like.,0.2907787,18.28,19.3,1386.2376,1386.0943213,4,1112.92,1385.97,2498.89
+38383256,Y?,Possible long-term (1000+ d) non-linear-like change with amplitude ~6min in primary. The trend of primary is opposite of the one of secondary. Sector 70 QLP data is omitted for expediency (depth is different). Gaia DR3 Var classifies it as a DSCT like.,0.2907787,18.28,19.3,1386.2376,1386.0943213,4,1112.92,1385.97,2498.89
 140141922,Skip,"Not enough data (2 TESS sectors. A handful of cycles only, with ~8.7 day period.)",8.715623,29.82,27.82,1417.2003794999996,1412.8425679999996,2,759.0,1410.95,2169.95
 233738458,FP,O-C scatter < 1 min amplitude. Gaia DR3 NSS is probably incorrect in this case. SB Period from SB9 is about the same as EB Period (14.63 d). https://sb9.astro.ulb.ac.be//DisplayFull.cgi?1068+2,14.364654,8.54,,1696.6327,,27,1656.21,1683.35,3339.57
 22513851,FP,"Inaccurate VSX Period (~18.82 d). TESS observation (only 2 dips) is consistent with Gaia DR3 NSS (~50.178 d). VSX Period is not consistent with TESS observation.",
