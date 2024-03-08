@@ -498,13 +498,13 @@ def display_tce_infos(df, return_as=None):
         styler = df[display_columns].style.format(format_specs).hide(axis="index")
         # hack to add units to the header
         html = styler.to_html()
-        html = html.replace(">Rp</th>", "title='Rjup'>Rp</th>")
-        html = html.replace(">Epoch</th>", "title='BTJD'>Epoch</th>")
-        html = html.replace(">Duration</th>", "title='hr'>Duration</th>")
-        html = html.replace(">Period</th>", "title='d'>Period</th>")
-        html = html.replace(">Depth</th>", "title='percent'>Depth</th>")
-        html = html.replace(">TicOffset</th>", "title='sigma'>TicOffset</th>")
-        html = html.replace(">OotOffset</th>", "title='sigma'>OotOffset</th>")
+        html = html.replace(">Rp</th>", ">R<sub>p</sub><br>R<sub>j</sub></th>", 1)
+        html = html.replace(">Epoch</th>", ">Epoch<br>BTJD</th>", 1)
+        html = html.replace(">Duration</th>", ">Duration<br>hr</th>", 1)
+        html = html.replace(">Period</th>", ">Period<br>day</th>", 1)
+        html = html.replace(">Depth</th>", ">Depth<br>%</th>", 1)
+        html = html.replace(">TicOffset</th>", ">TicOffset<br>σ</th>", 1)
+        html = html.replace(">OotOffset</th>", ">OotOffset<br>σ</th>", 1)
         if return_as is None:
             return display(HTML(html))
         elif return_as == "html":
