@@ -1106,8 +1106,11 @@ def search_gaiadr3_of_tics(
             html += """
 <br>flag - &emsp; !: non single star proxy indicator (RUWE, sepsi, e_RV) ; &emsp; ✓: Gaia source matched with the one in TIC
 <br>Reference:
-    <a target ="_doc_gaiadr3_vizier" href="https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=I/355/gaiadr3">Column descption on Vizier</a> &nbsp; | &nbsp;
+    <a target ="_doc_gaiadr3_vizier" href="https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=I/355/gaiadr3">Column description on Vizier</a> &nbsp; | &nbsp;
     <a target="_doc_gaiadr3_datamodel" href="https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_main_source_catalogue/ssec_dm_gaia_source.html">data model doc on ESA</a>
+    &ensp;( <a target="_doc_gaiadr3_datamodel_astrophysical" href="https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_astrophysical_parameter_tables/ssec_dm_astrophysical_parameters.html">astrophysical params</a>,
+    <a target="_doc_evolstage_basti" href="https://iopscience.iop.org/article/10.3847/1538-4357/aab158#apjaab158s4" style="font-size: 90%;">evolstage from BASTI</a>
+    )
 """
     else:
         html = None
