@@ -492,6 +492,11 @@ def display_tce_infos(df, return_as=None, no_tce_html=None):
         "Codes",
     ]
 
+    if len(df["ticid"].unique()) > 1:
+        # case multiple TICs in the result
+        # prepend ticid to the columns to be displayed to differentiate between them
+        display_columns = ["ticid"] + display_columns
+
     def format_exomast_id(id):
         short_name = re.sub(r"TIC\d+", "", id).lower()
         return f'<a target="_exomast" href="https://exo.mast.stsci.edu/exomast_planet.html?planet={id}">{short_name}</a>'
