@@ -288,7 +288,7 @@ def _export_tcestats_as_db():
     db_path = f"{DATA_BASE_DIR}/{TCESTATS_DBNAME}"
     df = read_tcestats_csv()
     with sqlite3.connect(db_path) as con:
-        df.to_sql("tess_tcestats", con, if_exists="replace")
+        df.to_sql("tess_tcestats", con, if_exists="replace", index=False)
 
         # nice-to-have, but not critical
         sql_index = "create index tess_tcestats_ticid on tess_tcestats(ticid);"
