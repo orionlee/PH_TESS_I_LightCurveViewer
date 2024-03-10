@@ -4,6 +4,7 @@ import re
 import sqlite3
 import numpy as np
 import pandas as pd
+from astropy.table import Column
 
 import download_utils
 
@@ -302,20 +303,44 @@ def read_tcestats_csv():
     return pd.read_csv(csv_path, comment="#", dtype={"tce_sectors": str})
 
 
-def _query_tcestats_from_db(sql):
+def _query_tcestats_from_db(sql, **kwargs):
     db_path = f"{DATA_BASE_DIR}/{TCESTATS_DBNAME}"
     with sqlite3.connect(db_path) as con:
-        return pd.read_sql(sql, con)
+        return pd.read_sql(sql, con, **kwargs)
 
 
 def _get_tcestats_of_tic_from_db(tic):
-    return _query_tcestats_from_db(f"select * from tess_tcestats where ticid = {tic}")
+    if isinstance(tic, (int, float, str)):
+        return _query_tcestats_from_db(
+            "select * from tess_tcestats where ticid = ?",
+            params=[tic],
+        )
+    elif isinstance(tic, (list, tuple, set, np.ndarray, pd.Series, Column)):
+        # Note: use list, tuple, instead of collection.abc.Sequence,
+        # because types such as str also implements Sequence
+        #
+        # convert to sqlite driver acceptable type
+        # 1. list, and
+        # 2. of type `int`, e.g., using `np.int32` would result in no match
+        #    (probably requires registering some conversion in the driver)
+        tic = [int(v) for v in tic]
+        in_params_place_holder = ",".join(["?" for i in range(len(tic))])
+        return _query_tcestats_from_db(
+            f"select * from tess_tcestats where ticid in ({in_params_place_holder})",
+            params=tic,
+        )
+    else:
+        raise TypeError(f"tic must be a scalar or array-like. Actual type: {type(tic).__name__}")
 
 
-# TODO: support tce_filter_func parameter, e.g.,
-def get_tce_infos_of_tic(tic):
+def get_tce_infos_of_tic(tic, tce_filter_func=None):
     df = _get_tcestats_of_tic_from_db(tic)
     df = _add_helpful_columns_to_tcestats(df)
+    # sort the result to the standard form
+    # so that it is predictable for tce_filter_func
+    df = df.sort_values(by=["ticid", "tce_num_sectors", "exomast_id"], ascending=[True, False, True])
+    if tce_filter_func is not None and len(df) > 0:
+        df = tce_filter_func(df)
 
     return df
 
@@ -425,8 +450,6 @@ def _get_dv_products(tic, sectors, planet_num):
 
 def display_tce_infos(df, return_as=None, no_tce_html=None):
     from IPython.display import display, HTML
-
-    df = df.sort_values(by=["tce_num_sectors", "exomast_id"], ascending=[False, True])
 
     df["Codes"] = (
         "epoch=" + df["tce_time0bt"].astype(str) + ", "
