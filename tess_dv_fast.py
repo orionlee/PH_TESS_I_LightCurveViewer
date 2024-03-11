@@ -352,7 +352,7 @@ def _append_to_tcestats_csv(filepath, sectors_val, dest):
     df.to_csv(dest, index=False, header=write_header, mode="a")
 
 
-def download_all_data():
+def download_all_data(minimal_db=False):
     """Download all relevant data locally."""
     import download_utils
 
@@ -387,14 +387,47 @@ def download_all_data():
     shutil.move(dest_csv_tmp, dest_csv)
 
     # convert the master csv into a sqlite db for speedier query by ticid
-    print("DEBUG Convert master tcestats csv to sqlite db...")
-    _export_tcestats_as_db()
+    print(f"DEBUG Convert master tcestats csv to sqlite db, minimal_db={minimal_db}...")
+    _export_tcestats_as_db(minimal_db)
 
 
-def _export_tcestats_as_db():
+# minimal list of columns in db in order to support display_tce_infos
+# the resulting db is about 30% of the full db
+_MIN_DB_COLS = [
+    "exomast_id",
+    "ticid",
+    "tce_prad",  # for deriving: "Rp in Rj"
+    "tce_time0bt",  #  "Epoch"
+    "tce_period",  # "Period"
+    "tce_duration",  # "Duration"
+    "tce_impact",  # "Impact b"
+    "tce_depth",  # for deriving "Depth"
+    # for deriving "TicOffset"
+    "tce_ditco_msky",
+    "tce_ditco_msky_err",
+    # for deriving "OotOffset",
+    "tce_dicco_msky",
+    "tce_dicco_msky_err",
+    "dvs",
+    "dvm",
+    "dvr",
+    "tce_sectors",  # for deriving "tce_num_sectors"
+    # the following is not needed strictly speaking, but
+    # they are components of a TCE's identifier, so it might be handy.
+    "tce_plnt_num",
+    "sectors",
+]
+
+
+def _export_tcestats_as_db(minimal_db=False):
     db_path_tmp = f"{DATA_BASE_DIR}/{TCESTATS_DBNAME}.tmp"
     db_path = f"{DATA_BASE_DIR}/{TCESTATS_DBNAME}"
-    df = read_tcestats_csv()
+
+    usecols = None if not minimal_db else _MIN_DB_COLS
+    df = read_tcestats_csv(
+        usecols=usecols,
+    )
+
     Path(db_path_tmp).unlink(missing_ok=True)
     con = sqlite3.connect(db_path_tmp)
     try:  # use try / finally instead of with ... because sqlite3 context manager does not close the connection
@@ -412,10 +445,10 @@ def _export_tcestats_as_db():
     shutil.move(db_path_tmp, db_path)
 
 
-def read_tcestats_csv():
+def read_tcestats_csv(**kwargs):
     # for ~230k rows of TCE stats data, it took 4-10secs, taking up 200+Mb memory.
     csv_path = f"{DATA_BASE_DIR}/{TCESTATS_FILENAME}"
-    return pd.read_csv(csv_path, comment="#", dtype={"tce_sectors": str})
+    return pd.read_csv(csv_path, comment="#", dtype={"tce_sectors": str}, **kwargs)
 
 
 def _query_tcestats_from_db(sql, **kwargs):
