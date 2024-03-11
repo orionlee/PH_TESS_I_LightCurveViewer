@@ -3,6 +3,7 @@
 #
 
 import os
+import re
 import shutil
 import time
 import warnings
@@ -76,13 +77,20 @@ def _do_download_file(url, filename=None, download_dir=None):
     return local_filename
 
 
-def download_file(url, filename=None, download_dir=None, cache_policy_func=None):
+def download_file(url, filename=None, download_dir=None, cache_policy_func=None, return_is_cache_used=False):
     if download_dir is None:
         download_dir = ""
 
+    is_cache_used = False
     local_filename = _create_local_filename(url, filename, download_dir)
     if os.path.isfile(local_filename):
         if cache_policy_func is None or cache_policy_func(url, local_filename):
-            return local_filename
+            is_cache_used = True
 
-    return _do_download_file(url, filename, download_dir)
+    if not is_cache_used:
+        _do_download_file(url, filename, download_dir)
+
+    if return_is_cache_used:
+        return local_filename, is_cache_used
+    else:
+        return local_filename
