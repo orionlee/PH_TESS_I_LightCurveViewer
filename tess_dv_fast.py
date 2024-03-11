@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import shutil
+
 import numpy as np
 import pandas as pd
 from astropy.table import Column
@@ -240,9 +242,8 @@ def _filename(url):
         raise ValueError(f"Failed to extract filename from url: {url}")
 
 
-def _append_to_tcestats_csv(filepath, sectors_val):
+def _append_to_tcestats_csv(filepath, sectors_val, dest):
     print(f"DEBUG appending to master tcestats csv from: {filepath}")
-    dest = f"{DATA_BASE_DIR}/{TCESTATS_FILENAME}"
 
     df = pd.read_csv(filepath, comment="#")
     # replace sectors column with a uniform format, e.g., s0002-s0002
@@ -257,37 +258,46 @@ def _append_to_tcestats_csv(filepath, sectors_val):
 def download_all_data():
     """Download all relevant data locally."""
     # TODO: scrape the listing pages to get the list of URLs, instead of hardcoded lists above
-    # for tce stats csv files
-    for url in sources_tcestats_single_sector + sources_tcestats_multi_sector:
-        filename = _filename(url)
-        filepath = f"{DATA_BASE_DIR}/{filename}"
-        if os.path.isfile(filepath):
-            continue
-
-        print(f"DEBUG Download to {filepath} from: {url}")
-        download_utils.download_file(url, filename=filename, download_dir=DATA_BASE_DIR)
-        sectors_val = re.search(r"s\d{4}-s\d{4}", url)[0]  # e.g., s0002-s0002
-        _append_to_tcestats_csv(filepath, sectors_val)
 
     # dv products download scripts (for urls to the products)
     for url in sources_dv_sh_single_sector + sources_dv_sh_multi_sector:
         filename = _filename(url)
-        filepath = f"{DATA_BASE_DIR}/{filename}"
-        if os.path.isfile(filepath):
-            continue
+        filepath, is_cache_used = download_utils.download_file(
+            url, filename=filename, download_dir=DATA_BASE_DIR, return_is_cache_used=True
+        )
+        if not is_cache_used:
+            print(f"DEBUG Downloaded to {filepath} from: {url}")
 
-        print(f"DEBUG Download to {filepath} from: {url}")
-        download_utils.download_file(url, filename=filename, download_dir=DATA_BASE_DIR)
+    # for tce stats csv files, download and merge them to a single csv
+    # - first write to a temporary master csv. Once done, overwrite the existing master (if any)
+    dest_csv_tmp = f"{DATA_BASE_DIR}/{TCESTATS_FILENAME}.tmp"
+    dest_csv = f"{DATA_BASE_DIR}/{TCESTATS_FILENAME}"
+    Path(dest_csv_tmp).unlink(missing_ok=True)
+    for url in sources_tcestats_single_sector + sources_tcestats_multi_sector:
+        filename = _filename(url)
+
+        filepath, is_cache_used = download_utils.download_file(
+            url, filename=filename, download_dir=DATA_BASE_DIR, return_is_cache_used=True
+        )
+        if not is_cache_used:
+            print(f"DEBUG Downloaded to {filepath} from: {url}")
+
+        sectors_val = re.search(r"s\d{4}-s\d{4}", url)[0]  # e.g., s0002-s0002
+        _append_to_tcestats_csv(filepath, sectors_val, dest_csv_tmp)
+    shutil.move(dest_csv_tmp, dest_csv)
 
     # convert the csv into a sqlite db for speedier query by ticid
-    print(f"DEBUG Convert master tcestats csv to sqlite db...")
+    print("DEBUG Convert master tcestats csv to sqlite db...")
     _export_tcestats_as_db()
 
 
 def _export_tcestats_as_db():
+    db_path_tmp = f"{DATA_BASE_DIR}/{TCESTATS_DBNAME}.tmp"
     db_path = f"{DATA_BASE_DIR}/{TCESTATS_DBNAME}"
     df = read_tcestats_csv()
-    with sqlite3.connect(db_path) as con:
+    Path(db_path_tmp).unlink(missing_ok=True)
+    con = sqlite3.connect(db_path_tmp)
+    try:  # use try / finally instead of with ... because sqlite3 context manager does not close the connection
         df.to_sql("tess_tcestats", con, if_exists="replace", index=False)
 
         # nice-to-have, but not critical
@@ -295,6 +305,11 @@ def _export_tcestats_as_db():
         cursor = con.cursor()
         cursor.execute(sql_index)
         cursor.close()
+        con.commit()
+    finally:
+        con.close()
+
+    shutil.move(db_path_tmp, db_path)
 
 
 def read_tcestats_csv():
