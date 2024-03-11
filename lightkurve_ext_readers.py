@@ -337,8 +337,10 @@ def read_asas3(url, flux_column="mag_3", grade_mask=["A", "B", "C"]):
 
         # c, ce = f"mag_{n}", f"mag_{n}_err"  # shorthand for the current mag / mag err column
         # convert the magic 99.999 (not measured) to nan
-        tab[f"mag_{n}"][tab[f"mag_{n}"] == 99.999] = np.nan
-        tab[f"mag_{n}_err"][tab[f"mag_{n}_err"] == 99.999] = np.nan
+        # in some cases, it is 29.999, e.g., ASAS 053536-7849.3
+        for not_measured_val in [29.999, 99.999]:
+            tab[f"mag_{n}"][tab[f"mag_{n}"] == not_measured_val] = np.nan
+            tab[f"mag_{n}_err"][tab[f"mag_{n}_err"] == not_measured_val] = np.nan
 
         # add units
         tab[f"mag_{n}"] = tab[f"mag_{n}"] * u.mag
