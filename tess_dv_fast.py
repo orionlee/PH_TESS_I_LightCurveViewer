@@ -263,7 +263,7 @@ def _get_dv_products_of_sectors(sectors):
     sector_start, sector_end = sectors.split("-")
     if sector_start == sector_end:
         # case single sector
-        match = re.search("[1-9]\d+$", sectors)  # 2+ digits sector
+        match = re.search(r"[1-9]\d+$", sectors)  # 2+ digits sector
         if match is not None:
             sector_str_in_filename = match[0]
         else:
