@@ -242,13 +242,97 @@ def _filename(url):
         raise ValueError(f"Failed to extract filename from url: {url}")
 
 
+def _add_exomast_id(df):
+    # id to construct exomast URL, e.g., TIC232646881S0073S0073TCE1
+    # it can serves as a unique ID for the TCE across sectors too.
+    df.insert(
+        loc=0,
+        column="exomast_id",
+        value=(
+            "TIC"
+            + df["ticid"].astype(str)
+            + df["sectors"].str.upper().str.replace("-", "")
+            + "TCE"
+            + df["tce_plnt_num"].astype(str)
+        ),
+    )
+
+
+def _get_dv_products_of_sectors(sectors):
+    # sectors: the value of sectors column in csv, e.g., s0002-s0072
+    sector_start, sector_end = sectors.split("-")
+    if sector_start == sector_end:
+        # case single sector
+        match = re.search("[1-9]\d+$", sectors)  # 2+ digits sector
+        if match is not None:
+            sector_str_in_filename = match[0]
+        else:
+            match = re.search("[1-9]$", sectors)  # single sector
+            if match is not None:
+                sector_str_in_filename = match[0]
+            else:
+                raise ValueError(f"Cannot prase sector from string {sectors}")
+        script_name = f"{DATA_BASE_DIR}/tesscurl_sector_{sector_str_in_filename}_dv.sh"
+    else:
+        # case multi-sector
+        script_name = f"{DATA_BASE_DIR}/tesscurl_multisector_{sectors}_dv.sh"
+
+    filename = pd.read_csv(
+        script_name,
+        comment="#",
+        sep=" ",
+        names=["curl", "C", "-", "L", "o", "filename", "url"],
+        usecols=["filename"],
+    )["filename"]
+
+    dvs_filename = filename[filename.str.contains("_dvs.pdf")]
+    dvs = dvs_filename.str.extract(rf"tess\d+-{sectors}-0+?(?P<ticid>[1-9]\d+)-(?P<tce_plnt_num>\d\d)-")
+    dvs.ticid = dvs.ticid.astype("int64")
+    dvs.tce_plnt_num = dvs.tce_plnt_num.astype(int)
+    dvs["dvs"] = dvs_filename
+    # in case multiple runs for the same TIC-sector, use the last one only
+    dvs = dvs.groupby(by=["ticid", "tce_plnt_num"], as_index=False).last()
+
+    def get_products_of_type(colname, filename_suffix):
+        product_filename = filename[filename.str.contains(filename_suffix)]
+        df = product_filename.str.extract(rf"tess\d+-{sectors}-0+?(?P<ticid>[1-9]\d+)-")
+        df.ticid = df.ticid.astype("int64")
+        df[colname] = product_filename
+        # in case multiple runs for the same TIC-sector, use the last one only
+        df = df.groupby(by="ticid", as_index=False).last()
+        return df
+
+    dvm = get_products_of_type("dvm", "_dvm.pdf")
+    dvr = get_products_of_type("dvr", "_dvr.pdf")
+    dvr_xml = get_products_of_type("dvr_xml", "_dvr.xml")
+    dvt = get_products_of_type("dvt", "_dvt.fits")
+
+    res = dvs
+    for df in [dvm, dvr, dvr_xml, dvt]:
+        res = pd.merge(res, df, on="ticid", how="left", validate="many_to_one")
+
+    res["sectors"] = sectors
+    _add_exomast_id(res)
+    res.drop(["ticid", "tce_plnt_num", "sectors"], axis="columns", inplace=True)
+    return res
+
+
 def _append_to_tcestats_csv(filepath, sectors_val, dest):
     print(f"DEBUG appending to master tcestats csv from: {filepath}")
 
+    # base tcestats csv of a sector
     df = pd.read_csv(filepath, comment="#")
+
     # replace sectors column with a uniform format, e.g., s0002-s0002
     # that describes the actual range for both single sector and multi sector csvs
     df["sectors"] = sectors_val
+
+    # uniquely identify a TCE across all sectors
+    _add_exomast_id(df)
+
+    # include filenames of dvs, dvm, etc.
+    df_filenames = _get_dv_products_of_sectors(sectors_val)
+    df = pd.merge(df, df_filenames, on="exomast_id", validate="one_to_one")
 
     # only write header when the file is first created
     write_header = not os.path.isfile(dest)
@@ -260,6 +344,7 @@ def download_all_data():
     # TODO: scrape the listing pages to get the list of URLs, instead of hardcoded lists above
 
     # dv products download scripts (for urls to the products)
+    # - they need to be first downloaded: as creating master csv below relies on the scripts
     for url in sources_dv_sh_single_sector + sources_dv_sh_multi_sector:
         filename = _filename(url)
         filepath, is_cache_used = download_utils.download_file(
@@ -286,7 +371,7 @@ def download_all_data():
         _append_to_tcestats_csv(filepath, sectors_val, dest_csv_tmp)
     shutil.move(dest_csv_tmp, dest_csv)
 
-    # convert the csv into a sqlite db for speedier query by ticid
+    # convert the master csv into a sqlite db for speedier query by ticid
     print("DEBUG Convert master tcestats csv to sqlite db...")
     _export_tcestats_as_db()
 
@@ -325,6 +410,11 @@ def _query_tcestats_from_db(sql, **kwargs):
 
 
 def _get_tcestats_of_tic_from_db(tic):
+    # OPEN: support optional columns parameter?
+    # - double quote the column names in the constructed SQL
+    #   would be sufficient wo avoid SQL injection
+    # - need to make _add_helpful_columns_to_tcestats()
+    #   handle missing columns though
     if isinstance(tic, (int, float, str)):
         return _query_tcestats_from_db(
             "select * from tess_tcestats where ticid = ?",
@@ -350,7 +440,7 @@ def _get_tcestats_of_tic_from_db(tic):
 
 def get_tce_infos_of_tic(tic, tce_filter_func=None):
     df = _get_tcestats_of_tic_from_db(tic)
-    df = _add_helpful_columns_to_tcestats(df)
+    _add_helpful_columns_to_tcestats(df)
     # sort the result to the standard form
     # so that it is predictable for tce_filter_func
     df = df.sort_values(by=["ticid", "tce_num_sectors", "exomast_id"], ascending=[True, False, True])
@@ -364,17 +454,6 @@ R_EARTH_TO_R_JUPITER = 6378.1 / 71492
 
 
 def _add_helpful_columns_to_tcestats(df):
-    # 1. add convenience columns
-
-    # id to construct exomast URL, e.g., TIC232646881S0073S0073TCE1
-    # it can serves as a unique ID for the TCE too.
-    df["exomast_id"] = (
-        "TIC"
-        + df["ticid"].astype(str)
-        + df["sectors"].str.upper().str.replace("-", "")
-        + "TCE"
-        + df["tce_plnt_num"].astype(str)
-    )
     # convert the bit pattern in tce_sectors column to number of sectors a TCE covers
     df["tce_num_sectors"] = df["tce_sectors"].str.count("1")
     df["tce_prad_jup"] = df["tce_prad"] * R_EARTH_TO_R_JUPITER
@@ -383,84 +462,10 @@ def _add_helpful_columns_to_tcestats(df):
     df["tce_dicco_msky_sig"] = df["tce_dicco_msky"] / df["tce_dicco_msky_err"]  # OotOffset sig
     # Note: model's stellar density, `starDensitySolarDensity` in dvr xml, is not available in csv
 
-    # 2. add links to data products
-    report_cols = dict(
-        # dtype=object: for arbitrary string length
-        dvs=np.full_like(df.index, "", dtype=object),
-        dvm=np.full_like(df.index, "", dtype=object),
-        dvr=np.full_like(df.index, "", dtype=object),
-        dvr_xml=np.full_like(df.index, "", dtype=object),
-        dvt_fits=np.full_like(df.index, "", dtype=object),
-    )
 
-    for i in range(len(df)):
-        tic = df.iloc[i]["ticid"]
-        sectors = df.iloc[i]["sectors"]
-        planet_num = df.iloc[i]["tce_plnt_num"]
-        report_dict = _get_dv_products(tic, sectors, planet_num)
-        for type in report_cols.keys():
-            report_cols[type][i] = report_dict[type]
-
-    for type in report_cols.keys():
-        df[type] = report_cols[type]
-
-    return df
-
-
-def _get_dv_products(tic, sectors, planet_num):
-    # sectors: the value of sectors column in csv, e.g., s0002-s0072
-    sector_start, sector_end = sectors.split("-")
-    if sector_start == sector_end:
-        # case single sector
-        match = re.search("[1-9]\d+$", sectors)  # 2+ digits sector
-        if match is not None:
-            sector_str_in_filename = match[0]
-        else:
-            match = re.search("[1-9]$", sectors)  # single sector
-            if match is not None:
-                sector_str_in_filename = match[0]
-            else:
-                raise ValueError(f"Cannot prase sector from string {sectors}")
-        script_name = f"{DATA_BASE_DIR}/tesscurl_sector_{sector_str_in_filename}_dv.sh"
-    else:
-        # case multi-sector
-        script_name = f"{DATA_BASE_DIR}/tesscurl_multisector_{sectors}_dv.sh"
-
-    df = pd.read_csv(
-        script_name,
-        comment="#",
-        sep=" ",
-        names=["curl", "C", "-", "L", "o", "filename", "url"],
-        usecols=["filename"],
-    )
-
-    df = df[df["filename"].str.contains(f"0{tic}-", regex=False)]
-    a_res = {}
-
-    if len(df) < 1:
-        return a_res
-
-    def to_url(filename_vals):
-        if len(filename_vals) > 0:
-            # use the last one, in case there are values, corresponding to multiple runs for a single TCE
-            # (probably should not happen within a bulk download script, but just in case)
-            filename = filename_vals.iat[-1]
-            return f"https://mast.stsci.edu/api/v0.1/Download/file/?uri=mast:TESS/product/{filename}"
-        else:
-            return ""
-
-    n = planet_num
-    vals = df[df["filename"].str.contains(f"0{tic}-{n:02d}-\d+_dvs.pdf", regex=True)]["filename"]
-    a_res["dvs"] = to_url(vals)
-    vals = df[df["filename"].str.endswith("_dvm.pdf")]["filename"]
-    a_res["dvm"] = to_url(vals)
-    vals = df[df["filename"].str.endswith("_dvr.pdf")]["filename"]
-    a_res["dvr"] = to_url(vals)
-    vals = df[df["filename"].str.endswith("_dvr.xml")]["filename"]
-    a_res["dvr_xml"] = to_url(vals)
-    vals = df[df["filename"].str.endswith("_dvt.fits")]["filename"]
-    a_res["dvt_fits"] = to_url(vals)
-    return a_res
+def to_product_url(filename):
+    """Convert the product filenames in columns such as dvs, dvr, etc., to URL to MAST server"""
+    return f"https://mast.stsci.edu/api/v0.1/Download/file/?uri=mast:TESS/product/{filename}"
 
 
 def display_tce_infos(df, return_as=None, no_tce_html=None):
@@ -523,9 +528,9 @@ def display_tce_infos(df, return_as=None, no_tce_html=None):
 
     format_specs = {
         "exomast_id": format_exomast_id,
-        "dvs": lambda url: f'<a target="_blank" href="{url}">dvs</a>',
-        "dvm": lambda url: f'<a target="_blank" href="{url}">dvm</a>',
-        "dvr": lambda url: f'<a target="_blank" href="{url}">dvr</a>',
+        "dvs": lambda f: f'<a target="_blank" href="{to_product_url(f)}">dvs</a>',
+        "dvm": lambda f: f'<a target="_blank" href="{to_product_url(f)}">dvm</a>',
+        "dvr": lambda f: f'<a target="_blank" href="{to_product_url(f)}">dvr</a>',
         "Rp": "{:.3f}",
         "Epoch": "{:.2f}",  # the csv has 2 digits precision
         "Duration": "{:.4f}",
