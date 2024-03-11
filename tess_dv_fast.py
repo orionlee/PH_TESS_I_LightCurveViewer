@@ -6,9 +6,22 @@ import shutil
 
 import numpy as np
 import pandas as pd
-from astropy.table import Column
 
-import download_utils
+try:
+    from astropy.table import Column
+
+    _HAS_ASTROPY = False
+except Exception:
+    _HAS_ASTROPY = False
+
+# for tic parameter in get_tce_infos_of_tic(), case a list of TICs
+#
+# Note: use list, tuple explicitly, instead of collection.abc.Sequence,
+# because types such as str also implements Sequence
+if _HAS_ASTROPY:
+    _ARRAY_LIKE_TYPES = (list, tuple, set, np.ndarray, pd.Series, Column)
+else:
+    _ARRAY_LIKE_TYPES = (list, tuple, set, np.ndarray, pd.Series)
 
 
 DATA_BASE_DIR = f"{Path(__file__).parent}/data/tess_dv_fast"
@@ -341,6 +354,8 @@ def _append_to_tcestats_csv(filepath, sectors_val, dest):
 
 def download_all_data():
     """Download all relevant data locally."""
+    import download_utils
+
     # TODO: scrape the listing pages to get the list of URLs, instead of hardcoded lists above
 
     # dv products download scripts (for urls to the products)
@@ -420,9 +435,7 @@ def _get_tcestats_of_tic_from_db(tic):
             "select * from tess_tcestats where ticid = ?",
             params=[tic],
         )
-    elif isinstance(tic, (list, tuple, set, np.ndarray, pd.Series, Column)):
-        # Note: use list, tuple, instead of collection.abc.Sequence,
-        # because types such as str also implements Sequence
+    elif isinstance(tic, _ARRAY_LIKE_TYPES):
         #
         # convert to sqlite driver acceptable type
         # 1. list, and
@@ -469,8 +482,6 @@ def to_product_url(filename):
 
 
 def display_tce_infos(df, return_as=None, no_tce_html=None):
-    from IPython.display import display, HTML
-
     df["Codes"] = (
         "epoch=" + df["tce_time0bt"].astype(str) + ", "
         "duration_hr=" + df["tce_duration"].astype(str) + ", "
@@ -556,6 +567,8 @@ def display_tce_infos(df, return_as=None, no_tce_html=None):
         if len(df) < 1 and no_tce_html is not None:
             html = no_tce_html
         if return_as is None:
+            from IPython.display import display, HTML
+
             return display(HTML(html))
         elif return_as == "html":
             return html
