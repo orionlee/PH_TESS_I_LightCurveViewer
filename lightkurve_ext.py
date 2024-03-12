@@ -1548,6 +1548,7 @@ def search_nearby(
     for col in ["separation", "RPmag", "Gmag", "BPmag", "BP-RP", "GRVSmag", "Vmag"]:
         if col in result.colnames:
             result[col].info.format = ".3f"
+    result["_r"].unit = u.arcsec  # fill in the missing unit (Vizier / astroquery does not provide)
 
     if warn_if_all_filtered and len(result) == 0 and len(result_pre_filter) > 0:
         warnings.warn(f"All query results filtered due to mag/PM filter. Num. of entries pre-filter: {len(result_pre_filter)}")
@@ -1561,6 +1562,7 @@ def search_nearby(
         for col in ["Pstar", "Pbin", "PWD"]:  # tweak default format
             if col in result_paramp.colnames:
                 result_paramp[col].info.format = ".2f"
+        result_paramp["_r"].unit = u.arcsec  # fill in the missing unit (Vizier / astroquery does not provide)
 
         return result, result_paramp
     else:
