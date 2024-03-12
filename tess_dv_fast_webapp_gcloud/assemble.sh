@@ -17,6 +17,8 @@ cp --update --archive  $base/../data/tess_dv_fast/tess_tcestats.db  $dest/data/t
 cp --update --archive  $base/*.*  $dest
 cp --update --archive  $base/../tess_dv_fast.py $base/../tess_dv_fast_webapp.py  $dest
 
+ls -l $dest/data/tess_dv_fast/tess_tcestats.db
+
 echo Source assembled. You can do the following for actual deployment:
 echo cd $dest
 # for local verification
