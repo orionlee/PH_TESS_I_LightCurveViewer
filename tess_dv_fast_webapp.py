@@ -16,6 +16,7 @@ def tces():
 <!DOCTYPE html>
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Search TESS TCEs</title>
     </head>
     <body>
@@ -81,6 +82,7 @@ tbody tr:nth-child(even) {
 <!DOCTYPE html>
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>({len(df)}) TCEs for TIC {tic}</title>
     </head>
     <body>
