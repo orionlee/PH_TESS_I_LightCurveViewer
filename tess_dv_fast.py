@@ -531,10 +531,11 @@ def display_tce_infos(df, return_as=None, no_tce_html=None):
             "tce_duration": "Duration",
             "tce_impact": "Impact b",
             "tce_depth_pct": "Depth",
-            "tce_ditco_msky_sig": "TicOffset",
-            "tce_dicco_msky_sig": "OotOffset",
         }
     )
+
+    df["TicOffset"] = df["tce_ditco_msky"].astype(str) + "|" + df["tce_ditco_msky_sig"].astype(str)
+    df["OotOffset"] = df["tce_dicco_msky"].astype(str) + "|" + df["tce_dicco_msky_sig"].astype(str)
 
     display_columns = [
         "exomast_id",
@@ -565,6 +566,21 @@ def display_tce_infos(df, return_as=None, no_tce_html=None):
         short_name = re.sub(r"TIC\d+", "", id).lower()
         return f'<a target="_exomast" href="https://exo.mast.stsci.edu/exomast_planet.html?planet={id}">{short_name}</a>'
 
+    def format_offset_n_sigma(val_sigma_str):
+        # format TicOffset / OotOffset, to value (sigma)
+        try:
+            val, sigma = val_sigma_str.split("|")
+            val = float(val)
+            sigma = float(sigma)
+            if sigma >= 3:
+                sigma_style = ' style="color: red; font-weight: bold;"'
+            else:
+                sigma_style = ""
+            return f"{val:.0f} <span{sigma_style}>({sigma:.1f})<span>"
+        except Exception:
+            # in case something unexpected, fallback to raw str to avoid exception in display
+            return val_sigma_str
+
     def format_codes(codes):
         return f"""\
 <input type="text" style="margin-left: 3ch; font-size: 90%; color: #666; width: 10ch;"
@@ -581,8 +597,8 @@ def display_tce_infos(df, return_as=None, no_tce_html=None):
         "Period": "{:.6f}",
         "Depth": "{:.4f}",
         "Impact b": "{:.2f}",
-        "TicOffset": "{:.2f}",
-        "OotOffset": "{:.2f}",
+        "TicOffset": format_offset_n_sigma,
+        "OotOffset": format_offset_n_sigma,
         "Codes": format_codes,
     }
 
@@ -595,8 +611,8 @@ def display_tce_infos(df, return_as=None, no_tce_html=None):
         html = html.replace(">Duration</th>", ">Duration<br>hr</th>", 1)
         html = html.replace(">Period</th>", ">Period<br>day</th>", 1)
         html = html.replace(">Depth</th>", ">Depth<br>%</th>", 1)
-        html = html.replace(">TicOffset</th>", ">TicOffset<br>σ</th>", 1)
-        html = html.replace(">OotOffset</th>", ">OotOffset<br>σ</th>", 1)
+        html = html.replace(">TicOffset</th>", '>TicOffset<br>" (σ)</th>', 1)
+        html = html.replace(">OotOffset</th>", '>OotOffset<br>" (σ)</th>', 1)
         if len(df) < 1 and no_tce_html is not None:
             html = no_tce_html
         if return_as is None:
