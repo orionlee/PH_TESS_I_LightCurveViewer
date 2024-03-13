@@ -452,8 +452,8 @@ def read_tcestats_csv(**kwargs):
 
 
 def _query_tcestats_from_db(sql, **kwargs):
-    db_path = f"{DATA_BASE_DIR}/{TCESTATS_DBNAME}"
-    with sqlite3.connect(db_path) as con:
+    db_uri = f"file:{DATA_BASE_DIR}/{TCESTATS_DBNAME}?mode=ro"  # read-only
+    with sqlite3.connect(db_uri, uri=True) as con:
         return pd.read_sql(sql, con, **kwargs)
 
 
