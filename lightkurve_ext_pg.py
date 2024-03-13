@@ -83,7 +83,16 @@ def _bls_model(pg, lc, time=None, period=None, duration=None, transit_time=None)
     return model
 
 
-def plot_lc_with_model(lc, pg, period=None, plot_lc=True, plot_model=True, plot_folded_model=True, also_return_lcs=False):
+def plot_lc_with_model(
+    lc,
+    pg,
+    period=None,
+    plot_lc=True,
+    plot_model=True,
+    plot_folded_model=True,
+    plot_folded_model_with_time_cmap=True,
+    also_return_lcs=False,
+):
     if period is None:
         period = pg.period_at_max_power
     lc_model = model(pg, lc, period=period)
@@ -108,7 +117,11 @@ def plot_lc_with_model(lc, pg, period=None, plot_lc=True, plot_model=True, plot_
         lc_f = lc.fold(epoch_time=epoch_time, period=period)
         lc_model_f = lc_model.fold(epoch_time=epoch_time, period=period)
 
-        ax_f = lc_f.scatter(alpha=0.3)
+        lc_f_scatter_kwargs = {}
+        if plot_folded_model_with_time_cmap:
+            # show time of the folded LC as color, to show  evolution over time (if any)
+            lc_f_scatter_kwargs["c"] = lc_f.time_original.value
+        ax_f = lc_f.scatter(alpha=0.3, **lc_f_scatter_kwargs)
         lc_model_f.plot(ax=ax_f, c="red", linewidth=4)
         if hasattr(pg, "duration_at_max_power"):
             # zoom in for BLS model:
