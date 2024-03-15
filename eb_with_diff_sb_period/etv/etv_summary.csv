@@ -33,3 +33,4 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 305832152,?,"O-C suggests tiny variation (range ~0.2 min), unclear if there is a real trend.",1.5430672,45.67,45.26,1765.4424,1766.2139336,3,1145.36,1764.69,2910.05
 99725941,Skip,"Likely FP, but not enough data (3 secondary eclipses and 2 primary eclipses far apart). The VSX Period is uncertain (one potential period). The EB Period from VSX matched TESS data. Gaia DR3 NSS has AB and SB2. AB Period matches TESS observation. SB Period is close too.",
 371165722,?,"Scattered O-C, with range of < 5 min . No apparent trend. The model might not be accurate enough: Tau does not converge (possibly due to U-shaped dips).",2.250286,1.47,,1842.7721,,7,1443.08,1842.51,3285.59
+316633520,FP,"FP, as Orbital Period ~= SB Period of ~4.64 d. VSX period is incorrect.",
