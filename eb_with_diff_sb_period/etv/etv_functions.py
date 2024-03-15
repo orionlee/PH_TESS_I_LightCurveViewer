@@ -297,7 +297,7 @@ def coshgauss_model_fit(x, alpha0, alpha1, t0, d, Tau):
     return model
 
 
-def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, **kwargs):
+def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs):
     """
     Plots the initial guess for the data using the given parameters.
 
@@ -312,12 +312,14 @@ def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, **
     Returns:
     None
     """
-    figsize = kwargs.get("figsize", (8, 4))
 
-    fig = plt.subplots(figsize=figsize, sharex=True)
-    plt.errorbar(ph_binned, flux_binned, yerr=err_binned, fmt=".k", capsize=0, zorder=2)
-    plt.scatter(data.phase, data.flux, zorder=-2)
-    plt.plot(
+    if ax is None:
+        figsize = kwargs.get("figsize", (8, 4))
+        ax = plt.figure(figsize=figsize).gca()
+
+    ax.errorbar(ph_binned, flux_binned, yerr=err_binned, fmt=".k", capsize=0, zorder=2)
+    ax.scatter(data.phase, data.flux, zorder=-2)
+    ax.plot(
         data.phase,
         coshgauss_model_fit(data.phase, *start_vals),
         lw=0,
@@ -327,6 +329,55 @@ def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, **
         zorder=2,
         color="red",
     )
+    return ax
+
+
+def plot_initial_guess_interactive(data, ph_binned, flux_binned, err_binned, t0_varname, *start_vals, figsize=(8, 4)):
+    from ipywidgets import interactive_output, Layout
+    import ipywidgets as widgets
+    from IPython.display import display
+
+    widget_out2 = widgets.Output()
+
+    # ax = plt.figure(figsize=figsize).gca()
+
+    def _do_plot(alpha0, alpha1, t0, d, Tau):
+        plot_initial_guess(data, ph_binned, flux_binned, err_binned, alpha0, alpha1, t0, d, Tau)
+        params_text = f"""\
+[{alpha0}, {alpha1}, {t0_varname}, {d}, {Tau}]
+[{alpha0}, {alpha1}, {t0}, {d}, {Tau}]
+"""
+        widget_out2.clear_output()
+        with widget_out2:
+            print(params_text)
+
+    alpha0, alpha1, t0, d, Tau = start_vals
+
+    desc_style = {"description_width": "10ch"}
+    w_layout = Layout(width="25ch")
+    w_alpha0 = widgets.FloatText(value=alpha0, step=0.01, description="alpha0", style=desc_style, layout=w_layout)
+    w_alpha1 = widgets.FloatText(value=alpha1, step=0.01, description="alpha1", style=desc_style, layout=w_layout)
+    w_t0 = widgets.FloatText(value=t0, step=0.0000001, description="t0", style=desc_style, layout=w_layout)
+    w_d = widgets.FloatText(value=d, step=0.001, description="d", style=desc_style, layout=w_layout)
+    w_Tau = widgets.FloatText(value=Tau, step=0.01, description="Tau", style=desc_style, layout=w_layout)
+
+    w = interactive_output(_do_plot, dict(alpha0=w_alpha0, alpha1=w_alpha1, t0=w_t0, d=w_d, Tau=w_Tau))
+    w.layout.padding = "1em 0px"
+
+    # Layout the UI
+    VB = widgets.VBox
+    HB = widgets.HBox
+    ui = VB(
+        [
+            HB([w_alpha0, w_alpha1, w_t0, w_d, w_Tau]),
+        ]
+    )
+
+    widget_out2.layout.padding = "1em"
+
+    display(ui, w, widget_out2)
+
+    pass
 
 
 # for the mcmc
