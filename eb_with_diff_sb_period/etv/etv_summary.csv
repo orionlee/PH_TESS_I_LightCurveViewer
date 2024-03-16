@@ -38,7 +38,7 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 91037997,?,"O-C suggests some variation (amplitude < 1 min), but unclear if it's scatter or real trend. Data is too sparse (2 sectors). EB Period : SB Period ~= 4:3 .",0.53709387,32.72,13.12,2036.606,2036.33890613,2,1118.12,2036.28,3154.4
 26801525,?,"O-C suggests some variation (<1 min amplitude), but unclear if it's scatter or real trend. Data is too sparse. EB Period : SB Period ~= 4:3 .",3.8966483,50.69,50.6,1766.62,1764.87,3,1117.43,1764.69,2882.12
 332334202,?,O-C suggests some variation (amplitude < 5 min) but unclear if it's scatter or real trend. Data is sparse (5 sectors).,8.67143,12.36,2.95,1711.74,1716.62,5,980.15,1711.36,2691.51
-
+181798899,Skip,"Not enough data (2 sets of eclipses in 2 sectors). A very tiny chance of NEB (TIC 181793136, 4arcsec away, most likely too faint to be the source).",
 
 
 
