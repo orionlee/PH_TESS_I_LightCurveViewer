@@ -36,6 +36,8 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 316633520,FP,"FP, as Orbital Period ~= SB Period of ~4.64 d. VSX period is incorrect.",
 290035575,Y,"O-C suggests non-linear trend with a ~7.6 d period, amplitude ~1min. EB Period : SB Period ~= 9:10 .",0.952377636,51.57,49.44,1683.418,1683.894188818,6,1140.91,1683.36,2824.26
 91037997,?,"O-C suggests some variation (amplitude < 1 min), but unclear if it's scatter or real trend. Data is too sparse (2 sectors). EB Period : SB Period ~= 4:3 .",0.53709387,32.72,13.12,2036.606,2036.33890613,2,1118.12,2036.28,3154.4
+26801525,?,"O-C suggests some variation (<1 min amplitude), but unclear if it's scatter or real trend. Data is too sparse. EB Period : SB Period ~= 4:3 .",3.8966483,50.69,50.6,1766.62,1764.87,3,1117.43,1764.69,2882.12
+
 
 
 
