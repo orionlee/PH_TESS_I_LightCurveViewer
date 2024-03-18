@@ -43,6 +43,7 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 177283493,N?,"O-C has scatter with amplitude about 4 min (primary) and 8 min (secondary) that looks constant, over 31 sectors. EB : SB Period ~= 1.63. Purported delta scuti, and low [Fe/H] -1.8",0.75284052,11.16,5.14,2036.4289,2036.8069000000003,31,1856.79,1325.34,3182.14
 230953115,?,O-C scatter with amplitude < 1 min. No clear trend. Data is too sparse (2 sectors). EB : SB Period ~= 1.68.,1.650056,12.17,7.89,2037.196,2036.370972,2,1118.12,2036.28,3154.4
 15795549,?,"O-C variation does not show trend. Amplitude: primary < 1 min, secondary < 6 min. O-C Periodogram shows a peak at ~4.5 min, but folded O-C does not show trend. Sparse data (3 sectors).",0.89119345,44.09,31.83,1683.891,1683.4454032750002,3,763.23,1683.36,2446.58
+129409890,FP?,"EB Period ~= SB Period (~7.35 d). SB Period from Gaia DR3 NSS is likely to be incorrect, as it is listed in SB9 with 7.35 d period. But the (limited) O-C for secondary shows variation ~10 min amplitude, with only 2 sectors of data. ",7.351556,47.9,44.62,1739.87,1743.605,2,1114.49,1738.66,2853.14
 
 
 
