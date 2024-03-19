@@ -49,6 +49,7 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 71546916,?,"O-C suggests some variation (ampliutde < 3 min) but unclear if it's scatter or real trend, possibly long-term (1400+ d) non-linear trend in primary's O-C. Sparse data (4 sectors). ",9.86028,9.07,8.43,1547.604,1552.57,4,1497.68,1543.23,3040.9
 160533733,?,"O-C suggests some variation (amplitude: primary < 10 min, secondary < 60 min) but unclear if it's scatter or real trend. QLP data, with 8 out of 20 sectors in 30 min cadence.",24.86392819951027,28.76,11.46,1695.799,1705.859,20,1279.22,1683.37,2962.58
 117175528,?,"O-C suggests some variation (amplitude: primary < 4 min, secondary < 12 min) but unclear if it's scatter or real trend, sparse data (2 sectors). 2021AJ....161..129L reported the target is a triple star system, with linear EB ephemeris after pulsation signals are removed in (1 sector).",2.254232,37.93,36.52,1790.988,1792.082768,2,1119.39,1790.66,2910.05
+191965113,?,"Insufficient data (3 sectors, a handful of cycles).",16.98112,8.81,0.52,1852.11,1846.22,3,1470.15,1842.51,3312.65
 
 
 
