@@ -621,3 +621,27 @@ def display_tce_infos(df, return_as=None, no_tce_html=None):
             return display(HTML(html))
         elif return_as == "html":
             return html
+
+
+# update the DB / master csv from command line
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Update master TESS TCE data")
+    parser.add_argument("--update", dest="update", action="store_true", help="Update master csv and sqlite db.")
+    parser.add_argument(
+        "--minimal_db",
+        dest="minimal_db",
+        action="store_true",
+        default=False,
+        help="make the sqlite db minimal for typical use cases / webapp usage",
+    )
+
+    args = parser.parse_args()
+    if not args.update:
+        print("--update must be specified")
+        parser.print_help()
+        parser.exit()
+
+    print(f"Downloading data to create master csv, minimal_db={args.minimal_db}")
+    download_all_data(minimal_db=args.minimal_db)
