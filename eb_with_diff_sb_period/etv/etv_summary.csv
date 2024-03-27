@@ -3,7 +3,7 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 353894978,Y,"Non-linear trend, but no strong O-C period in folded O-C. EB to SB Period ~ 1:3. A small chance actual EB Period is half (primary and secondary are almost identical). [D*0.8]",3.341825,24.14,24.01,1685.644,1683.9730875,31,1684.13,1683.35,3367.48
 30034081,Y,"Non-linear trend, but no clear O-C period in folded O-C. EB Period to SB Period ~= 2.8:1 . The trend of primary is opposite of the one of secondary in some time range. VSX Period is half of true period. [D*0.8]",4.689244,47.61,47.68,1413.897422,1411.5528,30,1797.24,1410.9,3208.14
 420962954,FP,"FP, as Orbial Period (0.997d) ~= SB Period. The VSX period VSX Period (0.66d) is inaccurate.",
-382101519,N?,"Constant O-C (in the range of 0.3 minute), after using a more precise (8 decimal points) period .",0.67225924,30.76,,2036.4003,,20,1145.86,2036.28,3182.14
+382101519,N?,"Constant-like O-C (in the range of 0.3 min, with O-C error ~0.04min), after using a more precise (8 decimal points) period . [D*0.8]",0.67225924,30.76,,2036.4003,,20,1145.86,2036.28,3182.14
 180943676,FP,"FP, as Orbital Period ~= SB Period. VSX entry refers to a nearby EB with similar brightness.",8.418147,8.28,0.39,1471.4196,1475.5596,4,759.29,1468.27,2227.57
 4713510,FP,"NEB. Actual EB is TIC 4713433",
 52368472,Y?,Possible long-term non-linear (2000+ d) change with amplitude ~5min. Another possibility is the period not precise enough. Period from MCMC fit shows similar result.,0.3258262,4.52,3.37,1325.422,1325.5856,4,1882.84,1325.3,3208.14
