@@ -16,7 +16,7 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 342645261,?,O-C suggests some variation but unclear if it's scatter or real trend. Data is too sparse.,7.14609,44.51,43.77,2010.4276,2014.3065,3,758.71,2010.27,2768.98
 266769521,FP,"NEB. Actual EB is TIC 266769522, which has no significant EB - SB period difference",
 273874851,Y?,"Possible long-term (1000+ d) non-linear change, with ~4 min amplitude for primary. Eclipses signficantly shallower afer a long gap, around BTJD 2400, possibly due to contamination of nearby TIC 1881902473 (<1 arcsec away, delta mag +0.7).",2.045206,59.91,10.73,1683.4792,1684.5072,5,1169.78,1683.36,2853.14
-305633328,N?,"O-C has small scatter (< 1 min amplitude), probably insignificant.",2.503475,47.35,43.38,1711.6776750000001,1712.9294125000001,5,1170.73,1711.38,2882.12
+305633328,?,"O-C has small scatter (< 1 min amplitude), possibly insignificant. OPEN: lightcurve has short period variation (multiple peaks in 300uHz - 3000uHz, Gaia DR3 Var identifies short-timescale frequency of ~55 1/d.) that might have contaminated ETV result. [D*0.7]",2.503475,43.86,39.94,1711.685,1712.9367375,5,1170.73,1711.38,2882.12
 377192658,FP,"NEB. Actual EB is TIC 377192659, which has no significant EB - SB period difference",
 346767664,Y?,There might be some long-term ETV (with period in hundreds or thousands of days). Data is too sparse to be sure.,7.394695,47.94,46.85,1629.2126,1633.6323949999999,3,1499.23,1625.0,3124.22
 68164464,Skip,Not enough data (1 TESS sector). Also observed during K2 campaign 2 (EPIC 203011840). The data (~80 days) is still too sparse (for ~15 day period),
