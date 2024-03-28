@@ -6,7 +6,7 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 382101519,N?,"Constant-like O-C (in the range of 0.3 min, with O-C error ~0.04min), after using a more precise (8 decimal points) period . [D*0.8]",0.67225924,30.76,,2036.4003,,20,1145.86,2036.28,3182.14
 180943676,FP,"FP, as Orbital Period ~= SB Period. VSX entry refers to a nearby EB with similar brightness.",8.418147,8.28,0.39,1471.4196,1475.5596,4,759.29,1468.27,2227.57
 4713510,FP,"NEB. Actual EB is TIC 4713433",
-52368472,Y?,Possible long-term non-linear (2000+ d) change with amplitude ~5min. Another possibility is the period not precise enough. Period from MCMC fit shows similar result.,0.3258262,4.52,3.37,1325.422,1325.5856,4,1882.84,1325.3,3208.14
+52368472,Y?,"Possible long-term (2000+ d) trend with amplitude 6+ min, unsure if the trend is non-linear. Another possibility is the period not precise enough. [D_no_ingress]",0.3258262,4.21,3.28,1325.422,1325.5856,4,1882.84,1325.3,3208.14
 20239565,FP,"FP, as Orbital Period ~= SB Period. VSX period is ~1/4 of actual period.",
 231922417,Y?,"Possibly ETV on primary and secondary. QLP data. Yellow flag: limited cadence in early sectors (< BTJD 1520), as few as 5 points in a modeled eclipse in early sectors (30 min cadence data + short eclipse duration).",0.687161,8.68,3.82,1438.3228,1438.6668,6,816.07,1437.99,2254.06
 36883123,Y:,Hints of long-term (800 d) non-linear trend with amplitude ~2min in 2 sectors. No clear O-C period. The trend of primary is opposite of the one of secondary. [D_no_ingress],0.335270895,10.31,9.75,1411.0491,1411.2167354475,2,759.04,1410.91,2169.95
