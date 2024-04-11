@@ -297,7 +297,7 @@ def coshgauss_model_fit(x, alpha0, alpha1, t0, d, Tau):
     return model
 
 
-def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs):
+def plot_initial_guess_of_model(model_func, data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs):
     """
     Plots the initial guess for the data using the given parameters.
 
@@ -310,7 +310,7 @@ def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, ax
     **kwargs: Additional keyword arguments.
 
     Returns:
-    None
+    ax  the `Axes` object of the plot
     """
 
     if ax is None:
@@ -321,7 +321,7 @@ def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, ax
     ax.scatter(data.phase, data.flux, zorder=-2)
     ax.plot(
         data.phase,
-        coshgauss_model_fit(data.phase, *start_vals),
+        model_func(data.phase, *start_vals),
         lw=0,
         marker=".",
         markersize=0.5,
@@ -330,6 +330,12 @@ def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, ax
         color="red",
     )
     return ax
+
+
+def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs):
+    return plot_initial_guess_of_model(
+        coshgauss_model_fit, data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs
+    )
 
 
 def plot_initial_guess_interactive(data, ph_binned, flux_binned, err_binned, t0_varname, *start_vals, figsize=(8, 4)):
@@ -546,9 +552,101 @@ def run_mcmc_initial_fit(
         return mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau
 
 
+def run_mcmc_initial_fit_of_model(
+    log_probability_func,
+    model_func,
+    data,
+    start_vals_dict,
+    nruns=1000,
+    discard=600,
+    thin=15,
+    pool=None,
+    plot_chains=False,
+    plot=True,
+    **kwargs,
+):
+    figsize = kwargs.get("figsize", (8, 4))
+    figsize_chains = kwargs.get("figsize_chains", (8, 12))
+
+    pool, is_pool_from_caller = _parse_pool_param(pool)
+
+    start_vals = list(start_vals_dict.values())
+    with EmceePoolContext(pool, auto_close=not is_pool_from_caller):
+        pos = list(get_starting_positions(start_vals, nwalkers=128))[0]
+
+        nwalkers = 128
+        ndim = len(start_vals)
+
+        sampler = emcee.EnsembleSampler(
+            nwalkers, ndim, log_probability_func, args=(data.phase, data.flux, data.err), pool=pool
+        )
+
+        sampler.run_mcmc(pos, nruns, progress=True, store=True)
+
+        tau = sampler.get_autocorr_time(tol=0)  # unclear on why it is needed
+
+        samples = sampler.get_chain()
+        labels = list(start_vals_dict.keys())
+
+        if plot_chains == True:
+
+            fig, axes = plt.subplots(ndim, figsize=figsize_chains, sharex=True)
+
+            for i in range(ndim):
+                ax = axes[i]
+                ax.plot(samples[:, :, i], "k", alpha=0.3)
+                ax.set_xlim(0, len(samples))
+                ax.set_ylabel(labels[i])
+                ax.yaxis.set_label_coords(-0.1, 0.5)
+
+            axes[-1].set_xlabel("step number")
+            plt.show()
+
+        flat_samples = sampler.get_chain(discard=discard, thin=thin, flat=True)
+
+        mean_fitted_vals = [np.median(flat_samples[:, i]) for i in range(len(start_vals_dict))]
+
+        if plot == True:
+            fig, axes = plt.subplots(figsize=figsize, sharex=True)
+
+            inds = np.random.randint(len(flat_samples), size=nruns)
+            for ind in inds:
+                sample = flat_samples[ind]
+                plt.plot(
+                    data.phase,
+                    model_func(data.phase, *sample),
+                    "C1",
+                    lw=0,
+                    marker=".",
+                    markersize=0.1,
+                    alpha=0.1,
+                    zorder=1,
+                )
+
+            plt.errorbar(data.phase, data.flux, yerr=data.err, fmt=".k", capsize=0, zorder=-2)
+
+            plt.plot(
+                data.phase,
+                model_func(data.phase, *mean_fitted_vals),
+                lw=0,
+                marker=".",
+                markersize=0.5,
+                alpha=1,
+                zorder=2,
+                color="red",
+            )
+
+            plt.xlabel("x")
+            plt.ylabel("y")
+            plt.show()
+
+        return mean_fitted_vals
+
+
+#
 # now that we have the best fit model, we fit this model to each individual eclipse using mcmc
 # the free parameters are t0, alpha0 and alpha1, the rest are fixed by phase folded model
-
+#
 
 # May have to change the priors!
 def log_prior_fitting(theta):
@@ -705,6 +803,141 @@ def fit_each_eclipse(
                     writer.writerow(
                         [i, transit_time, mean_t0_fit, stdv_t0_fit, mean_alpha0_fit, mean_alpha1_fit, mean_d, mean_Tau]
                     )
+            else:
+                if len(x) > 0:
+                    print(f"Time {transit_time} does not have enough data points: {len(x)}")
+                continue
+        else:
+            print("Number {} has already been completed -- skip".format(i))
+
+
+def fit_each_eclipse_of_model(
+    log_probability_fitting_func,
+    log_prior_fitting_func,
+    model_func,
+    data,
+    n_transits,
+    t0,
+    period,
+    start_vals_dict,
+    fixed_vals_dict,
+    outfile_path,
+    pool=None,
+    min_number_data=20,
+):
+    """Do MCMC Fit for each eclipse using the given model.
+    The model parameters are in `start_vals_dict` and  `fixed_vals_dict`.
+    The parameter `t0` (eclipse midpoint) is required, but must not be specified.
+    The model parameters will be passed to the given `log_probability_fitting_func` in the form of
+    `(<start_vals with t0 appended>, x, y, yerr, *<fixed-vals>)`
+    """
+    if "t0" in start_vals_dict.keys():
+        raise ValueError("Parameter `t0` is not allowed in `start_vals_dict`, as it is controlled by the implementation.")
+    if "t0" in fixed_vals_dict.keys():
+        raise ValueError("Parameter `t0` is not allowed in `fixed_vals_dict`, as it is controlled by the implementation.")
+
+    # hard code "t0"'s start_vals
+    start_vals_dict = start_vals_dict.copy()
+    start_vals_dict["t0"] = 0  # the subsequent codes shift each eclipse to be centered around 0
+    start_vals = list(start_vals_dict.values())
+    t0_idx = len(start_vals) - 1
+
+    fixed_vals = list(fixed_vals_dict.values())
+
+    # validate `start_vals` are within acceptable range
+    # - If MCMC walk starts from range outside of `log_prior_fitting()`, MCMC will almost certainly end up
+    #   aimlessly bouncing around the starting values, because at every iteration, the fitness, as determined
+    #   by log likelihood, would consistently be `-np.inf`, effectively not giving any feedback to MCMC.
+    if not np.isfinite(log_prior_fitting_func(start_vals)):
+        raise ValueError(
+            f"Supplied `start_vals`, `{start_vals}`, is out of the acceptable range "
+            "defined by `log_prior_fitting()`. The fitted result would be meaningless."
+        )
+
+    if exists("{}".format(outfile_path)):
+        print("Existing manifest file found, will skip previously processed LCs and append to end of manifest file")
+        sys.stdout.flush()
+    else:
+        print("Creating new manifest file")
+        sys.stdout.flush()
+        metadata_header = [
+            "number",
+            "epoch",
+            *list(start_vals_dict.keys()),
+            "stdv_t0",
+            *list(fixed_vals_dict.keys()),
+        ]
+        with open("{}".format(outfile_path), "w") as f:  # save in the photometry folder
+            writer = csv.writer(f, delimiter=",")
+            writer.writerow(metadata_header)
+
+    manifest_table = pd.read_csv("{}".format(outfile_path))
+    number_done = manifest_table["number"]
+
+    tr_index = range(0, n_transits)
+
+    for i in tr_index:
+        if not np.isin(i, number_done):
+
+            transit_time = t0 + (period * i)
+
+            x = np.array(data.time)
+            y = np.array(data.flux)
+            yerr = np.array(data.err)
+
+            mask = (x > (transit_time - (0.2 * period))) & (x < (transit_time + (0.2 * period)))
+
+            x = np.array(x[mask])
+            y = np.array(y[mask])
+            yerr = np.array(yerr[mask])
+
+            # convert x from time (JD-like) time to normalized phase, with t0 as midpoint (0)
+            x = np.array([-0.5 + ((t - t0 - 0.5 * period) % period) / period for t in x])
+
+            if len(x) > min_number_data:
+
+                print(transit_time, *start_vals)
+
+                pos = list(get_starting_positions(start_vals, nwalkers=64))[0]
+
+                nwalkers = 64
+                ndim = len(start_vals)
+
+                # start the mcmc fitting
+                # Note: parallel option (pool is not None) seems to be significantly slower
+                # for some reason.
+                pool_instance, is_pool_from_caller = _parse_pool_param(pool)
+                with EmceePoolContext(pool_instance, auto_close=not is_pool_from_caller):
+                    sampler2 = emcee.EnsembleSampler(
+                        nwalkers, ndim, log_probability_fitting_func, args=(x, y, yerr, *fixed_vals), pool=pool_instance
+                    )
+
+                    sampler2.run_mcmc(pos, 10000, progress=True)
+
+                    flat_samples2 = sampler2.get_chain(discard=400, thin=15, flat=True)
+
+                mean_vals_fits = [np.median(flat_samples2[:, i]) for i in range(len(start_vals_dict))]
+                stdv_t0_fit = np.nanstd(flat_samples2[:, t0_idx])
+
+                fig = plt.subplots(figsize=(10, 3), sharex=True)
+
+                plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0, zorder=-2)
+                plt.plot(
+                    x,
+                    model_func(x, *mean_vals_fits, *fixed_vals),
+                    lw=1,
+                    marker=".",
+                    markersize=0.5,
+                    alpha=1,
+                    zorder=2,
+                    color="red",
+                )
+
+                plt.show()
+
+                with open("{}".format(outfile_path), "a") as f:  # save in the photometry folder
+                    writer = csv.writer(f, delimiter=",")
+                    writer.writerow([i, transit_time, *mean_vals_fits, stdv_t0_fit, *fixed_vals])
             else:
                 if len(x) > 0:
                     print(f"Time {transit_time} does not have enough data points: {len(x)}")
