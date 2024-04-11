@@ -32,7 +32,7 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 276232142,N?,"O-C almost constant (scatter of < 0.5 min range), with the exception of the lone 30 min cadence sector 19.",1.25493366,44.38,,1816.3598895599998,,5,1120.57,1816.12,2936.69
 305832152,?,"O-C suggests tiny variation (range ~0.2 min), unclear if there is a real trend.",1.5430672,45.67,45.26,1765.4424,1766.2139336,3,1145.36,1764.69,2910.05
 99725941,Skip,"Likely FP, but not enough data (3 secondary eclipses and 2 primary eclipses far apart). The VSX Period is uncertain (one potential period). The EB Period from VSX matched TESS data. Gaia DR3 NSS has AB and SB2. AB Period matches TESS observation. SB Period is close too.",
-371165722,?,"Scattered O-C, with range of < 5 min . No apparent trend. The model might not be accurate enough: Tau does not converge (possibly due to U-shaped dips).",2.250286,1.47,,1842.7721,,7,1443.08,1842.51,3285.59
+371165722,?,"Scattered O-C, with range of < 5 min . No apparent trend. The model might not be accurate enough: Tau does not converge (possibly due to U-shaped dips). [D*1.2]. Trapezoid model result is similar.",2.250286,1.47,,1842.7721,,7,1443.08,1842.51,3285.59
 316633520,FP,"FP, as Orbital Period ~= SB Period of ~4.64 d. VSX period is incorrect.",
 290035575,Y,"O-C suggests non-linear trend with a ~7.6 d period, amplitude ~1min. EB Period : SB Period ~= 9:10 . [D*0.8]",0.952377636,53.16,50.94,1683.418,1683.894188818,6,1140.91,1683.36,2824.26
 91037997,?,"O-C suggests some variation (amplitude < 1 min), but unclear if it's scatter or real trend. Data is too sparse (2 sectors). EB Period : SB Period ~= 4:3 .",0.53709387,32.72,13.12,2036.606,2036.33890613,2,1118.12,2036.28,3154.4
