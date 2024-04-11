@@ -87,8 +87,9 @@ def log_prior_fitting(theta):
 def log_likelihood_fitting(theta, x, y, yerr, mean_bottom_width, mean_slope):
     val_constant, amplitude, t0 = theta
     # essentially inlining trapezoid_model_fit()
-    # TODO: consider to replace Trapezoid1D.evaluate() with some more optimized codes, as
-    # it appears to be slower than the cosh gaussian model
+    # TODO: consider to replace Trapezoid1D.evaluate() with some more optimized codes,
+    # as it appears to be slower than the cosh gaussian model
+    # (especially for fitting individual eclipses here)
     model = val_constant - Trapezoid1D.evaluate(x, amplitude, t0, mean_bottom_width, mean_slope)
 
     return -0.5 * np.sum((y - model) ** 2 / (yerr**2))
@@ -123,8 +124,8 @@ def fit_each_eclipse(
     )
     fixed_vals_dict = dict(bottom_width=mean_bottom_width, slope=mean_slope)
     return fit_each_eclipse_of_model(
-        log_probability_fitting,
-        log_prior_fitting,
+        log_probability_fitting,  # the version for individual eclipse
+        log_prior_fitting,  # the version for individual eclipse
         trapezoid_model_fit,
         data,
         n_transits,

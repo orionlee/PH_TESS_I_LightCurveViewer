@@ -472,84 +472,21 @@ def run_mcmc_initial_fit(
     plot=True,
     **kwargs,
 ):
-    figsize = kwargs.get("figsize", (8, 4))
-    figsize_chains = kwargs.get("figsize_chains", (8, 12))
-
-    pool, is_pool_from_caller = _parse_pool_param(pool)
-
-    with EmceePoolContext(pool, auto_close=not is_pool_from_caller):
-        pos = list(get_starting_positions(start_vals, nwalkers=128))[0]
-
-        nwalkers = 128
-        ndim = len(start_vals)
-
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, args=(data.phase, data.flux, data.err), pool=pool)
-
-        sampler.run_mcmc(pos, nruns, progress=True, store=True)
-
-        tau = sampler.get_autocorr_time(tol=0)
-
-        samples = sampler.get_chain()
-        labels = ["alpha0", "alpha1", "t0", "d", "Tau"]
-
-        if plot_chains == True:
-
-            fig, axes = plt.subplots(ndim, figsize=figsize_chains, sharex=True)
-
-            for i in range(ndim):
-                ax = axes[i]
-                ax.plot(samples[:, :, i], "k", alpha=0.3)
-                ax.set_xlim(0, len(samples))
-                ax.set_ylabel(labels[i])
-                ax.yaxis.set_label_coords(-0.1, 0.5)
-
-            axes[-1].set_xlabel("step number")
-            plt.show()
-
-        flat_samples = sampler.get_chain(discard=discard, thin=thin, flat=True)
-
-        mean_alpha0 = np.median(flat_samples[:, 0])
-        mean_alpha1 = np.median(flat_samples[:, 1])
-        mean_t0 = np.median(flat_samples[:, 2])
-        mean_d = np.median(flat_samples[:, 3])
-        mean_Tau = np.median(flat_samples[:, 4])
-
-        inds = np.random.randint(len(flat_samples), size=nruns)
-
-        if plot == True:
-            fig, axes = plt.subplots(figsize=figsize, sharex=True)
-
-            for ind in inds:
-                sample = flat_samples[ind]
-                plt.plot(
-                    data.phase,
-                    coshgauss_model_fit(data.phase, *sample),
-                    "C1",
-                    lw=0,
-                    marker=".",
-                    markersize=0.1,
-                    alpha=0.1,
-                    zorder=1,
-                )
-
-            plt.errorbar(data.phase, data.flux, yerr=data.err, fmt=".k", capsize=0, zorder=-2)
-
-            plt.plot(
-                data.phase,
-                coshgauss_model_fit(data.phase, mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau),
-                lw=0,
-                marker=".",
-                markersize=0.5,
-                alpha=1,
-                zorder=2,
-                color="red",
-            )
-
-            plt.xlabel("x")
-            plt.ylabel("y")
-            plt.show()
-
-        return mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau
+    alpha0, alpha1, t0, d, Tau = start_vals
+    start_vals_dict = dict(alpha0=alpha0, alpha1=alpha1, t0=t0, d=d, Tau=Tau)
+    return run_mcmc_initial_fit_of_model(
+        log_probability,
+        coshgauss_model_fit,
+        data,
+        start_vals_dict,
+        nruns=nruns,
+        discard=discard,
+        thin=thin,
+        pool=pool,
+        plot_chains=plot_chains,
+        plot=plot,
+        **kwargs,
+    )
 
 
 def run_mcmc_initial_fit_of_model(
@@ -707,108 +644,26 @@ def fit_each_eclipse(
     pool=None,
     min_number_data=20,
 ):
-
-    # to be used by MCMC in the loop later to start the search, constant within a call.
-    start_vals = (mean_alpha0, mean_alpha1, 0)  # use 0 instead of mean_t0, as x is shifted to be 0 for t0 (in the codes below)
-
-    # validate `start_vals` are within acceptable range
-    # - If MCMC walk starts from range outside of `log_prior_fitting()`, MCMC will almost certainly end up
-    #   aimlessly bouncing around the starting values, because at every iteration, the fitness, as determined
-    #   by log likelihood, would consistently be `-np.inf`, effectively not giving any feedback to MCMC.
-    if not np.isfinite(log_prior_fitting(start_vals)):
-        raise ValueError(
-            f"Supplied `(alpha0, alpha1)`, `{mean_alpha0, mean_alpha1}`, is out of the acceptable range "
-            "defined by `log_prior_fitting()`. The fitted result would be meaningless."
-        )
-
-    if exists("{}".format(outfile_path)):
-        print("Existing manifest file found, will skip previously processed LCs and append to end of manifest file")
-        sys.stdout.flush()
-    else:
-        print("Creating new manifest file")
-        sys.stdout.flush()
-        metadata_header = ["number", "epoch", "t0", "stdv_t0", "alpha1", "alpha2", "d", "Tau"]
-        with open("{}".format(outfile_path), "w") as f:  # save in the photometry folder
-            writer = csv.writer(f, delimiter=",")
-            writer.writerow(metadata_header)
-
-    manifest_table = pd.read_csv("{}".format(outfile_path))
-    number_done = manifest_table["number"]
-
-    tr_index = range(0, n_transits)
-
-    for i in tr_index:
-        if not np.isin(i, number_done):
-
-            transit_time = t0 + (period * i)
-
-            x = np.array(data.time)
-            y = np.array(data.flux)
-            yerr = np.array(data.err)
-
-            mask = (x > (transit_time - (0.2 * period))) & (x < (transit_time + (0.2 * period)))
-
-            x = np.array(x[mask])
-            y = np.array(y[mask])
-            yerr = np.array(yerr[mask])
-
-            # convert x from time (JD-like) time to normalized phase, with t0 as midpoint (0)
-            x = np.array([-0.5 + ((t - t0 - 0.5 * period) % period) / period for t in x])
-
-            if len(x) > min_number_data:
-
-                print(transit_time, mean_alpha0, mean_alpha1, mean_t0)
-
-                pos = list(get_starting_positions(start_vals, nwalkers=64))[0]
-
-                nwalkers = 64
-                ndim = len(start_vals)
-
-                # start the mcmc fitting
-                # Note: parallel option (pool is not None) seems to be significantly slower
-                # for some reason.
-                pool_instance, is_pool_from_caller = _parse_pool_param(pool)
-                with EmceePoolContext(pool_instance, auto_close=not is_pool_from_caller):
-                    sampler2 = emcee.EnsembleSampler(
-                        nwalkers, ndim, log_probability_fitting, args=(x, y, yerr, mean_d, mean_Tau), pool=pool_instance
-                    )
-
-                    sampler2.run_mcmc(pos, 10000, progress=True)
-
-                    flat_samples2 = sampler2.get_chain(discard=400, thin=15, flat=True)
-
-                mean_alpha0_fit = np.nanmedian(flat_samples2[:, 0])
-                mean_alpha1_fit = np.nanmedian(flat_samples2[:, 1])
-                mean_t0_fit = np.nanmedian(flat_samples2[:, 2])
-                stdv_t0_fit = np.nanstd(flat_samples2[:, 2])
-
-                fig = plt.subplots(figsize=(10, 3), sharex=True)
-
-                plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0, zorder=-2)
-                plt.plot(
-                    x,
-                    coshgauss_model_fit(x, mean_alpha0_fit, mean_alpha1_fit, mean_t0_fit, mean_d, mean_Tau),
-                    lw=1,
-                    marker=".",
-                    markersize=0.5,
-                    alpha=1,
-                    zorder=2,
-                    color="red",
-                )
-
-                plt.show()
-
-                with open("{}".format(outfile_path), "a") as f:  # save in the photometry folder
-                    writer = csv.writer(f, delimiter=",")
-                    writer.writerow(
-                        [i, transit_time, mean_t0_fit, stdv_t0_fit, mean_alpha0_fit, mean_alpha1_fit, mean_d, mean_Tau]
-                    )
-            else:
-                if len(x) > 0:
-                    print(f"Time {transit_time} does not have enough data points: {len(x)}")
-                continue
-        else:
-            print("Number {} has already been completed -- skip".format(i))
+    start_vals_dict = dict(
+        mean_alpha0=mean_alpha0,
+        mean_alpha1=mean_alpha1,
+        # note: mean_t0 is not used
+    )
+    fixed_vals_dict = dict(mean_d=mean_d, mean_Tau=mean_Tau)
+    return fit_each_eclipse_of_model(
+        log_probability_fitting,  # the version for individual eclipse
+        log_prior_fitting,  # the version for individual eclipse
+        coshgauss_model_fit,
+        data,
+        n_transits,
+        t0,
+        period,
+        start_vals_dict,
+        fixed_vals_dict,
+        outfile_path,
+        pool=pool,
+        min_number_data=min_number_data,
+    )
 
 
 def fit_each_eclipse_of_model(
