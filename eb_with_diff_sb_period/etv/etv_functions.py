@@ -470,6 +470,7 @@ def run_mcmc_initial_fit(
     pool=None,
     plot_chains=False,
     plot=True,
+    also_return_stats=False,
     **kwargs,
 ):
     alpha0, alpha1, t0, d, Tau = start_vals
@@ -485,6 +486,7 @@ def run_mcmc_initial_fit(
         pool=pool,
         plot_chains=plot_chains,
         plot=plot,
+        also_return_stats=also_return_stats,
         **kwargs,
     )
 
@@ -500,6 +502,7 @@ def run_mcmc_initial_fit_of_model(
     pool=None,
     plot_chains=False,
     plot=True,
+    also_return_stats=False,
     **kwargs,
 ):
     figsize = kwargs.get("figsize", (8, 4))
@@ -577,7 +580,11 @@ def run_mcmc_initial_fit_of_model(
             plt.ylabel("y")
             plt.show()
 
-        return mean_fitted_vals
+        if not also_return_stats:
+            return mean_fitted_vals
+        else:
+            stats = {f"std_{param_name}": np.std(flat_samples[:, i]) for i, param_name in enumerate(start_vals_dict.keys())}
+            return *mean_fitted_vals, stats
 
 
 #

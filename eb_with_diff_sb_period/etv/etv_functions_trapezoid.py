@@ -49,6 +49,7 @@ def run_mcmc_initial_fit(
     pool=None,
     plot_chains=False,
     plot=True,
+    also_return_stats=False,
     **kwargs,
 ):
     val_constant, amplitude, t0, bottom_width, slope = start_vals
@@ -70,6 +71,7 @@ def run_mcmc_initial_fit(
         pool=pool,
         plot_chains=plot_chains,
         plot=plot,
+        also_return_stats=also_return_stats,
         **kwargs,
     )
 

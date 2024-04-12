@@ -6,11 +6,8 @@
 #
 
 import numpy as np
-import matplotlib.pyplot as plt
-import emcee
 
-
-from etv_functions import phase_data, get_starting_positions, EmceePoolContext, _parse_pool_param
+from etv_functions import run_mcmc_initial_fit_of_model, phase_data
 
 
 def run_mcmc_initial_fit_p(
@@ -25,6 +22,10 @@ def run_mcmc_initial_fit_p(
     also_return_stats=False,
     **kwargs,
 ):
+    import matplotlib.pyplot as plt
+    import emcee
+    from etv_functions import phase_data, get_starting_positions, EmceePoolContext, _parse_pool_param
+
     figsize = kwargs.get("figsize", (8, 4))
     figsize_chains = kwargs.get("figsize_chains", (8, 12))
 
@@ -116,6 +117,41 @@ def run_mcmc_initial_fit_p(
             )
             return mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau, mean_p, stats
 
+
+# run_mcmc_initial_fit_p() implementation using generic function
+# it is not working yet, as the new implementation behaves differently and converges poortly
+def x_new_broken_run_mcmc_initial_fit_p(
+    data,
+    start_vals,
+    nruns=1000,
+    discard=600,
+    thin=15,
+    pool=None,
+    plot_chains=False,
+    plot=True,
+    also_return_stats=False,
+    **kwargs,
+):
+    alpha0, alpha1, t0, d, Tau, p = start_vals
+    # Note: t0 here is the time in Lightcurve (e.g., BTJD), not normalized phase.
+    start_vals_dict = dict(alpha0=alpha0, alpha1=alpha1, t0=t0, d=d, Tau=Tau, p=p)
+    return run_mcmc_initial_fit_of_model(
+        log_probability_p,
+        coshgauss_model_fit_p,
+        data,
+        start_vals_dict,
+        nruns=nruns,
+        discard=discard,
+        thin=thin,
+        pool=pool,
+        plot_chains=plot_chains,
+        plot=plot,
+        also_return_stats=also_return_stats,
+        **kwargs,
+    )
+
+
+# the period-aware coshgauss model and log likelihood functions
 
 def log_prior_p(theta):
     alpha0, alpha1, t0, d, Tau, p = theta
