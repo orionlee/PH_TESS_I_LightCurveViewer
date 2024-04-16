@@ -1,3 +1,9 @@
+# the source is at https://github.com/orionlee/tess_dv_fast
+# the file might be copied / linked to here,
+# for the use in `lightkurve_ext_tess.get_tic_meta_in_html()`
+# (alternative is to add it to sys.path)
+tess_dv_fast.py
+
 # Backup files
 *~
 
