@@ -65,6 +65,9 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
     tab = tab[tab["mag"] < 99.99]  # for SkyPatrol v1
     tab = tab[tab["mag_err"] < 99.99]  # for SkyPatrol v2
 
+    # TODO: for SkyPatrol v2, the time returned is JD rather than HJD
+    # per private communication between SkyPatrol v2 team and Sebastian O. (VSX).
+    # So the following is not strictly correct for SkyPatrol v2 data
     lc = lk.LightCurve(time=Time(tab["hjd"], format="jd", scale="utc"), data=tab)
 
     lc.meta["FILEURL"] = url
