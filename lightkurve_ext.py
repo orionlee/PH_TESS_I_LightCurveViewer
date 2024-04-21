@@ -1128,7 +1128,7 @@ def to_normalized_flux_from_mag(lc):
     flux_delta_mag = lc.flux.value - median_flux_mag
 
     flux_norm = 1 / np.power(10, flux_delta_mag / 2.5)
-    flux_err_norm = 1 / np.power(10, lc.flux_err.value / 2.5)  # OPEN: should recheck
+    flux_err_norm = np.abs(1 - 1 / np.power(10, lc.flux_err.value / 2.5))
 
     lc.flux = flux_norm * u.dimensionless_unscaled
     lc.flux_err = flux_err_norm * u.dimensionless_unscaled
