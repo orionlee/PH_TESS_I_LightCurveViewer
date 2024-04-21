@@ -48,6 +48,7 @@ def combine_multi_bands_and_shift(lc_dict, split_lc_to_multi_bands=True, shift_t
         lc = lc.copy()  # ensure users who further modify the result won't affect the source
         if lc_ref is not None and band != shift_to:
             shift_flux(lc, lc_ref=lc_ref, inplace=True)
+        lc.meta["BAND"] = band
         res[band] = lc
     return res
 
