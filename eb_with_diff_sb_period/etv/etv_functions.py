@@ -317,7 +317,8 @@ def plot_initial_guess_of_model(model_func, data, ph_binned, flux_binned, err_bi
         figsize = kwargs.get("figsize", (8, 4))
         ax = plt.figure(figsize=figsize).gca()
 
-    ax.errorbar(ph_binned, flux_binned, yerr=err_binned, fmt=".k", capsize=0, zorder=2)
+    if ph_binned is not None and flux_binned is not None and err_binned is not None:
+        ax.errorbar(ph_binned, flux_binned, yerr=err_binned, fmt=".k", capsize=0, zorder=2)
     ax.scatter(data.phase, data.flux, zorder=-2)
     ax.plot(
         data.phase,
