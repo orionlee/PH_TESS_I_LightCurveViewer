@@ -988,6 +988,57 @@ def estimate_transit_duration_for_circular_orbit(period, rho, b):
     ).to(u.hour)
 
 
+def estimate_period_for_circular_orbit(duration, rho, b):
+    """Estimate the period for circular orbit, P
+    https://ui.adsabs.harvard.edu/abs/2021AJ....162..265M/abstract
+
+    - implementing the equations in section 2.2
+    """
+    if isinstance(b, (list, tuple, np.ndarray)):
+        if len(b) == 2:  # in (mean, error) form
+            b_mean = b[0]
+            b_lower = b[0] - b[1]
+            b_upper = b[0] + b[1]
+        elif len(b) == 3:  # in (mean, lower error, upper error) form
+            b_mean = b[0]
+            b_lower = b[0] - b[1]
+            b_upper = b[0] + b[2]
+        else:
+            raise ValueError("b must be a scalar, (mean, error), or (mean, lower_error, upper_error)")
+        p_mean = estimate_period_for_circular_orbit(duration, rho, b_mean)
+        # lower b would lead to shorter duration
+        p_lower = estimate_period_for_circular_orbit(duration, rho, b_lower)
+        p_upper = estimate_period_for_circular_orbit(duration, rho, b_upper)
+
+        return np.array([p_mean.value, p_lower.value, p_upper.value]) * p_mean.unit
+
+    # case b is a single scalar, do the actual calc
+
+    # use default units if the input is not quantity
+    if not isinstance(duration, u.Quantity):
+        duration = duration * u.hour
+
+    if not isinstance(rho, u.Quantity):
+        rho = rho * u.gram / u.cm**3
+
+    # implement eq. 1, 2, and 3
+    return (
+        (
+            duration
+            / (
+                rho ** (-1 / 3)
+                * (1 - b**2) ** (1 / 2)
+                *
+                # constants that are not explicitly stated in eq 3, but can be derived from eq 1 and 2
+                np.pi ** (-2 / 3)
+                * 3 ** (1 / 3)
+                * astropy.constants.G ** (-1 / 3)
+            )
+        )
+        ** 3
+    ).to(u.day)
+
+
 def _calc_median_flux_around(lc_f: lk.FoldedLightCurve, epoch_phase, flux_window_in_min):
     flux_window = flux_window_in_min / 60 / 24  # in days
     lc_trunc = lc_f.truncate(epoch_phase - flux_window / 2, epoch_phase + flux_window / 2).remove_nans()
