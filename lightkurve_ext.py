@@ -1022,6 +1022,17 @@ def estimate_period_for_circular_orbit(duration, rho, b):
         rho = rho * u.gram / u.cm**3
 
     # implement eq. 1, 2, and 3
+    #
+    # Note: Pyaneti single transit mode uses a slightly different method,
+    # based on https://academic.oup.com/mnras/article/457/3/2273/2588921
+    # it  takes into the account of Rp/R* (related to transit depth)
+    #
+    # The method used here does not take Rp/R* into consideration.
+    # It should be an approximation that assumes Rp/R* is 0.
+    #
+    # Pyaneti source:
+    # https://github.com/oscaribv/pyaneti/blob/241bb09931737c522dd000e1309bd2c8bfe0e7ba/src/print_values.py#L294-L302
+    #
     return (
         (
             duration
