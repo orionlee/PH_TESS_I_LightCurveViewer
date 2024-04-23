@@ -807,3 +807,152 @@ def fit_each_eclipse_of_model(
                 continue
         else:
             print("Number {} has already been completed -- skip".format(i))
+
+
+def fit_each_eclipse(
+    data,
+    n_transits,
+    t0,
+    period,
+    mean_alpha0,
+    mean_alpha1,
+    mean_t0,
+    mean_d,
+    mean_Tau,
+    outfile_path,
+    pool=None,
+    min_number_data=20,
+):
+    start_vals_dict = dict(
+        mean_alpha0=mean_alpha0,
+        mean_alpha1=mean_alpha1,
+        # note: mean_t0 is not used
+    )
+    fixed_vals_dict = dict(mean_d=mean_d, mean_Tau=mean_Tau)
+    return fit_each_eclipse_of_model(
+        log_probability_fitting,  # the version for individual eclipse
+        log_prior_fitting,  # the version for individual eclipse
+        coshgauss_model_fit,
+        data,
+        n_transits,
+        t0,
+        period,
+        start_vals_dict,
+        fixed_vals_dict,
+        outfile_path,
+        pool=pool,
+        min_number_data=min_number_data,
+    )
+
+
+#
+# run_mcmc_individual_fit(): the purpose is similar to fit_each_eclipse()
+# but instead of actually fitting each eclipse,
+# run_mcmc_individual_fit() user would group a set of consecutive eclipse together
+# to do the fitting.
+# User would be responsible for doing the fit
+#
+
+
+def run_mcmc_individual_fit_of_model(
+    log_probability_fitting_func,
+    model_func,
+    data,
+    start_vals_dict,
+    fixed_vals_dict,
+    nruns=10000,
+    discard=400,
+    pool=None,
+    plot_chains=False,
+    plot=True,
+):
+    # hard code "t0"'s start_vals
+    start_vals_dict = start_vals_dict.copy()
+    start_vals_dict["t0"] = 0  # the subsequent codes shift each eclipse to be centered around 0
+    start_vals = list(start_vals_dict.values())
+    t0_idx = len(start_vals) - 1
+
+    fixed_vals = list(fixed_vals_dict.values())
+
+    x, y, yerr = data.phase, data.flux, data.err
+
+    pos = list(get_starting_positions(start_vals, nwalkers=64))[0]
+
+    nwalkers = 64
+    ndim = len(start_vals)
+
+    # start the mcmc fitting
+    # Note: parallel option (pool is not None) seems to be significantly slower
+    # for some reason.
+    pool_instance, is_pool_from_caller = _parse_pool_param(pool)
+    with EmceePoolContext(pool_instance, auto_close=not is_pool_from_caller):
+        sampler2 = emcee.EnsembleSampler(
+            nwalkers, ndim, log_probability_fitting_func, args=(x, y, yerr, *fixed_vals), pool=pool_instance
+        )
+
+        sampler2.run_mcmc(pos, nruns, progress=True)
+
+        flat_samples2 = sampler2.get_chain(discard=discard, thin=15, flat=True)
+
+    mean_vals_fits = [np.median(flat_samples2[:, i]) for i in range(len(start_vals_dict))]
+    stdv_t0_fit = np.nanstd(flat_samples2[:, t0_idx])
+
+    if plot_chains:
+        figsize_chains = (8, 2 * len(start_vals))
+        fig, axes = plt.subplots(ndim, figsize=figsize_chains, sharex=True)
+
+        samples = sampler2.get_chain()
+        labels = list(start_vals_dict.keys())
+
+        for i in range(ndim):
+            ax = axes[i]
+            ax.plot(samples[:, :, i], "k", alpha=0.3)
+            ax.set_xlim(0, len(samples))
+            ax.set_ylabel(labels[i])
+            ax.yaxis.set_label_coords(-0.1, 0.5)
+
+        axes[-1].set_xlabel("step number")
+        plt.show()
+
+    if plot:
+        fig = plt.subplots(figsize=(10, 3), sharex=True)
+
+        plt.errorbar(x, y, yerr=yerr, fmt=".k", capsize=0, zorder=-2)
+        plt.plot(
+            x,
+            model_func(x, *mean_vals_fits, *fixed_vals),
+            lw=1,
+            marker=".",
+            markersize=0.5,
+            alpha=1,
+            zorder=2,
+            color="red",
+        )
+
+        plt.show()
+
+    return [*mean_vals_fits, stdv_t0_fit]
+
+
+def run_mcmc_individual_fit(data, start_vals, nruns=10000, discard=1000, pool=None, plot_chains=False, plot=True):
+    mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau = start_vals
+
+    start_vals_dict = dict(
+        mean_alpha0=mean_alpha0,
+        mean_alpha1=mean_alpha1,
+        # note: mean_t0 is not used
+    )
+    fixed_vals_dict = dict(mean_d=mean_d, mean_Tau=mean_Tau)
+
+    return run_mcmc_individual_fit_of_model(
+        log_probability_fitting,  # the version for individual eclipse
+        coshgauss_model_fit,
+        data,
+        start_vals_dict,
+        fixed_vals_dict,
+        nruns=nruns,
+        discard=discard,
+        pool=pool,
+        plot_chains=plot_chains,
+        plot=plot,
+    )
