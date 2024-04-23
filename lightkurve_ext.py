@@ -656,6 +656,26 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
         return transit_times
 
 
+def get_compatible_periods_of_2dips(epoch1, epoch2, lc, min_period=10, verbose=False):
+    """For the case where 2 dips are observed. Return the compatible periods that fit the observations"""
+    num_cycles = 2
+    compat_p_list = []
+    while True:
+        trial_p = abs(epoch2 - epoch1) / num_cycles
+        if trial_p <= min_period:
+            break
+        trial_ttimes = get_transit_times_in_lc(lc, epoch1, trial_p)
+        if len(trial_ttimes) <= 2:  # assuming epoch1, epoch2 is always in the trial_ttimes.
+            compat_p_list.append(trial_p)
+            if verbose:
+                print(f"  Period {trial_p} compatible.")
+        else:
+            if verbose:
+                print(f"  Period {trial_p} is incompatible. Has unexpected transits at times {trial_ttimes}")
+        num_cycles += 1
+    return compat_p_list
+
+
 class TransitTimeSpec(dict):
 
     def __init__(
