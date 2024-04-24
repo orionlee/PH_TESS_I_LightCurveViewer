@@ -7,6 +7,7 @@ Convenience helpers for `lightkurve` package.
 from __future__ import annotations
 
 
+import itertools
 import os
 import logging
 import math
@@ -613,9 +614,11 @@ def get_segment_times_idx(times, break_tolerance=5):
     if len(times) < 1:
         return (None, None)
     dt = times[1:] - times[0:-1]
+    median_cadence = np.nanmedian(dt)
+    # print(f"TRACE median_cadence={median_cadence * 24 * 60} min,  break_tolerance={break_tolerance}")
     with warnings.catch_warnings():  # Ignore warnings due to NaNs
         warnings.simplefilter("ignore", RuntimeWarning)
-        cut = np.where(dt > break_tolerance * np.nanmedian(dt))[0] + 1
+        cut = np.where(dt > break_tolerance * median_cadence)[0] + 1
     low = np.append([0], cut)
     high = np.append(cut, len(times))
     return (low, high)
@@ -647,6 +650,7 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
     lc = lc.remove_nans()  # exclude cadences with no flux.
     # break up the times to exclude times in gap
     times_list = get_segment_times(lc.time, **kwargs)
+    # print(f"TRACE  times_list={times_list}")
     transit_times = []
     for start, end in times_list:
         transit_times.extend(get_transit_times_in_range(t0, period, start, end))
@@ -656,19 +660,43 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
         return transit_times
 
 
-def get_compatible_periods_of_2dips(epoch1, epoch2, lc, min_period=10, verbose=False):
-    """For the case where 2 dips are observed. Return the compatible periods that fit the observations"""
+def _concatenate_list_of_lists(lists):
+    # https://stackoverflow.com/a/14807729
+
+    combined = list(itertools.chain.from_iterable(lists))
+    # equivalent to using list comprehension, but itertools is supposed to be faster
+    # combined = [item for sublist in lists for item in sublist]
+    return combined
+
+
+def get_compatible_periods_of_2dips(
+    epoch1, epoch2, lcc: lk.LightCurveCollection, flux_column="flux", min_period=10, verbose=False
+):
+    """For the case where 2 dips are observed. Return the compatible periods that fit the observations.
+
+    Note: Parameter `lcc` accepts a `LightCurveCollection` instead of a `LightCurve`. This is because
+    the logic of segmenting lightcurve used internally is sensitive to the lightcurve cadence,
+    and could yield unexpected results if the cadence is mixed.
+    E.g., if users have 1 30-minute cadence LC and 2 2-min cadence LCs and stitches them together,
+    the median cadence determined would be 2 min.
+    The segmenting logic would then (by default) segmenting the lightcurve when there is
+    a 10 min gap (2min X 5). As a result, the 30-min cadence portion of the lightcurve will be be broken
+    up such that each cadence is its own segment.
+    Counting of transit times could miss some values due to rounding issues in those 1-cadence segments.
+    """
     num_cycles = 2
     compat_p_list = []
     while True:
         trial_p = abs(epoch2 - epoch1) / num_cycles
         if trial_p <= min_period:
             break
-        trial_ttimes = get_transit_times_in_lc(lc, epoch1, trial_p)
+        trial_ttimes = _concatenate_list_of_lists(
+            [get_transit_times_in_lc(lc.select_flux(flux_column), epoch1, trial_p) for lc in lcc]
+        )
         if len(trial_ttimes) <= 2:  # assuming epoch1, epoch2 is always in the trial_ttimes.
             compat_p_list.append(trial_p)
             if verbose:
-                print(f"  Period {trial_p} compatible.")
+                print(f"  Period {trial_p} compatible. {trial_ttimes}")
         else:
             if verbose:
                 print(f"  Period {trial_p} is incompatible. Has unexpected transits at times {trial_ttimes}")
