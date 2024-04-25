@@ -127,12 +127,35 @@ DEFAULT_MULTI_BANDS_PLOT_OPTIONS = [
 ]
 
 
+def get_default_plot_multi_bands_options_copy():
+    """Return a copy of the default plot_multi_bands(), so that
+    callers could customize it for specific usage.
+    """
+    return deepcopy(DEFAULT_MULTI_BANDS_PLOT_OPTIONS)
+
+
+def _flip_yaxis_for_mag(ax, lc, plot_kwargs):
+    y_column = plot_kwargs.get("column", "flux")
+    # invert y-axis only when it hasn't been inverted
+    # to support multiple scatter/plot/errorbar calls on the same ax object
+    if lc[y_column].unit == u.mag and ax.get_ylim()[1] > ax.get_ylim()[0]:
+        ax.invert_yaxis()
+    return ax
+
+
 def plot_multi_bands(
-    lc_combined_dict, figsize, target_name, phase_scale=None, ax=None, plot_options=None, mag_shift_precision=2
+    lc_combined_dict,
+    figsize,
+    target_name,
+    ax=None,
+    plot_options=None,
+    mag_shift_precision=2,
+    # parameters used by fold_n_plot_multi_bands() use case
+    include_labels=True,
+    time_shift_func=None,
 ):
     if ax is None:
         ax = tplt.lk_ax(figsize=figsize)
-    ax.invert_yaxis()
 
     if plot_options is None:
         plot_options = DEFAULT_MULTI_BANDS_PLOT_OPTIONS
@@ -144,11 +167,15 @@ def plot_multi_bands(
         if plot_funcname == "errorbar":
             plot_kwargs["yerr"] = lc.flux_err.value
         plot_func = getattr(ax, plot_funcname)
-        plot_label = get_label_of_source(lc_combined_dict, band, mag_shift_precision)
+        if include_labels:
+            plot_label = get_label_of_source(lc_combined_dict, band, mag_shift_precision)
+        else:
+            plot_label = None
         x_vals = lc.time.value
-        if phase_scale is not None:  # support 2X phase plot
-            x_vals *= phase_scale
+        if time_shift_func is not None:
+            x_vals = time_shift_func(x_vals)
         plot_func(x_vals, lc.flux.value, label=plot_label, **plot_kwargs)
+        _flip_yaxis_for_mag(ax, lc, plot_kwargs)
     ax.legend()
 
     if isinstance(lc.time, Time):
@@ -210,7 +237,7 @@ def fold_n_plot_multi_bands(
     lc_combined_dict,
     period,
     epoch: Time,
-    phase_scale,
+    phase_scale=2,
     target_name=None,
     duration_hr=None,  # used for plotting purpose only
     mag_shift_precision=2,
@@ -218,30 +245,36 @@ def fold_n_plot_multi_bands(
     ax=None,
     plot_options=None,
 ):
-    def fold_at_scale(lc, **kwargs):
-        if lc is None:
-            return None
-        kwargs = kwargs.copy()
-        kwargs["period"] = kwargs["period"] * phase_scale
-        lc_f = lc.fold(**kwargs)
-        return lc_f
+    if phase_scale not in [1, 2]:
+        raise ValueError("phase_scale must be 1 (plotted once) or 2 (plotted twice).")
 
-    from astropy.coordinates import SkyCoord
+    # if plotted twice, first plot from 0 to 1 (rather than -0.5 to 0.5)
+    wrap_phase = 0.5 * u.dimensionless_unscaled if phase_scale == 1 else 1 * u.dimensionless_unscaled
 
     lc_f_combined_dict = {}
     for band, lc in lc_combined_dict.items():
-        lc_f = fold_at_scale(lc, epoch_time=epoch, period=period, normalize_phase=True)
+        lc_f = lc.fold(epoch_time=epoch, period=period, normalize_phase=True, wrap_phase=wrap_phase)
         lc_f_combined_dict[band] = lc_f
 
     ax = plot_multi_bands(
         lc_f_combined_dict,
         figsize=figsize,
         target_name=target_name,
-        phase_scale=phase_scale,
         ax=ax,
         plot_options=plot_options,
         mag_shift_precision=mag_shift_precision,
     )
+    if phase_scale == 2:  # duplicate the plot from phase -1 to 0
+        ax = plot_multi_bands(
+            lc_f_combined_dict,
+            figsize=figsize,
+            target_name=target_name,
+            ax=ax,
+            plot_options=plot_options,
+            mag_shift_precision=mag_shift_precision,
+            include_labels=False,
+            time_shift_func=lambda x: x - 1,
+        )
 
     if duration_hr is not None:
         duration_phase = duration_hr / 24 / period
