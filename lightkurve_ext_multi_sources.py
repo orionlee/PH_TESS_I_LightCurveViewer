@@ -248,12 +248,11 @@ def fold_n_plot_multi_bands(
     if phase_scale not in [1, 2]:
         raise ValueError("phase_scale must be 1 (plotted once) or 2 (plotted twice).")
 
-    # if plotted twice, first plot from 0 to 1 (rather than -0.5 to 0.5)
-    wrap_phase = 0.5 * u.dimensionless_unscaled if phase_scale == 1 else 1 * u.dimensionless_unscaled
-
     lc_f_combined_dict = {}
     for band, lc in lc_combined_dict.items():
-        lc_f = lc.fold(epoch_time=epoch, period=period, normalize_phase=True, wrap_phase=wrap_phase)
+        # Note: the folded lc_f is the same regardless of phase_scale, which would
+        # only affect the plot result below.
+        lc_f = lc.fold(epoch_time=epoch, period=period, normalize_phase=True)
         lc_f_combined_dict[band] = lc_f
 
     ax = plot_multi_bands(
@@ -264,7 +263,20 @@ def fold_n_plot_multi_bands(
         plot_options=plot_options,
         mag_shift_precision=mag_shift_precision,
     )
-    if phase_scale == 2:  # duplicate the plot from phase -1 to 0
+    if phase_scale == 2:
+        # phase [-0.5, +0.5] has been plotted above
+        # now plot phases [0.5, 1.0] and [-1.0, -0.5]
+        def time_shit_func(x):
+            # for x in [-0.5, 0.0], shift to  phase [0.5, 1.0]
+            res1 = x + 1
+            res1[x > 0] = 0
+
+            # for x in [0.0, +0.5], shift to phase [-1.0, -0.5]
+            res2 = x - 1
+            res2[x <= 0] = 0
+
+            return res1 + res2
+
         ax = plot_multi_bands(
             lc_f_combined_dict,
             figsize=figsize,
@@ -273,7 +285,7 @@ def fold_n_plot_multi_bands(
             plot_options=plot_options,
             mag_shift_precision=mag_shift_precision,
             include_labels=False,
-            time_shift_func=lambda x: x - 1,
+            time_shift_func=time_shit_func,
         )
 
     if duration_hr is not None:
