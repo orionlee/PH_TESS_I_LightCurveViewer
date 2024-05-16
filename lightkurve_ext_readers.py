@@ -255,6 +255,12 @@ def read_ztf_csv(
         }
     )
 
+    oid_match = re.search(r"https://irsa.ipac.caltech.edu/cgi-bin/ZTF/nph_light_curves.+ID=(\d+)", url)
+    if oid_match is not None:
+        id = f"ZTF OID {oid_match[1]}"  # include data release number too?
+        lc.meta["OBJECT"] = id
+        lc.meta["LABEL"] = id
+
     if mask_func is not None:
         mask = mask_func(lc)
         lc = lc[~mask]
