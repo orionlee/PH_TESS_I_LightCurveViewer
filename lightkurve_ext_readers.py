@@ -4,6 +4,7 @@
 
 import re
 import urllib
+import warnings
 
 from astropy.io import fits
 from astropy.table import Table
@@ -220,6 +221,16 @@ def read_ztf_csv(
             raise ValueError(f"Required column {colname} is not found")
         return tab[colname]
 
+    def filter_rows_with_invalid_time(tab, colname):
+        # Some times the time value is nan for unknown reason. E.g.,
+        # https://irsa.ipac.caltech.edu/cgi-bin/ZTF/nph_light_curves?ID=848110200002484&COLLECTION=ztf_dr20&FORMAT=csv
+        # some hjd values are nan, even though there is mjd value
+        filtered = tab[np.isfinite(tab[colname])]
+        num_rows_filtered = len(tab) - len(filtered)
+        if num_rows_filtered > 0:
+            warnings.warn(f"{num_rows_filtered} skipped because they do not have valid time values.", lk.LightkurveWarning)
+        return filtered
+
     tab = Table.read(
         url,
         format="ascii.csv",
@@ -229,6 +240,8 @@ def read_ztf_csv(
             "filefracday": np.int64,
         },
     )
+
+    tab = filter_rows_with_invalid_time(tab, time_column)
 
     time = get_required_column(tab, time_column)
     time = Time(time, format=time_format, scale=time_scale)
