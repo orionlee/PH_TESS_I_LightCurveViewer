@@ -225,6 +225,8 @@ def _sort_chronologically(sr: lk.SearchResult):
     # because if the underlying table is actually a subset of the underlying table,
     # the sorting seems to affect the underlying table in some cases,
     # creating really weird / corrupted results.
+    if len(sr) < 1:
+        return sr
     res = lk.SearchResult(sr.table.copy())
     res.table.sort(["distance", "year", "mission", "sort_order", "exptime"])
     return res
