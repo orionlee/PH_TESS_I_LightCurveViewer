@@ -706,6 +706,51 @@ def get_compatible_periods_of_2dips(
     return compat_p_list
 
 
+def get_compatible_periods_of_3dips(
+    epoch1, epoch2, epoch3, lcc: lk.LightCurveCollection, flux_column="flux", min_period=10, verbose=False
+):
+    """For the case where 2 dips are observed. Return the compatible periods that fit the observations.
+
+    Note: Parameter `lcc` accepts a `LightCurveCollection` instead of a `LightCurve`. This is because
+    the logic of segmenting lightcurve used internally is sensitive to the lightcurve cadence,
+    and could yield unexpected results if the cadence is mixed.
+    E.g., if users have 1 30-minute cadence LC and 2 2-min cadence LCs and stitches them together,
+    the median cadence determined would be 2 min.
+    The segmenting logic would then (by default) segmenting the lightcurve when there is
+    a 10 min gap (2min X 5). As a result, the 30-min cadence portion of the lightcurve will be be broken
+    up such that each cadence is its own segment.
+    Counting of transit times could miss some values due to rounding issues in those 1-cadence segments.
+    """
+    num_cycles = 2
+    compat_p_list = []
+    while True:
+        trial_p = abs(epoch3 - epoch1) / num_cycles
+        if trial_p <= min_period:
+            break
+        # check if trial_p fits epoch2
+        num_cycles_for_epoch2 = round((epoch2 - epoch1) / trial_p)
+        epoch2_from_trial_p = epoch1 + trial_p * num_cycles_for_epoch2
+        epoch2_diff = abs(epoch2 - epoch2_from_trial_p)
+        tolerance = 0.05  # observed epoch2 needs to be within tolerance (in days) with predicted epoch 2 time
+        if epoch2_diff > tolerance:
+            if verbose:
+                print(f"  Period {trial_p} is incompatible. Does not fit epoch2 (off by {epoch2_diff:.2f} days).")
+            num_cycles += 1
+            continue
+        trial_ttimes = _concatenate_list_of_lists(
+            [get_transit_times_in_lc(lc.select_flux(flux_column), epoch1, trial_p) for lc in lcc]
+        )
+        if len(trial_ttimes) <= 3:  # assuming epoch1, epoch2, epoch3 is always in the trial_ttimes.
+            compat_p_list.append(trial_p)
+            if verbose:
+                print(f"  Period {trial_p} compatible. {trial_ttimes}")
+        else:
+            if verbose:
+                print(f"  Period {trial_p} is incompatible. Has unexpected transits at times {trial_ttimes}")
+        num_cycles += 1
+    return compat_p_list
+
+
 class TransitTimeSpec(dict):
 
     def __init__(
