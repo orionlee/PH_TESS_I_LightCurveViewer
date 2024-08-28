@@ -1246,18 +1246,46 @@ def correct_crowding(lc_sap: lk.LightCurve, crowdsap=None, flfrcsap=None):
     return lc_corr
 
 
+def correct_crowding_by_delta_mag(lc, base_mag, companion_delta_mag):
+    """A variant of ``correct_crowding`` for the case a LC is
+    assumed to be blended from 2 or more stars.
+
+    The relative flux contribution is specified via ``base_mag`` and
+    ``companion_delta_mag``.
+    """
+
+    # companion_delta_mag can be either a scalar or array (multiple)
+    if isinstance(companion_delta_mag, (float, int)):
+        companion_delta_mag = [companion_delta_mag]
+    companion_delta_mag = np.asarray(companion_delta_mag)
+
+    # assume lc is in mag
+    lc = to_normalized_flux_from_mag(lc)
+
+    companion_relative_flux = 1 / 2.51**companion_delta_mag
+    crowdsap = 1 / (1 + np.sum(companion_relative_flux))
+    # print("DBG crowdsap=", crowdsap)
+    lc = correct_crowding(lc, crowdsap=crowdsap, flfrcsap=1).normalize()
+
+    lc = to_flux_in_mag_by_normalization(lc, base_mag=base_mag)
+
+    return lc
+
+
 def normalized_flux_val_to_mag(flux_val, base_mag):
     return base_mag + 2.5 * np.log10(1 / flux_val)
 
 
-def to_flux_in_mag_by_normalization(lc, base_mag_header_name=None):
+def to_flux_in_mag_by_normalization(lc, base_mag_header_name=None, base_mag=None):
     """Convert the a lightcurve's flux to magnitude via a normalized lightcurve with a known average / base magnitude."""
     if lc.flux.unit is u.mag:
         return lc
 
     lc = lc.copy()
 
-    if base_mag_header_name is not None:
+    if base_mag is not None:
+        pass
+    elif base_mag_header_name is not None:
         base_mag = lc.meta.get(base_mag_header_name)
     else:
         base_mag = lc.meta.get("TESSMAG", lc.meta.get("KEPMAG"))  # Try TESS or Kepler as base
