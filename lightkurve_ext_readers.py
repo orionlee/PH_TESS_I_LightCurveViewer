@@ -329,6 +329,51 @@ def read_hipparcos_data(url):
     return lc
 
 
+def read_integral_omc_var_data(url):
+    """Read INTEGRAL-OMC optically variable sources ( Epoch Photometry hosted on Vizier.
+    https://cdsarc.cds.unistra.fr/viz-bin/VizieR?-meta&-meta.ucd&-source=J/A%2bA/548/A79
+    """
+
+    # Vizier URL format:
+    # https://cdsarc.cds.unistra.fr/viz-bin/nph-Plot/Vgraph/txt?J/A+A/548/A79/3603000030
+    # https://cdsarc.cds.unistra.fr/viz-bin/nph-Plot/w/Vgraph/txt?J%2fA%2bA%2f548%2fA79%2f.%2f3603000030%2fV%2a_V2165_Cyg&P=0&-y&-&-&-&--bitmap-size&600x400
+    def get_iomc_id(url):
+        """Extract IOMC ID from Vizier's data URL"""
+        matches = re.match(".*txt[?]([^&]+)", url)
+        if matches is None:
+            return None
+        param = urllib.parse.unquote(matches[1])
+        if param.startswith("J/A+A/548/A79/"):  #
+            try:
+                iomc_id = int(re.sub("^J/A[+]A/548/A79/([.]/)?", "", param))
+                return iomc_id
+            except Exception:
+                # Unexpected pattern
+                return None
+        else:
+            # unrecognized pattern
+            return None
+
+    tab = Table.read(url, format="ascii")
+    time = tab["col1"]  # BJD-2451544.5
+    time = Time(time + 2451544.5, format="jd", scale="tdb")
+    flux = tab["col2"]  # mag
+    flux = flux * u.mag
+    flux_err = tab["col3"]  # (error)
+    flux_err = flux_err * u.mag
+
+    lc = lk.LightCurve(time=time, flux=flux, flux_err=flux_err)
+    lc.meta["FILEURL"] = url
+
+    iomc_id = get_iomc_id(url)
+    if iomc_id is not None:
+        # mimic convention used in TESS SPOC Lightcurve objects
+        lc.meta["TARGETID"] = iomc_id
+        lc.meta["OBJECT"] = f"IOMC {iomc_id}"
+        lc.meta["LABEL"] = f"IOMC {iomc_id}"
+    return lc
+
+
 def read_asas3(url, flux_column="mag_3", grade_mask=["A", "B", "C"]):
     # https://www.astrouw.edu.pl/cgi-asas/asas_cgi_get_data?083112-3906.8,asas3
 
