@@ -1246,28 +1246,29 @@ def correct_crowding(lc_sap: lk.LightCurve, crowdsap=None, flfrcsap=None):
     return lc_corr
 
 
-def correct_crowding_by_delta_mag(lc, base_mag, companion_delta_mag):
+def correct_crowding_by_mag(lc, target_mag, companion_mag):
     """A variant of ``correct_crowding`` for the case a LC is
     assumed to be blended from 2 or more stars.
 
-    The relative flux contribution is specified via ``base_mag`` and
-    ``companion_delta_mag``.
+    The relative flux contribution is specified via ``target_mag`` and
+    ``companion_mag``.
     """
 
-    # companion_delta_mag can be either a scalar or array (multiple)
-    if isinstance(companion_delta_mag, (float, int)):
-        companion_delta_mag = [companion_delta_mag]
-    companion_delta_mag = np.asarray(companion_delta_mag)
+    # companion_mag can be either a scalar or array (multiple)
+    if isinstance(companion_mag, (float, int)):
+        companion_mag = [companion_mag]
+    companion_delta_mag = np.asarray(companion_mag) - target_mag
 
     # assume lc is in mag
     lc = to_normalized_flux_from_mag(lc)
 
-    companion_relative_flux = 1 / 2.51**companion_delta_mag
+    # eq (2) in https://www.astro.keele.ac.uk/jkt/pubs/JKTeq-fluxsum.pdf
+    companion_relative_flux = 10 ** (-0.4 * companion_delta_mag)
     crowdsap = 1 / (1 + np.sum(companion_relative_flux))
     # print("DBG crowdsap=", crowdsap)
     lc = correct_crowding(lc, crowdsap=crowdsap, flfrcsap=1).normalize()
 
-    lc = to_flux_in_mag_by_normalization(lc, base_mag=base_mag)
+    lc = to_flux_in_mag_by_normalization(lc, base_mag=target_mag)
 
     return lc
 
