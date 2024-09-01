@@ -70,7 +70,10 @@ def get_label_of_source(lc_dict, source, mag_shift_precision=3):
     if mag_shift is not None and mag_shift != 0:
         sign_str = "+" if mag_shift > 0 else ""
         mag_shift_rounded = np.round(mag_shift, mag_shift_precision)
-        return f"{source} {sign_str}{mag_shift_rounded}"
+        if mag_shift_rounded != 0:
+            return f"{source} {sign_str}{mag_shift_rounded}"
+        else:
+            return source
     else:
         return source
 
