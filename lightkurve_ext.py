@@ -1273,6 +1273,53 @@ def correct_crowding_by_mag(lc, target_mag, companion_mag):
     return lc
 
 
+def combine_magnitudes(mag1, mag2):
+    """Return the combined magnitude of 2 stars."""
+    # https://www.astro.keele.ac.uk/jkt/pubs/JKTeq-fluxsum.pdf
+    return -2.5 * np.log10(10 ** (-0.4 * mag1) + 10 ** (-0.4 * mag2))
+
+
+def decompose_combined_magnitude(combined_mag, ref_target_mag, ref_companion_mag):
+    """Decompose the combined magnitude into magnitudes of the component stars.
+
+    ``combined_mag``: the combined magnitude to be decomposed,
+    typically from the observation in interest.
+
+    ``ref_target_mag``, ``ref_companion_mag``: reference magnitudes of the target / companion stars,
+     used to derive the flux contribution of the 2 stars.
+    """
+
+    # to/from flux: the flux's unit is undefined;
+    # the important point is it's consistent so they can be converted in roundtrip
+    # ref: https://www.astro.keele.ac.uk/jkt/pubs/JKTeq-fluxsum.pdf
+    def _to_flux(m):
+        # adapted from eq (2)
+        return 10 ** (-0.4 * m)
+
+    def _from_flux(f):
+        # adapted from eq (1)
+        return -2.5 * np.log10(f)
+
+    # convert  everything to flux for decomposition
+    combined_flux = _to_flux(combined_mag)
+    ref_target_flux = _to_flux(ref_target_mag)
+    ref_companion_flux = _to_flux(ref_companion_mag)
+    ref_combined_flux = ref_target_flux + ref_companion_flux
+
+    target_flux_portion = ref_target_flux / ref_combined_flux
+    companion_flux_portion = ref_companion_flux / ref_combined_flux
+
+    # print("DBG ", target_flux_portion, _from_flux(combined_flux), (combined_flux, ref_target_flux, ref_companion_flux))
+    target_flux_from_combined = combined_flux * target_flux_portion
+    companion_flux_from_combined = combined_flux * companion_flux_portion
+
+    # convert back to mag
+    target_mag_from_combined = _from_flux(target_flux_from_combined)
+    companion_mag_from_combined = _from_flux(companion_flux_from_combined)
+
+    return target_mag_from_combined, companion_mag_from_combined
+
+
 def normalized_flux_val_to_mag(flux_val, base_mag):
     return base_mag + 2.5 * np.log10(1 / flux_val)
 
