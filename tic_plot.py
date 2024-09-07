@@ -575,6 +575,7 @@ def plot_all(
     lcf_coll,
     flux_col="flux",
     moving_avg_window=None,
+    normalize=True,
     lc_tweak_fn=None,
     ax_fn=None,
     use_relative_time=False,
@@ -616,7 +617,8 @@ def plot_all(
         lcf = lcf_coll[i]
         lc = lke.select_flux(lcf, flux_col)
 
-        lc = _normalize_to_percent_quiet(lc)
+        if normalize:
+            lc = _normalize_to_percent_quiet(lc)
         if lc_tweak_fn is not None:
             lc = lc_tweak_fn(lc)
 
