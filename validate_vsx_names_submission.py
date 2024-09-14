@@ -24,22 +24,31 @@ def validate_vsx_names_submission(csv_path="data/others/vsx_names_submissions_dr
     # the main logic
     df = pd.read_csv(csv_path)
 
+    okay = True
     df_invalid_other_names = df[~pd.Series([validate_other_names(n) for n in df["Other names"]])]
     if len(df_invalid_other_names) > 0:
         print("Other names in some entries are invalid:")
         print_df_with_defaults(df_invalid_other_names)
-        return None
+        okay = False
 
     df_missing_vsx_name = df[~pd.Series([is_non_empty_str(n) for n in df["VSX Name"]])]
     if len(df_missing_vsx_name) > 0:
         print("VSX Name in some entries are missing:")
         print_df_with_defaults(df_missing_vsx_name)
-        return None
+        okay = False
+
+    df_dup = df.groupby("oid").size().reset_index(name="counts")
+    df_dup = df_dup[df_dup.counts > 1]
+    if len(df_dup) > 0:
+        print("Duplicate rows:")
+        print(df_dup)
+        okay = False
 
     #  case all okay
-    print(f"All {len(df)} entries valid")
-    return df
+    if okay:
+        print(f"All {len(df)} entries valid")
+    return okay, df
 
 
-df = validate_vsx_names_submission()
-df
+is_valid, df = validate_vsx_names_submission()
+is_valid, df
