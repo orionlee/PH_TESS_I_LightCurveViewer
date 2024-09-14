@@ -181,22 +181,29 @@ def _flip_yaxis_for_mag(ax, lc, plot_kwargs):
     return ax
 
 
+def _do_common_ax_tweaks(ax, lc, plot_kwargs):
+    if isinstance(lc, lk.FoldedLightCurve) and lc.time.format == "jd":
+        # the default Phase [JD]  could be confusing, use
+        ax.set_xlabel("Phase [Days]")
+    return _flip_yaxis_for_mag(ax, lc, plot_kwargs)
+
+
 def scatter(lc, **kwargs):
     """lc.scatter() with the proper support of plotting flux in magnitudes"""
     ax = lc.scatter(**kwargs)
-    return _flip_yaxis_for_mag(ax, lc, kwargs)
+    return _do_common_ax_tweaks(ax, lc, kwargs)
 
 
 def errorbar(lc, **kwargs):
     """lc.errorbar() with the proper support of plotting flux in magnitudes"""
     ax = lc.errorbar(**kwargs)
-    return _flip_yaxis_for_mag(ax, lc, kwargs)
+    return _do_common_ax_tweaks(ax, lc, kwargs)
 
 
 def plot(lc, **kwargs):
     """lc.plot() with the proper support of plotting flux in magnitudes"""
     ax = lc.plot(**kwargs)
-    return _flip_yaxis_for_mag(ax, lc, kwargs)
+    return _do_common_ax_tweaks(ax, lc, kwargs)
 
 
 def add_flux_moving_average(lc, moving_avg_window):
@@ -1646,9 +1653,9 @@ def fold_and_plot_odd_even(
 
     ax = lk_ax(figsize=figsize)
     lc_f_odd = lc_folded[lc_folded.odd_mask]
-    lc_f_odd.scatter(ax=ax, **scatter_odd_kwargs)
+    scatter(lc_f_odd, ax=ax, **scatter_odd_kwargs)
     lc_f_even = lc_folded[lc_folded.even_mask]
-    lc_f_even.scatter(ax=ax, **scatter_even_kwargs)
+    scatter(lc_f_even, ax=ax, **scatter_even_kwargs)
 
     pct01_odd = np.nanpercentile(lc_f_odd.flux, 0.1)
     pct01_even = np.nanpercentile(lc_f_even.flux, 0.1)
@@ -1678,7 +1685,7 @@ def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(10, 5), title_extr
     lc_folded = lc.fold(period=period * 2, epoch_time=epoch_time, epoch_phase=period / 2)
 
     ax = lk_ax(figsize=figsize)
-    lc_folded.scatter(ax=ax, **scatter_kwargs)
+    scatter(lc_folded, ax=ax, **scatter_kwargs)
 
     ax.legend()
     ax.xaxis.set_label_text(
