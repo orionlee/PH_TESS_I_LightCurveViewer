@@ -53,6 +53,8 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 167304040,Y,"O-C suggests long-term (1800+ d) non-linear trend for both primary and secondary eclipses, amplitude > 15 min. [D*0.8]",5.8190931,21.05,20.24,1328.0745553000002,1330.5885553,31,1882.79,1325.34,3208.14
 48507019,N?,"O-C shows some scatter (amplitude < 15 min) but might be due to pulsation signal, as suggested by previous study in 2013A&A...556A..56D, which reported no ETV in Kepler data (over 10 quarters). It also seems to suggest the period from RV is consistent with Orbital Period (Gaia DR3 NSS is incorrect if that is the case). Consider to redo the analysis with Kepler data included and pulsation signal removed.",10.790526,12.39,9.37,1687.369,1692.764263,7,1140.91,1683.36,2824.26
 461713146,Skip,"Not enough data (3 TESS sectors).The SB period is might be an alias (EB Per /SB Per /  ~= 0.52)",
+259260957,FP,"FP, as Orbital Period ~= SB Period of ~18.251 d (in SPOC SAP_FLUX). VSX period is incorrect.",
+
 
 
 
