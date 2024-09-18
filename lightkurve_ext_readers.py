@@ -87,6 +87,20 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
                 label += f" , cameras: {', '.join(cameras)}"
         lc.meta["LABEL"] = label
 
+    # for SkyPatrol v2 CSV, various IDs are included in the header
+    def get_id(lc, header_name, type):
+        id_name_val_list = lc.meta.get("comments", [])
+        for name_val in id_name_val_list:
+            matched = re.match(f"^{header_name}:(.+)", name_val)
+            if matched is not None:
+                return type(matched[1].strip())
+        return None
+
+    asas_sn_id = get_id(lc, "ASAS-SN SkyPatrol ID", int)
+    if asas_sn_id is not None:
+        lc.meta["TARGETID"] = asas_sn_id  # mimic TESS SPOC
+        lc.meta["LABEL"] = f"Sky Patrol {asas_sn_id}"
+
     return lc
 
 
