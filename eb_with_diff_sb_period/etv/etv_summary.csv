@@ -55,6 +55,7 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 461713146,Skip,"Not enough data (3 TESS sectors).The SB period is might be an alias (EB Per /SB Per /  ~= 0.52)",
 259260957,FP,"FP, as Orbital Period ~= SB Period of ~18.251 d (in SPOC SAP_FLUX). VSX period is incorrect.",
 144695651,Skip,"Not enough data (1 TESS sector).",
+288434781,?,"O-C suggests some variation (amplitude < 1 min for primary), but unclear if it's scatter or real trend. Data is too sparse.",6.334596,54.87,49.55,1740.64,1743.89,5,1656.13,1738.65,3394.78
 
 
 
