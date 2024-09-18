@@ -182,9 +182,11 @@ def _flip_yaxis_for_mag(ax, lc, plot_kwargs):
 
 
 def _do_common_ax_tweaks(ax, lc, plot_kwargs):
-    if isinstance(lc, lk.FoldedLightCurve) and lc.time.format == "jd":
+    if isinstance(lc, lk.FoldedLightCurve) and getattr(lc.time, "format", None) == "jd":
         # the default Phase [JD]  could be confusing, use
         ax.set_xlabel("Phase [Days]")
+    if lc.flux.unit == u.mag:
+        ax.set_ylabel("Magnitude")
     return _flip_yaxis_for_mag(ax, lc, plot_kwargs)
 
 
