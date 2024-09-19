@@ -339,7 +339,13 @@ def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, ax
     )
 
 
-def plot_initial_guess_interactive(data, ph_binned, flux_binned, err_binned, t0_varname, *start_vals, figsize=(8, 4)):
+def plot_initial_guess_interactive(
+    data, ph_binned, flux_binned, err_binned, t0_varname, *start_vals, figsize=(8, 4), use_fixed_t0=True
+):
+    # use_fixed_t0 : if set to True, t0 given is fixed.
+    # usually it's not productive to change t0, given the t0 users enter  is often in BTJD
+    # but the t0 here is converted to normalized phase.
+
     from ipywidgets import interactive_output, Layout
     import ipywidgets as widgets
     from IPython.display import display
@@ -350,10 +356,15 @@ def plot_initial_guess_interactive(data, ph_binned, flux_binned, err_binned, t0_
 
     def _do_plot(alpha0, alpha1, t0, d, Tau):
         plot_initial_guess(data, ph_binned, flux_binned, err_binned, alpha0, alpha1, t0, d, Tau)
-        params_text = f"""\
+        if use_fixed_t0:
+            params_text = f"""\
 [{alpha0}, {alpha1}, {t0_varname}, {d}, {Tau}]
+"""
+        else:
+            params_text = f"""\
 [{alpha0}, {alpha1}, {t0}, {d}, {Tau}]
 """
+
         widget_out2.clear_output()
         with widget_out2:
             print(params_text)
@@ -364,7 +375,9 @@ def plot_initial_guess_interactive(data, ph_binned, flux_binned, err_binned, t0_
     w_layout = Layout(width="25ch")
     w_alpha0 = widgets.FloatText(value=alpha0, step=0.01, description="alpha0", style=desc_style, layout=w_layout)
     w_alpha1 = widgets.FloatText(value=alpha1, step=0.01, description="alpha1", style=desc_style, layout=w_layout)
-    w_t0 = widgets.FloatText(value=t0, step=0.0000001, description="t0", style=desc_style, layout=w_layout)
+    w_t0 = widgets.FloatText(
+        value=t0, step=0.0000001, description="t0", style=desc_style, layout=w_layout, disabled=use_fixed_t0
+    )
     w_d = widgets.FloatText(value=d, step=0.001, description="d", style=desc_style, layout=w_layout)
     w_Tau = widgets.FloatText(value=Tau, step=0.01, description="Tau", style=desc_style, layout=w_layout)
 
