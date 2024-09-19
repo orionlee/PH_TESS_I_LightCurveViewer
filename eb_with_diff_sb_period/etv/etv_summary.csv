@@ -57,6 +57,7 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 144695651,Skip,"Not enough data (1 TESS sector).",
 288434781,?,"O-C suggests some variation (amplitude < 1 min for primary), but unclear if it's scatter or real trend. Data is too sparse.",6.334596,54.87,49.55,1740.64,1743.89,5,1656.13,1738.65,3394.78
 260128333,FP,"FP, as Orbital Period ~= SB Period of ~14.6 d. The VSX period is for the the circumbinary planet TOI-1338 b.",
+121016578,?,"O-C has some variation, but unclear if they're scatter (amplitude < 10 min).",14.0868,10.3,2.25,1692.2,1685.8,7,1822.98,1683.36,3506.34
 
 
 
