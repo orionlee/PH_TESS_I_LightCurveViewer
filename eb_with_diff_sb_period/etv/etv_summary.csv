@@ -63,7 +63,5 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 283640314,N?,"O-C has scatter with amplitude < 0.5 min, excluding outliers.",5.505472,33.84,26.61,1765.252,1768.0047359999999,4,1658.86,1764.69,3423.55
 280526693,Skip,"Not enough data (1 TESS sector).",
 395182898,?,O-C's variation is probably scatter. Data is too sparse. Early data (<BTJD 1650) inaccurate due to 30 min cadence data used.,11.750605,23.56,23.01,1605.915,1598.7718849999999,5,1499.83,1596.81,3096.63
-
-
-
+299903137,Skip,"Not enough data (1 TESS sector).",
 
