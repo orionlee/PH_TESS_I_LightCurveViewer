@@ -59,6 +59,7 @@ tic,has_etv,comments,period,depth_pct_p,depth_pct_s,epoch_p,epoch_s,num_sectors,
 260128333,FP,"FP, as Orbital Period ~= SB Period of ~14.6 d. The VSX period is for the the circumbinary planet TOI-1338 b.",
 121016578,?,"O-C has some variation, but unclear if they're scatter (amplitude < 10 min).",14.0868,10.3,2.25,1692.2,1685.8,7,1822.98,1683.36,3506.34
 455824124,?,"While O-C suggests a lienar trend (i.e. no ETV), but the trend of primary is opposite of the one of secondary. ",12.91498,44.74,31.73,1746.859,1741.54,9,1713.67,1738.65,3452.32
+159719243,?,O-C suggests some variation but unclear if it's scatter or real trend. Primary: possibly non linear trend with amplitude < 2 min. Secondary: linear trend with amplitude < 6 min.,24.238223,51.72,39.1,1702.305,1696.561777,8,1684.09,1683.39,3367.48
 
 
 
