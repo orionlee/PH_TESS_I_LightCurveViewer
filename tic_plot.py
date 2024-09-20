@@ -628,6 +628,10 @@ def plot_all(
 
         if normalize:
             lc = _normalize_to_percent_quiet(lc)
+        else:
+            # use a copy to avoid side effects, e.g., we modify its label below
+            # (if normalized, it'd be a different LC object anyway)
+            lc = lc.copy()
         if lc_tweak_fn is not None:
             lc = lc_tweak_fn(lc)
 
