@@ -1639,7 +1639,14 @@ def fold_and_plot(lc, period, epoch_time, flux_in_mag=False, **kwargs):
 
 
 def fold_and_plot_odd_even(
-    lc, period, epoch_time, figsize=(10, 5), title_extra="", scatter_odd_kwargs={}, scatter_even_kwargs={}
+    lc,
+    period,
+    epoch_time,
+    figsize=(10, 5),
+    title_extra="",
+    scatter_odd_kwargs={},
+    scatter_even_kwargs={},
+    percentile_of_lines=0.1,
 ):
     def put_if_not_exist(dict_obj, defaults):
         num_values_added = 0
@@ -1663,27 +1670,28 @@ def fold_and_plot_odd_even(
     lc_f_even = lc_folded[lc_folded.even_mask]
     scatter(lc_f_even, ax=ax, **scatter_even_kwargs)
 
-    pct01_odd = np.nanpercentile(lc_f_odd.flux, 0.1)
-    pct01_even = np.nanpercentile(lc_f_even.flux, 0.1)
+    if percentile_of_lines is not None:
+        pct01_odd = np.nanpercentile(lc_f_odd.flux, percentile_of_lines)
+        pct01_even = np.nanpercentile(lc_f_even.flux, percentile_of_lines)
 
-    ax.axhline(
-        pct01_odd * 100,
-        c="r",
-        linestyle="--",
-        label=f"odd 0.1 pctile {pct01_odd:0.4f}",
-    )
-    ax.axhline(
-        pct01_even * 100,
-        c="b",
-        linestyle="dotted",
-        label=f"even 0.1 pctile {pct01_even:0.4f}",
-    )
+        ax.axhline(
+            pct01_odd * 100,
+            c="r",
+            linestyle="--",
+            label=f"odd {percentile_of_lines} pctile {pct01_odd:0.4f}",
+        )
+        ax.axhline(
+            pct01_even * 100,
+            c="b",
+            linestyle="dotted",
+            label=f"even {percentile_of_lines} pctile {pct01_even:0.4f}",
+        )
+        print(f"odd  {percentile_of_lines} percentile: ", pct01_odd)
+        print(f"even {percentile_of_lines} percentile: ", pct01_even)
 
     ax.legend()
     plt.title(f"{lc.label} folded {title_extra}\nperiod={period:.4f} d")
 
-    print("odd  0.1 percentile: ", pct01_odd)
-    print("even 0.1 percentile: ", pct01_even)
     return ax, lc_folded
 
 
