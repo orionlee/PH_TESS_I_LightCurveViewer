@@ -18,6 +18,7 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
 import astropy.units as u
+from astroquery.utils import TableList
 
 import download_utils
 import lightkurve as lk
@@ -1130,6 +1131,25 @@ def search_gaiadr3_of_tics(
 from astroquery.vizier import Vizier
 
 
+def _to_tic_str_list(targets):
+    def to_tic_str(tic_id_or_obj):
+        if isinstance(tic_id_or_obj, str):
+            return tic_id_or_obj
+        if isinstance(tic_id_or_obj, int):
+            return str(tic_id_or_obj)
+        if isinstance(tic_id_or_obj, (lk.LightCurve, lk.TessTargetPixelFile)):
+            return tic_id_or_obj.meta.get("TICID")
+        raise TypeError(f"Unsupported type: {type(tic_id_or_obj)}")
+
+    if not isinstance(targets, (Sequence, np.ndarray, lk.collections.Collection)):
+        targets = [targets]
+
+    # Vizier requires a list of TIC in string
+    targets = [to_tic_str(t) for t in targets]
+    targets = [t for t in targets if t is not None]
+    return targets
+
+
 def search_tesseb_of_tics(
     targets,
     compact_columns=True,
@@ -1146,21 +1166,7 @@ def search_tesseb_of_tics(
 
     """
 
-    def to_tic_str(tic_id_or_obj):
-        if isinstance(tic_id_or_obj, str):
-            return tic_id_or_obj
-        if isinstance(tic_id_or_obj, int):
-            return str(tic_id_or_obj)
-        if isinstance(tic_id_or_obj, (lk.LightCurve, lk.TessTargetPixelFile)):
-            return tic_id_or_obj.meta.get("TICID")
-        raise TypeError(f"Unsupported type: {type(tic_id_or_obj)}")
-
-    if not isinstance(targets, (Sequence, np.ndarray, lk.collections.Collection)):
-        targets = [targets]
-
-    # Vizier requires a list of TIC in string
-    targets = [to_tic_str(t) for t in targets]
-    targets = [t for t in targets if t is not None]
+    targets = _to_tic_str_list(targets)
 
     columns = ["*", "Sectors", "UpDate"]  # UpDate: the "date_modified" column
     result_list = Vizier(catalog="J/ApJS/258/16/tess-ebs", columns=columns).query_constraints(TIC=targets)
@@ -1261,3 +1267,77 @@ def download_kelt_fps_as_csv(kelt_fp_csv_path="data/kelt_fps.csv"):
     df_kelt_fp = tb_kelt_fp.to_pandas()
     df_kelt_fp.to_csv(kelt_fp_csv_path, index=False)
     return df_kelt_fp
+
+
+def search_multi_star_systems_of_tics(targets, also_display=True):
+    """Search various published multi-star systems with TESS data used."""
+    if also_display:
+        from IPython.display import display, HTML
+
+    def display_tab_list(tab_list: TableList):
+        if not also_display:
+            return
+
+        for tab_name in tab_list.keys():
+            display(
+                HTML(
+                    f"""
+<a href="https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source={tab_name}" target="_blank">{tab_name}</a>
+"""
+                )
+            )
+            display(tab_list[tab_name])
+
+    def do_display(tab_list_dict: dict):
+        if not also_display:
+            return
+
+        for k in tab_list_dict:
+            display(HTML(f"<b>{k}</b>:"))
+            display_tab_list(tab_list_dict[k])
+        # additional sources not available at Vizier (requires manual search)
+        display(
+            HTML(
+                """
+<b>Kosotv+ 2023 (101 eclipsing quadruple stars in TESS FFI)</b>:<br>
+Search <a href="https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/mnras/527/2/10.1093_mnras_stad2947/2/stad2947_supplemental_file.pdf?Expires=1729983150&Signature=BhiO-NEFLBLhx0kDvmci0Usi6CPqyjL6UDMKPdrSJLN8FFq-FO0ELgiTKVYG97oLj5QJbywQAX6rQmPobxyLmplnv4zG7mX5zijuFSZ1WbL1ihmhbQUcYLRJHXdJI8NaeeCw4cZ7ZQS75PnCSgtoaH3QGT14EnCH9VGZ1Sj-zYMJHLjiqgSFiQC2reKt21z~3LwwSoSKfw3VU4T~GdJNw-h4ZdTOgq60FNVJ4khD9Nq8MOBU-c8yqBjPNAxFFbKKxz0fVTwBOHKSosuN3ANxlcBEVxFZ1X8Q-s0b2T1FWrr42nNjGMS5OjM6z3IyjxFAPZqWo1U50t2pSI1xSbl~eQ__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA" target="_blank">table 1 pdf</a>&emsp;|&emsp;
+<a href="https://academic.oup.com/mnras/article/527/2/3995/7284401#supplementary-data" target="_blank">paper</a>
+
+<br>
+
+<b>Zasche+ 2023 (7 2+2 doubly eclipsing quadruples)</b>:<br>
+Search <a href="https://www.aanda.org/articles/aa/full_html/2023/07/aa46848-23/T1.html" target="_blank">table 1 in html</a>&emsp;|&emsp;
+<a href="https://www.aanda.org/articles/aa/full_html/2023/07/aa46848-23/aa46848-23.html" target="_blank">paper</a>
+
+<br>
+
+<b>Zasche+ 2024 (8 new 2+2 doubly eclipsing quadruples)</b>:<br>
+Search <a href="https://www.aanda.org/articles/aa/full_html/2024/07/aa50400-24/T1.html" target="_blank">table 1 in html</a>&emsp;|&emsp;
+<a href="https://www.aanda.org/articles/aa/full_html/2024/07/aa50400-24/aa50400-24.html" target="_blank">paper</a>
+
+<br>
+<b>Eisner+ 2020 (Planet Hunters TESS II)</b>:<br>
+Search <a href="https://academic.oup.com/view-large/225349534" target="_blank">table 2 in html</a>&emsp;|&emsp;
+<a href="https://academic.oup.com/mnras/article/501/4/4669/6027708" target="_blank">paper</a>
+"""
+            )
+        )
+
+    targets = _to_tic_str_list(targets)
+
+    res = {}
+
+    result_list = Vizier(catalog=["J/A+A/664/A96/table1", "J/A+A/664/A96/tablea1"], columns=["*"]).query_constraints(
+        TIC=[f"TIC {t}" for t in targets]  # TICs formatted as TIC nnnnn
+    )
+    res["Zasche+, 2022 (Multiply eclipsing candidates from TESS)"] = result_list
+
+    result_list = Vizier(catalog="J/ApJS/259/66/table1", columns=["*"]).query_constraints(TIC=targets)
+    res["Kostov+, 2022 (97 eclipsing quadruple stars in TESS FFI)"] = result_list
+
+    result_list = Vizier(catalog="J/A+A/683/A158/table1", columns=["*"]).query_constraints(TIC=targets)
+    res["Zasche+, 2024 (6  new eccentric eclipsing systems with a third body.)"] = result_list
+
+    do_display(res)
+
+    return res
