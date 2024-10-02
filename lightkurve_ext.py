@@ -1246,78 +1246,32 @@ def correct_crowding(lc_sap: lk.LightCurve, crowdsap=None, flfrcsap=None):
     return lc_corr
 
 
-def correct_crowding_by_mag(lc, target_mag, companion_mag):
-    """A variant of ``correct_crowding`` for the case a LC is
-    assumed to be blended from 2 or more stars.
+def deblend_mag(lc, contaminant_mag):
+    """Deblend a blended lightcurve by subtracting the (constant)
+    contaminant magnitude.
 
-    The relative flux contribution is specified via ``target_mag`` and
-    ``companion_mag``.
+    The purpose is similar to ``correct_crowding``, but the approach
+    here is used by VSX, in the form of a spreadsheet:
+    https://www.aavso.org/vsx/_images/COMBLEND.xlsx
+    listed in the FAQ:
+    https://www.aavso.org/vsx/index.php?view=about.faq
     """
 
-    # companion_mag can be either a scalar or array (multiple)
-    if isinstance(companion_mag, (float, int)):
-        companion_mag = [companion_mag]
-    companion_delta_mag = np.asarray(companion_mag) - target_mag
+    if lc.flux.unit != u.mag:
+        raise ValueError(f"Given lightcurve's flux must be in mag. Actual {lc.flux.unit}")
 
-    # assume lc is in mag
-    lc = to_normalized_flux_from_mag(lc)
+    blended_mag = lc.flux.value
+    target_mag = contaminant_mag - 2.5 * np.log10(10 ** ((contaminant_mag - blended_mag) * 0.4) - 1)
 
-    # eq (2) in https://www.astro.keele.ac.uk/jkt/pubs/JKTeq-fluxsum.pdf
-    companion_relative_flux = 10 ** (-0.4 * companion_delta_mag)
-    crowdsap = 1 / (1 + np.sum(companion_relative_flux))
-    # print("DBG crowdsap=", crowdsap)
-    lc = correct_crowding(lc, crowdsap=crowdsap, flfrcsap=1).normalize()
-
-    lc = to_flux_in_mag_by_normalization(lc, base_mag=target_mag)
-
-    return lc
+    target_lc = lk.LightCurve(time=lc.time, flux=target_mag * u.mag)
+    target_lc.meta.update(lc.meta)
+    return target_lc
 
 
 def combine_magnitudes(mag1, mag2):
     """Return the combined magnitude of 2 stars."""
     # https://www.astro.keele.ac.uk/jkt/pubs/JKTeq-fluxsum.pdf
     return -2.5 * np.log10(10 ** (-0.4 * mag1) + 10 ** (-0.4 * mag2))
-
-
-def decompose_combined_magnitude(combined_mag, ref_target_mag, ref_companion_mag):
-    """Decompose the combined magnitude into magnitudes of the component stars.
-
-    ``combined_mag``: the combined magnitude to be decomposed,
-    typically from the observation in interest.
-
-    ``ref_target_mag``, ``ref_companion_mag``: reference magnitudes of the target / companion stars,
-     used to derive the flux contribution of the 2 stars.
-    """
-
-    # to/from flux: the flux's unit is undefined;
-    # the important point is it's consistent so they can be converted in roundtrip
-    # ref: https://www.astro.keele.ac.uk/jkt/pubs/JKTeq-fluxsum.pdf
-    def _to_flux(m):
-        # adapted from eq (2)
-        return 10 ** (-0.4 * m)
-
-    def _from_flux(f):
-        # adapted from eq (1)
-        return -2.5 * np.log10(f)
-
-    # convert  everything to flux for decomposition
-    combined_flux = _to_flux(combined_mag)
-    ref_target_flux = _to_flux(ref_target_mag)
-    ref_companion_flux = _to_flux(ref_companion_mag)
-    ref_combined_flux = ref_target_flux + ref_companion_flux
-
-    target_flux_portion = ref_target_flux / ref_combined_flux
-    companion_flux_portion = ref_companion_flux / ref_combined_flux
-
-    # print("DBG ", target_flux_portion, _from_flux(combined_flux), (combined_flux, ref_target_flux, ref_companion_flux))
-    target_flux_from_combined = combined_flux * target_flux_portion
-    companion_flux_from_combined = combined_flux * companion_flux_portion
-
-    # convert back to mag
-    target_mag_from_combined = _from_flux(target_flux_from_combined)
-    companion_mag_from_combined = _from_flux(companion_flux_from_combined)
-
-    return target_mag_from_combined, companion_mag_from_combined
 
 
 def normalized_flux_val_to_mag(flux_val, base_mag):
