@@ -7,6 +7,7 @@ from astropy.wcs import WCS
 import numpy as np
 
 from lightkurve import TessTargetPixelFile, LightkurveWarning
+from lightkurve.targetpixelfile import HduToMetaMapping
 from lightkurve.io.eleanor import read_eleanor_lightcurve
 
 
@@ -16,8 +17,14 @@ class EleanorTargetPixelFile(TessTargetPixelFile):
     def __init__(self, path, quality_bitmask="default", **kwargs):
         super().__init__(path, quality_bitmask=quality_bitmask, **kwargs)
 
+        tic_id = self.get_header().get("TIC_ID")
         if self.targetid is None:
-            self.targetid = self.get_header().get("TIC_ID")
+            self.targetid = tic_id
+        # mimic SPOC-generated TPF headers for compatibilities
+        self.hdu[0].header["TICID"] = tic_id
+        self.hdu[0].header["TESSMAG"] = self.hdu[0].header.get("TMAG")
+        # meta needs to be updated after hdu[0].header is changed (ugly)
+        self.meta = HduToMetaMapping(self.hdu[0])
 
     def hdu(self, value, keys=("TPF", "QUALITY")):
         super().hdu(value, keys)
