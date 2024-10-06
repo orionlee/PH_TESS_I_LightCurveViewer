@@ -932,7 +932,7 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
             )
 
             codes_transit_spec = f"""# transit_specs for calling plot_transits()
-transit_specs = TransitTimeSpecList(
+transit_specs = TransitTimeSpecList(  # {lcf.meta.get("LABEL")}
     dict(epoch={t0}, duration_hr={duration_hr}, period={period}, label="dip",
          sector={lcf.meta.get('SECTOR')}, steps_to_show=[{step}],
         ),
