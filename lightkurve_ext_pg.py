@@ -12,11 +12,13 @@ import numpy as np
 
 import lightkurve as lk
 from lightkurve.periodogram import BoxLeastSquaresPeriodogram
+from tic_plot import scatter as tplt_scatter, plot as tplt_plot, errorbar as tplt_errorbar
 
 from IPython.display import display, HTML
 
 # for type annotation
 from numbers import Number
+
 
 log = logging.getLogger(__name__)
 
@@ -98,14 +100,14 @@ def plot_lc_with_model(
     lc_model = model(pg, lc, period=period)
     ax1 = None
     if plot_lc:
-        ax1 = lc.scatter()
+        ax1 = tplt_scatter(lc)
         if hasattr(pg, "get_transit_mask"):
-            lc[pg.get_transit_mask()].scatter(ax=ax1, c="orange", marker="x", s=9, label="in transits")
+            tplt_scatter(lc[pg.get_transit_mask()], ax=ax1, c="orange", marker="x", s=9, label="in transits")
 
     ax2 = None
     if plot_model:
-        ax2 = lc.scatter(alpha=0.5)
-        lc_model.plot(ax=ax2, c="red", linewidth=2)
+        ax2 = tplt_scatter(lc, alpha=0.5)
+        tplt_plot(lc_model, ax=ax2, c="red", linewidth=2)
 
     # folded, zoom -in
     ax_f = None
@@ -121,8 +123,8 @@ def plot_lc_with_model(
         if plot_folded_model_with_time_cmap:
             # show time of the folded LC as color, to show  evolution over time (if any)
             lc_f_scatter_kwargs["c"] = lc_f.time_original.value
-        ax_f = lc_f.scatter(alpha=0.3, **lc_f_scatter_kwargs)
-        lc_model_f.plot(ax=ax_f, c="red", linewidth=4)
+        ax_f = tplt_scatter(lc_f, alpha=0.3, **lc_f_scatter_kwargs)
+        tplt_plot(lc_model_f, ax=ax_f, c="red", linewidth=4)
         if hasattr(pg, "duration_at_max_power"):
             # zoom in for BLS model:
             ax_f.set_xlim(-pg.duration_at_max_power.value, pg.duration_at_max_power.value)
