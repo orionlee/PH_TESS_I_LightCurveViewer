@@ -34,6 +34,12 @@ h6:before {
 }
 </style>
 
+<!--
+regex for images
+^!(.+)$
+<img src="results_assets/$1" width=429 height=323 alt="$1">
+-->
+
 # Identifying Multi Star System Candidates using VSX, Gaia DR3 NSS and TESS
 
 ## Results
@@ -53,6 +59,7 @@ See methods section on how these candidates are selected and how ETV analysis wa
 
 ### Candidates with strong signs of nonlinear trend in ETV
 
+Those with `has_etv = Y` in candidates table.
 
 #### TIC 353894978
 
@@ -79,6 +86,8 @@ EB : SB Period ~ 1:3.07 . O-C period: possibly 1000+ days.
 
 EB : SB Period ~= 9:10 . O-C period: ~7.6 days
 
+It is worth noting noting that the orbital period from eclipses is ~0.95 day, while the O-C / ETV also has a short period of ~7.6 days.
+
 <img src="results_assets/oc_plot_tic290035575.png" width=429 height=323 alt="O-C plot TIC 290035575">
 
 The periodic ETV variation is visible in a phase plot of the O-C:
@@ -101,6 +110,54 @@ EB : SB Period ~= 7.1 : 1 . O-C Period: unclear.
 
 
 ### Samples of other candidates
+
+#### TIC 38383256
+
+`has_etv = Y?`. The trend of primary is opposite of the one of secondary. Possibly long term non-linear trend as well.
+
+<img src="results_assets/oc_plot_tic38383256.png" width=429 height=323 alt="oc_plot_tic38383256.png">
+
+<img src="results_assets/oc_plot_zoom1_tic38383256.png" width=200 height=323 alt="oc_plot_zoom1_tic38383256.png"> <img src="results_assets/oc_plot_zoom2_tic38383256.png" width=200 height=323 alt="oc_plot_zoom2_tic38383256.png"> <img src="results_assets/oc_plot_zoom3_tic38383256.png" width=200 height=323 alt="oc_plot_zoom3_tic38383256.png">
+
+
+#### TIC 36883123
+
+`has_etv = Y?`. The trend of primary is opposite of the one of secondary. Only 2 sectors of data.
+
+Other targets whose primary eclipse trend is opposite of the secondary eclipse trend, but have no clear long-term non-linear trend (possibly due to lack of data)
+TIC 57297550 , TIC 440051305, TIC 11546041
+
+<img src="results_assets/oc_plot_tic36883123.png" width=429 height=323 alt="oc_plot_tic36883123.png">
+
+<img src="results_assets/oc_plot_zoom1_tic36883123.png" width=300 height=323 alt="oc_plot_zoom1_tic36883123.png"> <img src="results_assets/oc_plot_zoom2_tic36883123.png" width=300 height=323 alt="oc_plot_zoom2_tic36883123.png">
+
+
+#### TIC 52368472
+
+`has_etv = Y?`. Unsure if the trend is non-linear.
+
+<img src="results_assets/oc_plot_tic52368472.png" width=429 height=323 alt="oc_plot_tic52368472.png">
+
+<img src="results_assets/oc_plot_zoom1_tic52368472.png" width=200 height=323 alt="oc_plot_zoom1_tic52368472.png"> <img src="results_assets/oc_plot_zoom2_tic52368472.png" width=200 height=323 alt="oc_plot_zoom2_tic52368472.png"> <img src="results_assets/oc_plot_zoom3_tic52368472.png" width=200 height=323 alt="oc_plot_zoom3_tic52368472.png">
+
+
+#### TIC 231922417
+
+`has_etv = Y?`. Apparent non-linear trend. Huge error in O-C, especially in the 30 minute cadence data in the early sectors.
+
+<img src="results_assets/oc_plot_tic231922417.png" width=429 height=323 alt="oc_plot_tic231922417.png">
+
+<img src="results_assets/oc_plot_zoom1_tic231922417.png" width=300 height=323 alt="oc_plot_zoom1_tic231922417.png"> <img src="results_assets/oc_plot_zoom2_tic231922417.png" width=300 height=323 alt="oc_plot_zoom2_tic231922417.png">
+
+
+#### TIC 273874851
+
+`has_etv = Y?`. Possibly long-term (1000d+) non-linear trend.
+
+<img src="results_assets/oc_plot_tic273874851.png" width=429 height=323 alt="oc_plot_tic273874851.png">
+
+<img src="results_assets/oc_plot_zoom1_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom2_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom3_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png">
+
 
 ---
 
