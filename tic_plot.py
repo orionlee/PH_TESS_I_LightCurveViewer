@@ -2207,6 +2207,32 @@ def plot_tasoc_pixels_n_aperture(lc, ax=None):
         return ax
 
 
+def plot_eleanor_aperture(lc, ax=None):
+    with fits.open(lc.filename) as hdu:
+        # ext2 first column is the aperture
+        aperture_name = hdu[2].header["TTYPE1"]
+        title = lc.meta.get("LABEL") + f" S.{lc.meta.get('SECTOR')}, aperture: {aperture_name}"
+
+        aperture = hdu[2].data[aperture_name]
+
+        # determine actual CCD row / column
+        cen_col = int(hdu[0].header["CHIPPOS1"])  # central x pixel of TPF in FFI chip, integer portion
+        cen_row = int(hdu[0].header["CHIPPOS2"])
+        origin_col = cen_col - int(aperture.shape[1] / 2)
+        origin_row = cen_row - int(aperture.shape[0] / 2)
+        # We subtract -0.5 because pixel coordinates refer to the middle of a pixel
+        img_extent = (
+            origin_col - 0.5,
+            origin_col - 0.5 + aperture.shape[1],
+            origin_row - 0.5,
+            origin_row - 0.5 + aperture.shape[0],
+        )
+
+        # use scale=None to make the aperture pixels standout more
+        ax = lk.utils.plot_image(aperture, extent=img_extent, title=title, show_colorbar=None, scale=None, ax=ax)
+        return ax
+
+
 def scatter_partition_by(lc, partition_by_column, ax=None, **kwargs):
     """Generate a scatter plot of the given lightcurve, with flux
     partitioned by the given column.
