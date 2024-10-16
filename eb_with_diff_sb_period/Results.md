@@ -170,17 +170,27 @@ TIC 57297550 , TIC 440051305, TIC 11546041
 
 ### Candidate Selection
 
-- Cross matched 3485 TICs known to be an EB in VSX, with Gaia DR3 NSS SB type.
+- Cross matched 3485 TICs [*] known to be an EB in VSX, with Gaia DR3 NSS SB type.
 - 515 TICs are SBs per Gaia DR3.
 - 65 TICs: period from eclipses in VSX is different from the period from spectroscopy in Gaia DR3 NSS or aliases.
-    - the periods are considered the same if the ratio of VSX Period to SB Period are in [0.99, 1.01], [0.495, 0.505], [1.98, 2.02].
+    - the periods are considered the same if the ratio of VSX Period to SB Period are in [0.99, 1.01], [0.495, 0.505], or [1.98, 2.02].
 - 51 TICs: period from eclipses are indeed different from the period from spectroscopy after inspecting data in TESS.
     - 14 are deemed false positives. Most of them are because the period in VSX are not accurate.
 
-- TODO: how the initial 3485 TICs are selected.
+- [*] The initial 3485 TICs come from TICs tagged as eclipsing binary by the volunteers of [Zooniverse Planet Hunters TESS](https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/tags/eclipsingbinary) that are also known EB in VSX. The choice is primarily a matter of expedience. The dataset can be seen as a sample of known EB in VSX which also has some TESS data in 2-minute cadence.
+
+
+### Eclipse Timing Variations (ETV) Analysis
+
+- ETV analysis has been carried out for the 51 TICs based on their TESS data.
+    - The TESS data used are based on 2-minute cadence data provided by SPOC, supplemented with 10-minute / 30-minute cadence data from TESS-SPOC or QLP in sectors where 2-minute cadence data is not available.
+- Eclipse midpoint ephemeris is identified by fitting a geometric `cosh` Gaussian model to individual eclipses with [`emcee`](https://emcee.readthedocs.io/), using a custom version of [`https://github.com/noraeisner/ETVs`](https://github.com/noraeisner/ETVs) .
+    - The initial eclipse midpoint and period are determined using a variety of means,including consulting the values from VSX and TESS TCEs, manual fitting, and MCMC-based fitting of a geometric `cosh` Gaussian model with period as an additional free parameter.
+    - In most cases, the model fitting is done on the central portion of eclipses, excluding ingress/egress, as fitting on ingress/egress tends to be less accurate, and is not essential for the purpose of determining eclipse midpoints.
+    - For cases the underlying TESS data are 30 minute cadence and eclipse duration is short, the modeled midpoints often have large errors (or are altogether excluded) because of limited number of data points per eclipse. For example, an eclipse with 4 hour duration would imply at most 8 data points in 30 minute cadence data.
+
 
 ---
 
 ## TODOs
 
-- Change Y: to Y? for 52368472
