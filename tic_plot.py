@@ -209,7 +209,8 @@ def plot(lc, **kwargs):
 
 
 def add_flux_moving_average(lc, moving_avg_window):
-    df = lc.to_pandas()
+    # include minimal columns: reduce df size and make it compatible with eleanor full FITS files
+    df = lc["time", "flux", "flux_err"].to_pandas()
     begin_t = df.index[0]
     df["time_ts"] = [pd.Timestamp(t - begin_t, unit="D") for t in df.index]
     # the timestamp above is good for relative time.
