@@ -181,9 +181,9 @@ def select(lcf_coll_or_sr, filter_func):
     return type(lcf_coll_or_sr)([obj for obj in lcf_coll_or_sr if filter_func(obj)])
 
 
-def exclude_range(lc, start, end):
+def exclude_range(lc, start, end, column="time"):
     """Exclude the specified range of time from the given lightcurve."""
-    tmask = (lc.time.value >= start) & (lc.time.value < end)
+    tmask = (lc[column].value >= start) & (lc[column].value < end)
     return lc[~tmask]
 
 
