@@ -77,7 +77,7 @@ EB to SB Period ~ 2.8:1 . O-C period: no clear one.
 
 #### TIC 154453805
 
-EB : SB Period ~ 1:3.07 . O-C period: possibly 1000+ days.
+EB : SB Period ~ 1:3.07 . O-C period: possibly 1000+ days or ~215 days.
 
 <img src="results_assets/oc_plot_tic154453805.png" width=429 height=323 alt="O-C plot TIC 154453805">
 
@@ -113,7 +113,7 @@ EB : SB Period ~= 7.1 : 1 . O-C Period: unclear.
 
 #### TIC 38383256
 
-`has_etv = Y?`. The trend of primary is opposite of the one of secondary. Possibly long term non-linear trend as well.
+`has_etv = Y?`. Anti-correlated timings: The trend of primary is opposite of the one of secondary. Possibly long term non-linear trend as well.
 
 <img src="results_assets/oc_plot_tic38383256.png" width=429 height=323 alt="oc_plot_tic38383256.png">
 
@@ -122,9 +122,9 @@ EB : SB Period ~= 7.1 : 1 . O-C Period: unclear.
 
 #### TIC 36883123
 
-`has_etv = Y?`. The trend of primary is opposite of the one of secondary. Only 2 sectors of data.
+`has_etv = Y?`. Anti-correlated timings: The trend of primary is opposite of the one of secondary. Only 2 sectors of data.
 
-Other targets whose primary eclipse trend is opposite of the secondary eclipse trend, but have no clear long-term non-linear trend (possibly due to lack of data)
+Other targets with anti-correlated timings, but have no clear long-term non-linear trend (possibly due to lack of data)
 TIC 57297550 , TIC 440051305, TIC 11546041
 
 <img src="results_assets/oc_plot_tic36883123.png" width=429 height=323 alt="oc_plot_tic36883123.png">
