@@ -198,6 +198,10 @@ def scatter(lc, **kwargs):
 
 def errorbar(lc, **kwargs):
     """lc.errorbar() with the proper support of plotting flux in magnitudes"""
+    if "marker" not in kwargs:  # do not use kwargs.get("marker") is None, so that caller can explicitly set marker=None
+        # lightkurve's default style for errorbar hides the marker. I find having a marker is typically useful.
+        kwargs = kwargs.copy()
+        kwargs["marker"] = "o"
     ax = lc.errorbar(**kwargs)
     return _do_common_ax_tweaks(ax, lc, kwargs)
 
