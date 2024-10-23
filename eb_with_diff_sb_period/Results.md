@@ -122,7 +122,8 @@ EB : SB Period ~= 7.1 : 1 . O-C Period: unclear.
 
 #### TIC 36883123
 
-`has_etv = Y?`. Anti-correlated timings: The trend of primary is opposite of the one of secondary. Only 2 sectors of data.
+`has_etv = Y?`. Anti-correlated timings: The trend of primary is opposite of the one of secondary.
+No clear long-term non-linear trend (a small possibility of a ~14 d period). Only 2 sectors of data.
 
 Other targets with anti-correlated timings, but have no clear long-term non-linear trend (possibly due to lack of data)
 TIC 57297550 , TIC 440051305, TIC 11546041
