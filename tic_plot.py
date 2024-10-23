@@ -1729,13 +1729,13 @@ def calc_cycles(lc: FoldedLightCurve):
     return cycles
 
 
-def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, interval=1000, plot_kwargs={}):
+def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, interval=1000, plot_kwargs={}, ax_fn=None):
     def _update_anim(frame, ax, lc, cycle_column, cycle_list, num_cycles_per_plot, plot_kwargs):
         cycle_list_subset = cycle_list[num_cycles_per_plot * frame : num_cycles_per_plot * (frame + 1)]
 
         ax.cla()
         lc_subset = lc[np.in1d(cycle_column, cycle_list_subset)]
-        lc_subset.scatter(ax=ax, **plot_kwargs)
+        scatter(lc_subset, ax=ax, **plot_kwargs)
 
         # ensure all plots have the same scale
         ax.set_xlim(lc.time.min().value, lc.time.max().value)
@@ -1753,6 +1753,10 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
             f"""{lc.label} , cycle {cycle_list_subset_label}, {lc_subset.time_original.format.upper()} \
 {lc_subset.time_original.min().value:.4f} - {lc_subset.time_original.max().value:.4f}"""
         )
+
+        # optional user-specified tweaks
+        if ax_fn is not None:
+            ax_fn(ax)
 
     lc = lc.remove_nans()  # remove any potential empty frames with no flux
     if lc.meta.get("LABEL") is None:
