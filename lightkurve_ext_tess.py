@@ -1323,12 +1323,23 @@ Search <a href="https://academic.oup.com/view-large/225349534" target="_blank">t
             )
         )
 
+    def prepend_to_fixed_len(id, prefix, str_len):
+        """Format a number to a fixed length string with spaces after prefix.
+        E.g., 'TIC   50445777'
+        Use case: J/A+A/664/A96 uses a fixed str14
+        """
+        id = str(id)
+        num_spaces = str_len - len(id) - len(prefix)
+        if num_spaces < 0:
+            num_spaces = 0
+        return prefix + " " * num_spaces + id
+
     targets = _to_tic_str_list(targets)
 
     res = {}
 
     result_list = Vizier(catalog=["J/A+A/664/A96/table1", "J/A+A/664/A96/tablea1"], columns=["*"]).query_constraints(
-        TIC=[f"TIC {t}" for t in targets]  # TICs formatted as TIC nnnnn
+        TIC=[prepend_to_fixed_len(t, "TIC", 14) for t in targets]  # TICs formatted as TIC nnnnn
     )
     res["Zasche+, 2022 (Multiply eclipsing candidates from TESS)"] = result_list
 
