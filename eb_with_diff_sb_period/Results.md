@@ -86,7 +86,7 @@ EB : SB Period ~ 1:3.07 . O-C period: possibly 1000+ days or ~215 days.
 
 EB : SB Period ~= 9:10 . O-C period: ~7.6 days
 
-It is worth noting noting that the orbital period from eclipses is ~0.95 day, while the O-C / ETV also has a short period of ~7.6 days.
+It is worth noting that the orbital period from eclipses is ~0.95 day, SB Period ~1.05 day, and O-C period is ~7.6 days.
 
 <img src="results_assets/oc_plot_tic290035575.png" width=429 height=323 alt="O-C plot TIC 290035575">
 
