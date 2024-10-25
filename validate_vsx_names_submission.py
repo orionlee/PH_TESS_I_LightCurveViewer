@@ -1,4 +1,5 @@
 import re
+import numpy as np
 import pandas as pd
 
 
@@ -11,6 +12,10 @@ def validate_vsx_names_submission(csv_path="data/others/vsx_names_submissions_dr
         for name in names:
             if re.search(r"^\s+|\s$", name):
                 return False  # leading / trailing spaces. invalid
+            if re.search(r"^Gaia DR2", name):
+                # Gaia DR2 name is almost never added.
+                # Most likely it's a Gaia DR3 Variable, but Gaia DR2 is incorrectly used
+                return False
         return True
 
     def is_non_empty_str(a_str):
@@ -42,6 +47,12 @@ def validate_vsx_names_submission(csv_path="data/others/vsx_names_submissions_dr
     if len(df_dup) > 0:
         print("Duplicate rows:")
         print(df_dup)
+        okay = False
+
+    if not np.issubdtype(df["oid"].dtype, np.integer):
+        # usually it happens when a temporary row, e.g., from ASAS-SN V data,
+        # is accidentally retained.
+        print("Some rows do not have valid oid.")
         okay = False
 
     #  case all okay
