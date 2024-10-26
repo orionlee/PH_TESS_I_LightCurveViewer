@@ -126,7 +126,7 @@ EB : SB Period ~= 7.1 : 1 . O-C Period: unclear.
 No clear long-term non-linear trend (a small possibility of a ~14 d period). Only 2 sectors of data.
 
 Other targets with anti-correlated timings, but have no clear long-term non-linear trend (possibly due to lack of data)
-TIC 57297550 , TIC 440051305, TIC 11546041
+TIC 57297550 (possibly O-C period of ~21 d), TIC 440051305, TIC 11546041
 
 <img src="results_assets/oc_plot_tic36883123.png" width=429 height=323 alt="oc_plot_tic36883123.png">
 
