@@ -140,7 +140,7 @@ Other targets with similar anti-correlated timings, but have no clear long-term 
 
 #### TIC 52368472
 
-`has_etv = Y?`. Unsure if the trend is non-linear.
+`has_etv = Y?`. Unsure if the trend is non-linear (a long-shot O-C period of ~211 d)
 
 <img src="results_assets/oc_plot_tic52368472.png" width=429 height=323 alt="oc_plot_tic52368472.png">
 
