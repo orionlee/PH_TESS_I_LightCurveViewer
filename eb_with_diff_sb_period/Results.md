@@ -125,12 +125,15 @@ EB : SB Period ~= 7.1 : 1 . O-C Period: unclear.
 `has_etv = Y?`. Anti-correlated timings: The trend of primary is opposite of the one of secondary.
 No clear long-term non-linear trend (a small possibility of a ~14 d period). Only 2 sectors of data.
 
-Other targets with anti-correlated timings, but have no clear long-term non-linear trend (possibly due to lack of data)
-TIC 57297550 (possibly O-C period of ~21 d), TIC 440051305 (possibly O-C period of ~48 d), TIC 11546041
-
 <img src="results_assets/oc_plot_tic36883123.png" width=429 height=323 alt="oc_plot_tic36883123.png">
 
 <img src="results_assets/oc_plot_zoom1_tic36883123.png" width=300 height=323 alt="oc_plot_zoom1_tic36883123.png"> <img src="results_assets/oc_plot_zoom2_tic36883123.png" width=300 height=323 alt="oc_plot_zoom2_tic36883123.png">
+
+Other targets with similar anti-correlated timings, but have no clear long-term non-linear trend (possibly due to lack of data):
+
+- TIC 57297550 (possibly O-C period of ~21 d)
+- TIC 440051305 (possibly O-C period of ~48 d)
+- TIC 11546041 (possibly O-C period of ~6 d)
 
 
 #### TIC 52368472
