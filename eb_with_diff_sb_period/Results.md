@@ -49,13 +49,20 @@ regex for images
 
 | Disposition                               | Num. of TICs |
 | ----------------------------------------- | ------------ |
-| Y: Strong signs of nonlinear trend in ETV | 6            |
-| Y?: Might be nonlinear trend in ETV       | 10           |
-| ?: Uncertain ETV results                  | 22           |
-| N?: Most likely no ETV                    | 4            |
-| Skip: insufficient TESS data for ETV      | 9            |
+| `Y`: Strong signs of nonlinear trend in ETV | 6            |
+| `Y?`: Might be nonlinear trend in ETV       | 10           |
+| `?`: Uncertain ETV results                  | 22           |
+| `N?`: Most likely no ETV                    | 4            |
+| `Skip`: insufficient TESS data for ETV      | 9            |
 
-See methods section on how these candidates are selected and how ETV analysis was carried out.
+<!--
+    For the ETV table below, use the link to colab version of the notebook, so that for the notebook links of the individual targets, colab version is used.
+    It's done so because github's rendering for individual target notebooks is not good.
+-->
+- See the table in Eclipse Timing Variation (ETV) Analysis section of this [notebook](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/eb_sb_diff_period_initial_writeups/eb_with_diff_sb_period/Dashboard_EB_with_SB.ipynb).
+    - Some of them, including the most noteworthy ones, are presented in the next section.
+- See methods section on how these candidates are selected and how ETV analysis was carried out.
+
 
 ### Candidates with strong signs of nonlinear trend in ETV
 
@@ -109,11 +116,13 @@ EB : SB Period ~= 7.1 : 1 . O-C Period: unclear.
 <img src="results_assets/oc_plot_tic167304040.png" width=429 height=323 alt="O-C plot TIC 167304040">
 
 
-### Samples of other candidates
+### Candidates with some signs of nonlinear trend in ETV
+
+Those with `has_etv = Y?` in candidates table.
 
 #### TIC 38383256
 
-`has_etv = Y?`. Anti-correlated timings: The trend of primary is opposite of the one of secondary. Possibly long term non-linear trend as well.
+ Anti-correlated timings: The trend of primary is opposite of the one of secondary. Possibly long term non-linear trend as well.
 
 <img src="results_assets/oc_plot_tic38383256.png" width=429 height=323 alt="oc_plot_tic38383256.png">
 
@@ -122,7 +131,7 @@ EB : SB Period ~= 7.1 : 1 . O-C Period: unclear.
 
 #### TIC 36883123
 
-`has_etv = Y?`. Anti-correlated timings: The trend of primary is opposite of the one of secondary.
+Anti-correlated timings: The trend of primary is opposite of the one of secondary.
 No clear long-term non-linear trend (a long-shot possibility of a ~14 d O-C period). Only 2 sectors of data.
 
 <img src="results_assets/oc_plot_tic36883123.png" width=429 height=323 alt="oc_plot_tic36883123.png">
@@ -140,7 +149,7 @@ Other targets with similar anti-correlated timings, but have no clear long-term 
 
 #### TIC 52368472
 
-`has_etv = Y?`. Unsure if the trend is non-linear (a long-shot O-C period of ~211 d)
+ Unsure if the trend is non-linear (a long-shot O-C period of ~211 d)
 
 <img src="results_assets/oc_plot_tic52368472.png" width=429 height=323 alt="oc_plot_tic52368472.png">
 
@@ -149,7 +158,7 @@ Other targets with similar anti-correlated timings, but have no clear long-term 
 
 #### TIC 231922417
 
-`has_etv = Y?`. Apparent non-linear trend. Huge error in O-C, especially in the 30 minute cadence data in the early sectors.
+Apparent non-linear trend. Huge error in O-C, especially in the 30 minute cadence data in the early sectors.
 
 <img src="results_assets/oc_plot_tic231922417.png" width=429 height=323 alt="oc_plot_tic231922417.png">
 
@@ -158,17 +167,34 @@ Other targets with similar anti-correlated timings, but have no clear long-term 
 
 #### TIC 273874851
 
-`has_etv = Y?`. Possibly long-term (100d+ or 1000d+) non-linear trend.
+Possibly long-term (100d+ or 1000d+) non-linear trend.
 
 <img src="results_assets/oc_plot_tic273874851.png" width=429 height=323 alt="oc_plot_tic273874851.png">
 
 <img src="results_assets/oc_plot_zoom1_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom2_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom3_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom4_tic273874851.png" width=200 height=323 alt="oc_plot_zoom4_tic273874851.png">
 
 
+### Samples of other candidates
+
+The remaining candidates do not appear to show strong non linear trend, but most of them cannot be discounted (from having ETVs) outright either. Some of them are presented here.
+
+TODO:
+
 ---
 
-## Possible Future Work
+## Discussion
 
+### Open Issues
+
+- Validity of ETVs, especially those with apparent non-linear trends (`has_etv = Y or Y?`)
+    - For those with possible O-C period (or rough O-C period range) identified, none of them match the correspond SB period.
+- Any values for the candidates wit no apparent ETV but EB Period appears to be different from SB Period
+
+
+### Possible Future Work
+
+- Go in depth of some interesting candidates.
+- Go in breath with a more systematic and complete survey, e.g., all known EBs in VSX and in TESS continuous viewing zone (CVZ) with different SB periods. (The CVZ constraint would ensure the identified candidates have ample of TESS data for ETV analysis.)
 
 ---
 
@@ -176,14 +202,14 @@ Other targets with similar anti-correlated timings, but have no clear long-term 
 
 ### Candidate Selection
 
-- Cross matched 3485 TICs [*] known to be an EB in VSX, with Gaia DR3 NSS SB type.
+- Cross matched 3485 TICs [*] known to be EBs in VSX, with Gaia DR3 NSS SB type.
 - 515 TICs are SBs per Gaia DR3.
 - 65 TICs: period from eclipses in VSX is different from the period from spectroscopy in Gaia DR3 NSS or aliases.
-    - the periods are considered the same if the ratio of VSX Period to SB Period are in [0.99, 1.01], [0.495, 0.505], or [1.98, 2.02].
+    - the periods are considered the same or are aliases, if the ratio of VSX Period to SB Period are in [0.99, 1.01], [0.495, 0.505], or [1.98, 2.02].
 - 51 TICs: period from eclipses are indeed different from the period from spectroscopy after inspecting data in TESS.
-    - 14 are deemed false positives. Most of them are because the period in VSX are not accurate.
+    - The remaining 14 TICs are deemed false positives, i.e., no significant difference between EB Period and SB Period. Most of them are because the periods in VSX are not accurate.
 
-- [*] The initial 3485 TICs come from TICs tagged as eclipsing binary by the volunteers of [Zooniverse Planet Hunters TESS](https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/tags/eclipsingbinary) that are also known EB in VSX. The choice is primarily a matter of expedience. The dataset can be seen as a sample of known EB in VSX which also has some TESS data in 2-minute cadence.
+- [*] The initial 3485 TICs come from TICs tagged as eclipsing binary by the volunteers of [Zooniverse Planet Hunters TESS](https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/tags/eclipsingbinary) that are also known EB in VSX. The choice is primarily a matter of expedience. The dataset can be seen as a sample of known EBs in VSX which also have some TESS data in 2-minute cadence.
 
 
 ### Eclipse Timing Variations (ETV) Analysis
@@ -196,7 +222,4 @@ Other targets with similar anti-correlated timings, but have no clear long-term 
     - For cases the underlying TESS data are 30 minute cadence and eclipse duration is short, the modeled midpoints often have large errors (or are altogether excluded) because of limited number of data points per eclipse. For example, an eclipse with 4 hour duration would imply at most 8 data points in 30 minute cadence data.
 
 
----
-
-## TODOs
 
