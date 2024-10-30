@@ -158,11 +158,11 @@ Other targets with similar anti-correlated timings, but have no clear long-term 
 
 #### TIC 273874851
 
-`has_etv = Y?`. Possibly long-term (1000d+) non-linear trend.
+`has_etv = Y?`. Possibly long-term (100d+ or 1000d+) non-linear trend.
 
 <img src="results_assets/oc_plot_tic273874851.png" width=429 height=323 alt="oc_plot_tic273874851.png">
 
-<img src="results_assets/oc_plot_zoom1_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom2_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom3_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png">
+<img src="results_assets/oc_plot_zoom1_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom2_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom3_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom4_tic273874851.png" width=200 height=323 alt="oc_plot_zoom4_tic273874851.png">
 
 
 ---
