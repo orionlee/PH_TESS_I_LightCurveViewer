@@ -1,3 +1,4 @@
+<!-- Numbering (does not work on github)
 <style>
 body { counter-reset: h1counter h2counter h3counter h4counter h5counter h6counter; }
 
@@ -34,6 +35,8 @@ h6:before {
 }
 </style>
 
+-->
+
 <!--
 regex for images
 ^!(.+)$
@@ -42,10 +45,10 @@ regex for images
 
 # Identifying Multi Star System Candidates using VSX, Gaia DR3 NSS and TESS
 
-## Results
+## 1. Results
 
-- Identified 51 targets of which the orbital period from eclipses (VSX / TESS) is different from the period from spectroscopy (Gaia DR3 NSS)
-- ETV analysis was attempted for the targets. The breakdown:
+- Identified 51 candidates (from over 3000 known EBs), of which the orbital period from eclipses (VSX / TESS) is different from the period from spectroscopy (SB in Gaia DR3 NSS)
+- ETV analysis was attempted for the candidates. The breakdown:
 
 | Disposition                               | Num. of TICs |
 | ----------------------------------------- | ------------ |
@@ -64,7 +67,7 @@ regex for images
 - See methods section on how these candidates are selected and how ETV analysis was carried out.
 
 
-### Candidates with strong signs of nonlinear trend in ETV
+### 1.1 Candidates with strong signs of nonlinear trend in ETV
 
 Those with `has_etv = Y` in candidates table.
 
@@ -116,7 +119,7 @@ EB : SB Period ~= 7.1 : 1 . O-C Period: unclear.
 <img src="results_assets/oc_plot_tic167304040.png" width=429 height=323 alt="O-C plot TIC 167304040">
 
 
-### Candidates with some signs of nonlinear trend in ETV
+### 1.2 Candidates with some signs of nonlinear trend in ETV
 
 Those with `has_etv = Y?` in candidates table.
 
@@ -174,7 +177,7 @@ Possibly long-term (100d+ or 1000d+) non-linear trend.
 <img src="results_assets/oc_plot_zoom1_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom2_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom3_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom4_tic273874851.png" width=200 height=323 alt="oc_plot_zoom4_tic273874851.png">
 
 
-### Samples of other candidates
+### 1.3 Samples of other candidates
 
 The remaining candidates do not appear to show strong non linear trend, but most of them cannot be discounted (from having ETVs) outright either. Some of them are presented here.
 
@@ -182,25 +185,25 @@ TODO:
 
 ---
 
-## Discussion
+## 2. Discussion
 
-### Open Issues
+### 2.1 Open Issues
 
 - Validity of ETVs, especially those with apparent non-linear trends (`has_etv = Y or Y?`)
     - For those with possible O-C period (or rough O-C period range) identified, none of them match the correspond SB period.
 - Any values for the candidates wit no apparent ETV but EB Period appears to be different from SB Period
 
 
-### Possible Future Work
+### 2.2 Possible Future Work
 
 - Go in depth of some interesting candidates.
 - Go in breath with a more systematic and complete survey, e.g., all known EBs in VSX and in TESS continuous viewing zone (CVZ) with different SB periods. (The CVZ constraint would ensure the identified candidates have ample of TESS data for ETV analysis.)
 
 ---
 
-## Methods
+## 3. Methods
 
-### Candidate Selection
+### 3.1 Candidate Selection
 
 - Cross matched 3485 TICs [*] known to be EBs in VSX, with Gaia DR3 NSS SB type.
 - 515 TICs are SBs per Gaia DR3.
@@ -212,7 +215,7 @@ TODO:
 - [*] The initial 3485 TICs come from TICs tagged as eclipsing binary by the volunteers of [Zooniverse Planet Hunters TESS](https://www.zooniverse.org/projects/nora-dot-eisner/planet-hunters-tess/talk/tags/eclipsingbinary) that are also known EB in VSX. The choice is primarily a matter of expedience. The dataset can be seen as a sample of known EBs in VSX which also have some TESS data in 2-minute cadence.
 
 
-### Eclipse Timing Variations (ETV) Analysis
+### 3.2 Eclipse Timing Variations (ETV) Analysis
 
 - ETV analysis has been carried out for the 51 TICs based on their TESS data.
     - The TESS data used are based on 2-minute cadence data provided by SPOC, supplemented with 10-minute / 30-minute cadence data from TESS-SPOC or QLP in sectors where 2-minute cadence data is not available.
@@ -220,6 +223,4 @@ TODO:
     - The initial eclipse midpoint and period are determined using a variety of means,including consulting the values from VSX and TESS TCEs, manual fitting, and MCMC-based fitting of a geometric `cosh` Gaussian model with period as an additional free parameter.
     - In most cases, the model fitting is done on the central portion of eclipses, excluding ingress/egress, as fitting on ingress/egress tends to be less accurate, and is not essential for the purpose of determining eclipse midpoints.
     - For cases the underlying TESS data are 30 minute cadence and eclipse duration is short, the modeled midpoints often have large errors (or are altogether excluded) because of limited number of data points per eclipse. For example, an eclipse with 4 hour duration would imply at most 8 data points in 30 minute cadence data.
-
-
 
