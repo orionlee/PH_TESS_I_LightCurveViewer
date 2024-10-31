@@ -53,8 +53,8 @@ regex for images
 | Disposition                               | Num. of TICs |
 | ----------------------------------------- | ------------ |
 | `Y`: Strong signs of nonlinear trend in ETV | 6            |
-| `Y?`: Might be nonlinear trend in ETV       | 10           |
-| `?`: Uncertain ETV results                  | 22           |
+| `Y?`: Might be nonlinear trend in ETV       | 9            |
+| `?`: Uncertain ETV results                  | 23           |
 | `N?`: Most likely no ETV                    | 4            |
 | `Skip`: insufficient TESS data for ETV      | 9            |
 
