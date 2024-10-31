@@ -190,7 +190,13 @@ Possibly long-term (1000d+) non-linear trend. The SB Period is also long: ~925 d
 
 The remaining candidates do not appear to show strong non linear trend, but most of them cannot be discounted (from having ETVs) outright either. Some of them are presented here.
 
-TODO:
+TIC 346767664
+
+<img src="results_assets/oc_plot_tic346767664.png" width=429 height=323 alt="oc_plot_tic346767664.png">
+
+
+TODO: add more
+
 
 ---
 
@@ -200,7 +206,7 @@ TODO:
 
 - Validity of ETVs, especially those with apparent non-linear trends (`has_etv = Y or Y?`)
     - For those with possible O-C period (or rough O-C period range) identified, none of them match the correspond SB period.
-- Any values for the candidates wit no apparent ETV but EB Period appears to be different from SB Period
+- Any values for the candidates with no apparent ETV but EB Period appears to be different from SB Period?
 
 
 ### 2.2 Possible Future Work
