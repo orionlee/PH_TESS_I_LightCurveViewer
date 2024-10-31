@@ -62,7 +62,7 @@ regex for images
     For the ETV table below, use the link to colab version of the notebook, so that for the notebook links of the individual targets, colab version is used.
     It's done so because github's rendering for individual target notebooks is not good.
 -->
-- See the table in Eclipse Timing Variation (ETV) Analysis section of this [notebook](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/eb_sb_diff_period_initial_writeups/eb_with_diff_sb_period/Dashboard_EB_with_SB.ipynb).
+- See the table in Eclipse Timing Variation (ETV) Analysis section of this [notebook](https://colab.research.google.com/github/orionlee/PH_TESS_I_LightCurveViewer/blob/main/eb_with_diff_sb_period/Dashboard_EB_with_SB.ipynb).
     - Some of them, including the most noteworthy ones, are presented in the next section.
 - See methods section on how these candidates are selected and how ETV analysis was carried out.
 
