@@ -177,6 +177,15 @@ Possibly long-term (100d+ or 1000d+) non-linear trend.
 <img src="results_assets/oc_plot_zoom1_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom2_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom3_tic273874851.png" width=200 height=323 alt="oc_plot_zoom3_tic273874851.png"> <img src="results_assets/oc_plot_zoom4_tic273874851.png" width=200 height=323 alt="oc_plot_zoom4_tic273874851.png">
 
 
+#### TIC 417497545
+
+Possibly long-term (1000d+) non-linear trend. The SB Period is also long: ~925 days.
+
+<img src="results_assets/oc_plot_tic417497545.png" width=429 height=323 alt="oc_plot_tic417497545.png">
+
+<img src="results_assets/oc_plot_zoom1_tic417497545.png" width=200 height=323 alt="oc_plot_zoom3_tic417497545.png"> <img src="results_assets/oc_plot_zoom2_tic417497545.png" width=200 height=323 alt="oc_plot_zoom3_tic417497545.png"> <img src="results_assets/oc_plot_zoom3_tic417497545.png" width=200 height=323 alt="oc_plot_zoom3_tic417497545.png">
+
+
 ### 1.3 Samples of other candidates
 
 The remaining candidates do not appear to show strong non linear trend, but most of them cannot be discounted (from having ETVs) outright either. Some of them are presented here.
