@@ -135,7 +135,7 @@ Those with `has_etv = Y?` in candidates table.
 #### TIC 36883123
 
 Anti-correlated timings: The trend of primary is opposite of the one of secondary.
-No clear long-term non-linear trend (a long-shot possibility of a ~14 d O-C period). Only 2 sectors of data.
+No clear long-term non-linear trend (a long-shot possibility of a ~14 d O-C period). Only 2 sectors of data. Long SB Period of ~1086 days.
 
 <img src="results_assets/oc_plot_tic36883123.png" width=429 height=323 alt="oc_plot_tic36883123.png">
 
@@ -170,7 +170,7 @@ Apparent non-linear trend. Huge error in O-C, especially in the 30 minute cadenc
 
 #### TIC 273874851
 
-Possibly long-term (100d+ or 1000d+) non-linear trend.
+Possibly long-term (100d+ or 1000d+) non-linear trend. SB Period: ~70 days.
 
 <img src="results_assets/oc_plot_tic273874851.png" width=429 height=323 alt="oc_plot_tic273874851.png">
 
