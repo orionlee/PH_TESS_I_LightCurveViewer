@@ -881,13 +881,19 @@ def run_mcmc_individual_fit_of_model(
 ):
     # hard code "t0"'s start_vals
     start_vals_dict = start_vals_dict.copy()
-    start_vals_dict["t0"] = 0  # the subsequent codes shift each eclipse to be centered around 0
+
+    # used by the subsequent codes to shift each eclipse to be centered around 0
+    t0_before_shift = start_vals_dict.pop("t0")
+    start_vals_dict["t0"] = 0
     start_vals = list(start_vals_dict.values())
     t0_idx = len(start_vals) - 1
 
     fixed_vals = list(fixed_vals_dict.values())
 
     x, y, yerr = data.phase, data.flux, data.err
+
+    # zero-shift x so that phase t0 becomes midpoint (0)
+    x = x - t0_before_shift
 
     pos = list(get_starting_positions(start_vals, nwalkers=64))[0]
 
@@ -951,11 +957,11 @@ def run_mcmc_individual_fit(data, start_vals, nruns=10000, discard=1000, pool=No
     mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau = start_vals
 
     start_vals_dict = dict(
-        mean_alpha0=mean_alpha0,
-        mean_alpha1=mean_alpha1,
-        # note: mean_t0 is not used
+        alpha0=mean_alpha0,
+        alpha1=mean_alpha1,
+        t0=mean_t0,
     )
-    fixed_vals_dict = dict(mean_d=mean_d, mean_Tau=mean_Tau)
+    fixed_vals_dict = dict(d=mean_d, Tau=mean_Tau)
 
     return run_mcmc_individual_fit_of_model(
         log_probability_fitting,  # the version for individual eclipse
