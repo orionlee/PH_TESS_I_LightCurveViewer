@@ -27,6 +27,7 @@ data/*.fits
 data/*.csv
 data/*.txt
 data/*/*
+eb_with_diff_sb_period/etv/data
 
 # Exported Plots
 targets/plots
