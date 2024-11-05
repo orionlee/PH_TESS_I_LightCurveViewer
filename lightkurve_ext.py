@@ -448,6 +448,9 @@ def filter_by_priority(
     author_priority=["SPOC", "TESS-SPOC", "QLP"],
     exptime_priority=["short", "long", "fast"],
 ):
+    if sr is None or len(sr) < 1:
+        return sr
+
     author_sort_keys = {}
     for idx, author in enumerate(author_priority):
         author_sort_keys[author] = idx + 1
