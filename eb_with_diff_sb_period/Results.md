@@ -224,6 +224,7 @@ TODO: add more
 - 515 TICs are SBs per Gaia DR3.
 - 65 TICs: period from eclipses in VSX is different from the period from spectroscopy in Gaia DR3 NSS or aliases.
     - the periods are considered the same or are aliases, if the ratio of VSX Period to SB Period are in [0.99, 1.01], [0.495, 0.505], or [1.98, 2.02].
+    - TICs with the difference in period <= 0.1 day are also excluded: the VSX Period and SB Period are treated as the same.
 - 51 TICs: period from eclipses are indeed different from the period from spectroscopy after inspecting data in TESS.
     - The remaining 14 TICs are deemed false positives, i.e., no significant difference between EB Period and SB Period. Most of them are because the periods in VSX are not accurate.
 
