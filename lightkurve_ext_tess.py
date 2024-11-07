@@ -1300,7 +1300,7 @@ def search_multi_star_systems_of_tics(targets, also_display=True):
             HTML(
                 """
 <b>Kosotv+ 2023 (101 eclipsing quadruple stars in TESS FFI)</b>:<br>
-Search <a href="https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/mnras/527/2/10.1093_mnras_stad2947/2/stad2947_supplemental_file.pdf?Expires=1729983150&Signature=BhiO-NEFLBLhx0kDvmci0Usi6CPqyjL6UDMKPdrSJLN8FFq-FO0ELgiTKVYG97oLj5QJbywQAX6rQmPobxyLmplnv4zG7mX5zijuFSZ1WbL1ihmhbQUcYLRJHXdJI8NaeeCw4cZ7ZQS75PnCSgtoaH3QGT14EnCH9VGZ1Sj-zYMJHLjiqgSFiQC2reKt21z~3LwwSoSKfw3VU4T~GdJNw-h4ZdTOgq60FNVJ4khD9Nq8MOBU-c8yqBjPNAxFFbKKxz0fVTwBOHKSosuN3ANxlcBEVxFZ1X8Q-s0b2T1FWrr42nNjGMS5OjM6z3IyjxFAPZqWo1U50t2pSI1xSbl~eQ__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA" target="_blank">table 1 pdf</a>&emsp;|&emsp;
+Search <a href="https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/mnras/527/2/10.1093_mnras_stad2947/2/stad2947_supplemental_file.pdf?Expires=1733940589&Signature=SNrs8jEfKG1Z95q0Ts8raXUT2fb1aCSTGqH1ILWCQT4U1ykbPx7CoQwLQAlXKLnaf-pJnWE8SzZiUkY2OjE4FMGEGA6yO0F5CG7diyW3nWFqS-7vFzP9rDRXUU8tXNBUVdstgwMsvjV5J918D6EsBXn1mP8jsnPBNXGuf8xEpGaKxyyVQKmdzpLaMJcPdJjT4t9e2ek5uM1vGyJjG9gspP35f~1XeSx5ndCWjQTqLVLpJvLyAu~9PkVsNq9mxt~bIi-C64dwi5n2K1jtHUgfvZw-CQpwlHwbeJ~VrHcwBiNquXn5xEHOBGBgCBJ6R15ULsBiyts8I1MCEYbVB7CX~Q__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA" target="_blank">table 1 pdf</a>&emsp;|&emsp;
 <a href="https://academic.oup.com/mnras/article/527/2/3995/7284401#supplementary-data" target="_blank">paper</a>
 
 <br>
