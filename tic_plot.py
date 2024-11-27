@@ -192,6 +192,13 @@ def _do_common_ax_tweaks(ax, lc, plot_kwargs):
 
 def scatter(lc, **kwargs):
     """lc.scatter() with the proper support of plotting flux in magnitudes"""
+    # shortcut to create a plot of arbitrary size without callers creating the ax.
+    figsize = kwargs.pop("figsize", None)
+    if figsize is not None:
+        if kwargs.get("ax", None) is not None:
+            raise ValueError("Only one of 'ax' and 'figsize' parameters can be specified.")
+        ax = lk_ax(figsize=(figsize))
+        kwargs["ax"] = ax
     ax = lc.scatter(**kwargs)
     return _do_common_ax_tweaks(ax, lc, kwargs)
 
@@ -202,12 +209,26 @@ def errorbar(lc, **kwargs):
         # lightkurve's default style for errorbar hides the marker. I find having a marker is typically useful.
         kwargs = kwargs.copy()
         kwargs["marker"] = "o"
+    # shortcut to create a plot of arbitrary size without callers creating the ax.
+    figsize = kwargs.pop("figsize", None)
+    if figsize is not None:
+        if kwargs.get("ax", None) is not None:
+            raise ValueError("Only one of 'ax' and 'figsize' parameters can be specified.")
+        ax = lk_ax(figsize=(figsize))
+        kwargs["ax"] = ax
     ax = lc.errorbar(**kwargs)
     return _do_common_ax_tweaks(ax, lc, kwargs)
 
 
 def plot(lc, **kwargs):
     """lc.plot() with the proper support of plotting flux in magnitudes"""
+    # shortcut to create a plot of arbitrary size without callers creating the ax.
+    figsize = kwargs.pop("figsize", None)
+    if figsize is not None:
+        if kwargs.get("ax", None) is not None:
+            raise ValueError("Only one of 'ax' and 'figsize' parameters can be specified.")
+        ax = lk_ax(figsize=(figsize))
+        kwargs["ax"] = ax
     ax = lc.plot(**kwargs)
     return _do_common_ax_tweaks(ax, lc, kwargs)
 
