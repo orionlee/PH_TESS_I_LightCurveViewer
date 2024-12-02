@@ -319,6 +319,7 @@ def plot_n_annotate_lcf(
     normalize=True,
     lc_tweak_fn=None,
     ax_tweak_fn=None,
+    plot_fn_name="scatter",
     plot_kwargs=dict(),
     legend_kwargs=dict(),
 ):
@@ -370,7 +371,7 @@ def plot_n_annotate_lcf(
     # Basic scatter of the observation
     plot_kwargs["ax"] = ax
 
-    if "long" == lke.estimate_cadence_type(lc):
+    if plot_fn_name == "scatter" and lke.estimate_cadence(lc, unit=u.s) > 300 * u.s:
         # long cadence has more spare data, use a larger "x" to represent them
         # "x" is also useful to distinguish it from moving average,
         # which will likely overlap with the points given the sparse data
@@ -378,7 +379,8 @@ def plot_n_annotate_lcf(
             plot_kwargs["s"] = 36
         if plot_kwargs.get("marker") is None:
             plot_kwargs["marker"] = "x"
-    ax = scatter(lc, **plot_kwargs)
+    plot_fn = globals()[plot_fn_name]  # the scatter / plot / errorbar wrapper in this module
+    ax = plot_fn(lc, **plot_kwargs)
 
     if len(lc) < 1:
         print(
@@ -618,6 +620,8 @@ def plot_all(
     mark_momentum_dumps=True,
     set_title=True,
     ax_tweak_fn=None,
+    plot_fn_name="scatter",
+    plot_kwargs=None,
 ):
     """Plot the given LightCurveFile collection, one graph for each LightCurve
 
@@ -680,15 +684,28 @@ def plot_all(
         if lc.author is not None and lc.author != "SPOC":
             label_long += f", by {lc.author}"
 
-        if "long" == lke.estimate_cadence_type(lc):
-            # long cadence has more spare data, use a larger "x" to represent them
-            # "x" is also useful to distinguish it from moving average,
-            # which will likely overlap with the points given the sparse data
-            ax = lc.scatter(ax=ax, s=16, marker="x")
-        else:
-            # for typical short cadence data, make dots smaller than the default (s=4)
-            # so that the output doesn't look overly dense
-            ax = lc.scatter(ax=ax, s=0.5)
+        # Note: each LC has its own copy of plot_kwargs, so that they can be customized individually
+        plot_kwargs_for_cur_lc = plot_kwargs
+        if plot_kwargs_for_cur_lc is None:
+            if plot_fn_name != "scatter":
+                plot_kwargs_for_cur_lc = dict()
+                # the defaults are for scatter only
+            elif lke.estimate_cadence(lc, unit=u.s) > 300 * u.s:
+                # long cadence has more spare data, use a larger "x" to represent them
+                # "x" is also useful to distinguish it from moving average,
+                # which will likely overlap with the points given the sparse data
+                plot_kwargs_for_cur_lc = dict(s=16, marker="x")
+            else:
+                # for typical short cadence data, make dots smaller than the default (s=4)
+                # so that the output doesn't look overly dense
+                # for the purpose of plotting, FFI-based data with short enough cadence (e.g., 200s)
+                # are considered short
+                plot_kwargs_for_cur_lc = dict(s=0.5)
+        else:  # case user-supplied plot args
+            plot_kwargs_for_cur_lc = plot_kwargs_for_cur_lc.copy()  # we'll modify it
+        plot_kwargs_for_cur_lc["ax"] = ax  # add the ax we created
+        plot_fn = globals()[plot_fn_name]  # the scatter / plot / errorbar wrapper in this module
+        ax = plot_fn(lc, **plot_kwargs_for_cur_lc)
 
         # convert to dataframe to add moving average
         if moving_avg_window is not None:
