@@ -17,6 +17,8 @@ import warnings
 from collections import OrderedDict
 from types import SimpleNamespace
 
+from retry import retry
+
 import astropy
 from astropy.io import fits
 from astropy import coordinates as coord
@@ -232,6 +234,29 @@ def _sort_chronologically(sr: lk.SearchResult):
     return res
 
 
+# BEGIN lightkurve search with retry
+
+LK_SEARCH_NUM_RETRIES = 4
+
+
+@retry(IOError, tries=LK_SEARCH_NUM_RETRIES, delay=0.5, backoff=2, jitter=(0, 0.5))
+def search_lightcurve(*args, **kwargs):
+    return lk.search_lightcurve(*args, **kwargs)
+
+
+@retry(IOError, tries=LK_SEARCH_NUM_RETRIES, delay=0.5, backoff=2, jitter=(0, 0.5))
+def search_targetpixelfile(*args, **kwargs):
+    return lk.search_targetpixelfile(*args, **kwargs)
+
+
+@retry(IOError, tries=LK_SEARCH_NUM_RETRIES, delay=0.5, backoff=2, jitter=(0, 0.5))
+def search_tesscut(*args, **kwargs):
+    return lk.search_tesscut(*args, **kwargs)
+
+
+# END   lightkurve search with retry
+
+
 def download_lightcurves_of_tic_with_priority(
     tic, author_priority=["SPOC", "QLP", "TESS-SPOC"], download_filter_func=None, download_dir=None
 ):
@@ -239,7 +264,7 @@ def download_lightcurves_of_tic_with_priority(
     For each sector, download one based on pre-set priority.
     """
 
-    sr_unfiltered = lk.search_lightcurve(f"TIC{tic}", mission="TESS")
+    sr_unfiltered = search_lightcurve(f"TIC{tic}", mission="TESS")
     if len(sr_unfiltered) < 1:
         print(f"WARNING: no result found for TIC {tic}")
         return None, None, None
@@ -509,7 +534,7 @@ def search_and_download_tpf(*args, **kwargs):
     # extract download_all() parameters
     download_dir = kwargs.pop("download_dir", None)
     quality_bitmask = kwargs.pop("quality_bitmask", None)
-    sr = lk.search_targetpixelfile(*args, **kwargs)  # pass the rest of the argument to search_targetpixelfile
+    sr = search_targetpixelfile(*args, **kwargs)  # pass the rest of the argument to search_targetpixelfile
     sr = _sort_chronologically(sr)
     tpf_coll = sr.download_all(download_dir=download_dir, quality_bitmask=quality_bitmask)
     return tpf_coll, sr
