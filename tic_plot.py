@@ -585,6 +585,11 @@ def vlines_y_in_axes_coord(ax, x, ymin, ymax, **kwargs):
 
 def plot_momentum_dumps(lcf, ax, use_relative_time=False, mark_height_scale=0.15, color="red"):
     """Mark  momentum dumps on the given plot."""
+
+    # The momentum dump is for TESS data, in btjd
+    if lcf.time.format != "btjd":
+        return ax
+
     time_mom_dumps = get_momentum_dump_times(lcf)
     if len(time_mom_dumps) < 1:
         return ax
