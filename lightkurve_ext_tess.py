@@ -3,12 +3,12 @@
 #
 
 from collections.abc import Sequence
-from functools import lru_cache
 import pathlib
 import re
 from types import SimpleNamespace
 import warnings
 
+from memoization import cached
 from retry import retry
 
 import numpy as np
@@ -661,7 +661,7 @@ MAST_QUERY_NUM_RETRIES = 4
 
 
 # OPEN: consider to cache result in disk with diskcache
-@lru_cache
+@cached
 @retry(IOError, tries=MAST_QUERY_NUM_RETRIES, delay=0.5, backoff=2, jitter=(0, 0.5))
 def catalog_info_of_tics(tic):
     """Return the info of a TIC in the TIC catalog"""
