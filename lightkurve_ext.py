@@ -237,7 +237,7 @@ def _sort_chronologically(sr: lk.SearchResult):
 # BEGIN lightkurve search with retry
 
 LK_SEARCH_NUM_RETRIES = 4
-
+LK_DOWNLOAD_NUM_RETRIES = 2
 
 @retry(IOError, tries=LK_SEARCH_NUM_RETRIES, delay=0.5, backoff=2, jitter=(0, 0.5))
 def search_lightcurve(*args, **kwargs):
@@ -252,6 +252,11 @@ def search_targetpixelfile(*args, **kwargs):
 @retry(IOError, tries=LK_SEARCH_NUM_RETRIES, delay=0.5, backoff=2, jitter=(0, 0.5))
 def search_tesscut(*args, **kwargs):
     return lk.search_tesscut(*args, **kwargs)
+
+
+@retry(IOError, tries=LK_DOWNLOAD_NUM_RETRIES, delay=0.5, backoff=2, jitter=(0, 0.5))
+def download_all(search_result, *args, **kwargs):
+    return search_result.download_all(*args, **kwargs)
 
 
 # END   lightkurve search with retry
@@ -308,7 +313,7 @@ SearchResult is further filtered - only a subset will be downloaded."""
                 )
             )
 
-    lcf_coll = sr_to_download.download_all(download_dir=download_dir)
+    lcf_coll = download_all(sr_to_download, download_dir=download_dir)
 
     print(f"TIC {tic} \t, all available sectors: {abbrev_sector_list(sr)}")
     if lcf_coll is not None and len(lcf_coll) > 0:
@@ -536,7 +541,7 @@ def search_and_download_tpf(*args, **kwargs):
     quality_bitmask = kwargs.pop("quality_bitmask", None)
     sr = search_targetpixelfile(*args, **kwargs)  # pass the rest of the argument to search_targetpixelfile
     sr = _sort_chronologically(sr)
-    tpf_coll = sr.download_all(download_dir=download_dir, quality_bitmask=quality_bitmask)
+    tpf_coll = download_all(sr, download_dir=download_dir, quality_bitmask=quality_bitmask)
     return tpf_coll, sr
 
 
