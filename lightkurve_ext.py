@@ -1679,6 +1679,31 @@ from astropy.coordinates import SkyCoord, Angle
 from astroquery.vizier import Vizier
 
 
+def calc_separation(
+    target_coord, result, ra_colname="RAJ2000", dec_colname="DEJ2000", sep_colname="_r", pos_angle_colname="_p"
+):
+    """Calculate angular separation from the target coordinate.
+    If `target_coord` == `"first_row"`, use the first row as the target coordinate.
+    """
+    if len(result) < 1:
+        return result
+
+    coord_unit = result[ra_colname].unit or u.deg
+    if target_coord == "first_row":
+        target_coord = SkyCoord(result[0][ra_colname], result[0][dec_colname], unit=coord_unit)
+    result_coord = SkyCoord(result[ra_colname], result[dec_colname], unit=coord_unit)
+    separation = target_coord.separation(result_coord)
+    result[sep_colname] = separation.arcsec
+    result[sep_colname].unit = u.arcsec
+    result[sep_colname].info.format = "{:6.3f}"
+    pos_angle = target_coord.position_angle(result_coord)
+    result[pos_angle_colname] = pos_angle.deg
+    result[pos_angle_colname].unit = u.deg
+    result[pos_angle_colname].info.format = "{:5.1f}"
+
+    return result
+
+
 def search_nearby(
     ra,
     dec,
@@ -1696,6 +1721,7 @@ def search_nearby(
     pmdec_upper=None,
     pmra_limit_column="pmRA",
     pmdec_limit_column="pmDE",
+    calc_separation_from_first_row=False,
     include_gaiadr3_astrophysical=False,
     warn_if_all_filtered=True,  # warn if PM/Mag filter filters outs all query result
 ):
@@ -1703,7 +1729,9 @@ def search_nearby(
 
     c1 = SkyCoord(ra, dec, equinox=equinox, frame="icrs", unit="deg")
     Vizier.ROW_LIMIT = -1
-    columns = ["*", "+_r"]  # include and sorted by angular separation. "_r" is the generic Vizier-calculated column for it.
+    # include and sorted by angular separation. "_r" is the generic Vizier-calculated column for it.
+    # "_p": Position angle (E of N), also a generic Vizier-calculated column.
+    columns = ["*", "+_r", "_p"]
     if catalog_name == "I/350/gaiaedr3":
         columns += ["epsi", "sepsi"]  # add astrometric excess noise to the output (see if a star wobbles)
     if catalog_name == "I/355/gaiadr3":
@@ -1768,7 +1796,11 @@ def search_nearby(
     for col in ["separation", "RPmag", "Gmag", "BPmag", "BP-RP", "GRVSmag", "Vmag"]:
         if col in result.colnames:
             result[col].info.format = ".3f"
-    result["_r"].unit = u.arcsec  # fill in the missing unit (Vizier / astroquery does not provide)
+    # fill in the missing unit (Vizier / astroquery does not provide)
+    result["_r"].unit = u.arcsec
+    result["_p"].unit = u.deg
+    if calc_separation_from_first_row:
+        result = calc_separation("first_row", result)
 
     if warn_if_all_filtered and len(result) == 0 and len(result_pre_filter) > 0:
         warnings.warn(f"All query results filtered due to mag/PM filter. Num. of entries pre-filter: {len(result_pre_filter)}")
@@ -1782,7 +1814,17 @@ def search_nearby(
         for col in ["Pstar", "Pbin", "PWD"]:  # tweak default format
             if col in result_paramp.colnames:
                 result_paramp[col].info.format = ".2f"
-        result_paramp["_r"].unit = u.arcsec  # fill in the missing unit (Vizier / astroquery does not provide)
+        # fill in the missing unit (Vizier / astroquery does not provide)
+        result_paramp["_r"].unit = u.arcsec
+        result_paramp["_p"].unit = u.deg
+        # Note for case calc_separation_from_first_row is True
+        # for now we don't re-calculate it, as getting the result consistent is a bit tricky
+        # Reason:
+        # - result_paramp do not have coordiante columns of RAJ2000, DEJ2000
+        #   one could use functionally identical _RAJ2000, _DEJ2000 (calculated by Vizier),
+        #   but the values are not identical.
+        #   So users might sitll still small discrepancy at times.
+        #   To keep things simple, we don't do the recalcuation for now
 
         return result, result_paramp
     else:

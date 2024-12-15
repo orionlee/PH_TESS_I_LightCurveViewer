@@ -881,6 +881,7 @@ def search_gaiadr3_of_tics(
     pm_range_fraction=0.25,
     pm_range_minimum=1.0,
     warn_if_all_filtered=True,
+    calc_separation_from_first_row=False,
     compact_columns=True,
     also_return_html=True,
     also_return_astrophysical=False,  # defaulted to False for backward compatibility
@@ -968,6 +969,7 @@ def search_gaiadr3_of_tics(
             pmra_upper=pmra_upper,
             pmdec_lower=pmdec_lower,
             pmdec_upper=pmdec_upper,
+            calc_separation_from_first_row=calc_separation_from_first_row,
             include_gaiadr3_astrophysical=True,
             warn_if_all_filtered=warn_if_all_filtered,
         )
@@ -1023,6 +1025,7 @@ def search_gaiadr3_of_tics(
             "target",
             "flag",
             "_r",  # angular separation
+            "_p",  # positional angle
             "Source",
             "RPmag",  # prioritize RPmag, as its pass band is close to TESS
             "Gmag",
