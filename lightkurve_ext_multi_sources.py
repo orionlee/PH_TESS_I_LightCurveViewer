@@ -243,6 +243,9 @@ def fold_n_plot_multi_bands(
     phase_scale=2,
     target_name=None,
     duration_hr=None,  # used for plotting purpose only
+    # for plotting only, the midpoint of which duration_hr is based on
+    # typically to draw lines for secondary eclipses / transits
+    duration_midpoint_phase=0,
     mag_shift_precision=2,
     figsize=(8, 4),
     ax=None,
@@ -293,8 +296,8 @@ def fold_n_plot_multi_bands(
 
     if duration_hr is not None:
         duration_phase = duration_hr / 24 / period
-        ax.axvline(0 - duration_phase / 2, linestyle="--", c="blue")
-        ax.axvline(0 + duration_phase / 2, linestyle="--", c="blue")
+        ax.axvline(duration_midpoint_phase - duration_phase / 2, linestyle="--", c="blue")
+        ax.axvline(duration_midpoint_phase + duration_phase / 2, linestyle="--", c="blue")
 
     # Set phase plot specific title
     time_all = np.array([])
