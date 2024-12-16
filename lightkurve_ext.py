@@ -1838,7 +1838,14 @@ def gaia_dr3_mag_to_vmag(gmag, b_minus_r):
     Based on Table 5.9 in Gaia DR3 Documentation, Section 5.5.1 Photometric relationships with other photometric systems:
     https://gea.esac.esa.int/archive/documentation/GDR3/Data_processing/chap_cu5pho/cu5pho_sec_photSystem/cu5pho_ssec_photRelations.html
 
+    The applicable range of `BP-RP` is from Table 5.10 in the documentation.
+
     Applicable to Gaia EDR3 data as well: The formula is identical.
     """
     g_minus_v = -0.02704 + 0.01424 * b_minus_r - 0.2156 * b_minus_r**2 + 0.01426 * b_minus_r**3
+    if not (-0.5 < b_minus_r < 5.0):
+        warnings.warn(
+            f"gaia_dr3_mag_to_vmag(): b_minus_r value ({b_minus_r}) is outside the applicable range for the transformation. "
+            "The result is probably not reliable."
+        )
     return gmag - g_minus_v
