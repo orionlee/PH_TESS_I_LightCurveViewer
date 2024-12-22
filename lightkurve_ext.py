@@ -1843,9 +1843,18 @@ def gaia_dr3_mag_to_vmag(gmag, b_minus_r):
     Applicable to Gaia EDR3 data as well: The formula is identical.
     """
     g_minus_v = -0.02704 + 0.01424 * b_minus_r - 0.2156 * b_minus_r**2 + 0.01426 * b_minus_r**3
-    if not (-0.5 < b_minus_r < 5.0):
-        warnings.warn(
-            f"gaia_dr3_mag_to_vmag(): b_minus_r value ({b_minus_r}) is outside the applicable range for the transformation. "
-            "The result is probably not reliable."
-        )
+
+    # check BP-RP is in appiicale range,
+    # we check them one by one so that teh warning could be specific.
+    if isinstance(b_minus_r, (float, int)):
+        b_minus_r_ary = [b_minus_r]
+    else:
+        b_minus_r_ary = b_minus_r
+    for a_b_r in b_minus_r_ary:
+        if not (-0.5 < a_b_r < 5.0):
+            warnings.warn(
+                f"gaia_dr3_mag_to_vmag(): b_minus_r value ({a_b_r}) is outside the applicable range for the transformation. "
+                "The result is probably not reliable."
+            )
+
     return gmag - g_minus_v
