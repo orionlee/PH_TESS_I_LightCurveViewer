@@ -76,6 +76,12 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
     tab["flux"].unit = u.dimensionless_unscaled
     tab["flux_err"].unit = u.dimensionless_unscaled
 
+    # Copy the flux column to raw_flux, so that the flux values
+    # will be preserved if users chooses to operate on the magnitude data
+    # with `lc.select_flux("mag")`
+    tab["raw_flux"] = tab["flux"].copy()
+    tab["raw_flux_err"] = tab["flux_err"].copy()
+
     # TODO: for SkyPatrol v2, the time returned is JD rather than HJD
     # per private communication between SkyPatrol v2 team and Sebastian O. (VSX).
     # So the following is not strictly correct for SkyPatrol v2 data
