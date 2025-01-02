@@ -56,15 +56,25 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
 
     tab.sort(keys="hjd")
 
+    # SkyPatrol csv contains rows with mag / flux as 99.99, presumably the underlying data is bad
+    # 250102: SkyPatrol v1 sometimes return magnitude in limits, e.g.,
+    #   ,mag,mag_err
+    #   ,>14.654,99.990
+    # ...
+    #
+    tab = tab[tab["mag_err"] < 99.99]  # for SkyPatrol v1 and v2
+    if np.issubdtype(tab["mag"].dtype.type, str):
+        # case mag column is str type, containing values with limits such as `>14.654`
+        # convert it back to str
+        # the offending rows should have been filtered out by mag_err filter above
+        tab["mag"] = tab["mag"].astype(float)
+    tab = tab[tab["mag"] < 99.99]  # for SkyPatrol v1 (possibly no longer needed for new data, but it's kept to be safe)
+
     tab["mag"].unit = u.mag
     tab["mag_err"].unit = u.mag
     # OPEN: unit of flux is actually mJy. I don't know what it means though
     tab["flux"].unit = u.dimensionless_unscaled
     tab["flux_err"].unit = u.dimensionless_unscaled
-
-    # SkyPatrol csv contains rows with mag / flux as 99.99, presumably the underlying data is bad
-    tab = tab[tab["mag"] < 99.99]  # for SkyPatrol v1
-    tab = tab[tab["mag_err"] < 99.99]  # for SkyPatrol v2
 
     # TODO: for SkyPatrol v2, the time returned is JD rather than HJD
     # per private communication between SkyPatrol v2 team and Sebastian O. (VSX).
