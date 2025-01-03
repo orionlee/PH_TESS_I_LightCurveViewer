@@ -2290,11 +2290,29 @@ def scatter_partition_by(lc, partition_by_column, ax=None, **kwargs):
 
     Use cases: provide a plot where flux comes from multiple bands / cameras.
     """
+    return _do_plot_partition_by("scatter", lc, partition_by_column, ax=ax, **kwargs)
+
+
+def errorbar_partition_by(lc, partition_by_column, ax=None, **kwargs):
+    return _do_plot_partition_by("errorbar", lc, partition_by_column, ax=ax, **kwargs)
+
+
+def plot_partition_by(lc, partition_by_column, ax=None, **kwargs):
+    return _do_plot_partition_by("plot", lc, partition_by_column, ax=ax, **kwargs)
+
+
+def _do_plot_partition_by(plot_fn_name, lc, partition_by_column, ax=None, **kwargs):
+    """Generate a plot of the given lightcurve, with flux partitioned by the given column.
+
+    Use cases: provide a plot where flux comes from multiple bands / cameras.
+    """
     if ax is None:
         ax = lk_ax()
 
+    plot_fn = globals()[plot_fn_name]  # the scatter / plot / errorbar wrapper in this module
+
     for val in np.unique(lc[partition_by_column]):
-        scatter(lc[lc[partition_by_column] == val], ax=ax, label=f"{partition_by_column} {val}", **kwargs)
+        plot_fn(lc[lc[partition_by_column] == val], ax=ax, label=f"{partition_by_column} {val}", **kwargs)
     label = lc.meta.get("LABEL")
     if label is not None:
         ax.set_title(label)
