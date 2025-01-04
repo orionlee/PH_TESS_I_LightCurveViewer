@@ -15,6 +15,8 @@ BIBS = SimpleNamespace(
     TESS_SPOC_B="2020RNAAS...4..201C",
     QLP_N="Huang, C. X.; et al., 2020, Photometry of 10 Million Stars from the First Two Years of TESS Full Frame Images: Part I",
     QLP_B="2020RNAAS...4..204H",
+    GSFC_ELEANOR_LITE_N="Powell, B. P.; et al., 2022, The NASA GSFC TESS Full Frame Image Light Curve Data Set",
+    GSFC_ELEANOR_LITE_B="2022RNAAS...6..111P",
     TCE_N=_tce_reference_name_with_year,
     # links to TCE is case specific
     TIC_N="Stassun, K. G.; et al., 2019, The Revised TESS Input Catalog and Candidate Target List",  # the paper describing TIC v8, the subsequent paper for v8.1/8.2 focuses mainly on the changes and is not as helpful
