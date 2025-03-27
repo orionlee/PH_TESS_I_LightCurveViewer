@@ -885,7 +885,11 @@ def number_of_decimal_places(num, min=0):
     raise TypeError(f"num must be a number or number-like string. Actual: {type(num)}")
 
 
-def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=None):
+def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=None, plot_kwargs={}):
+    """Interactive version of `plot_n_annotate_lcf()` / `plot_transit()`.
+
+    `plot_kwargs`:  parameters to be passed to `plot_n_annotate_lcf()`
+    """
     # keep track some of the UI inputs to determine user's intention.
     last_t0, last_step = None, None  # to be inited right before creating interactive UI
     codes_transit_spec = ""
@@ -912,7 +916,7 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
         codes_text = "# Snippets to generate the plot"
         moving_avg_window_for_codes = "None" if moving_avg_window is None else f"'{moving_avg_window}'"
         if t0 < 0:
-            plot_n_annotate_lcf(lcf, ax, flux_col=flux_col, moving_avg_window=moving_avg_window)
+            plot_n_annotate_lcf(lcf, ax, flux_col=flux_col, moving_avg_window=moving_avg_window, **plot_kwargs)
             codes_text += f"\nplot_n_annotate_lcf(lcf, ax, moving_avg_window={moving_avg_window_for_codes})"
         else:
             t0_to_use = t0 + step * period
@@ -977,6 +981,7 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
                 t0mark_ymax=t0mark_ymax,
                 # fix legend to upper left to avoid clashing with the notebook nav at the upper right
                 legend_kwargs=dict(loc="upper left"),
+                **plot_kwargs,
             )
 
             codes_transit_spec = f"""# transit_specs for calling plot_transits()
