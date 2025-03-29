@@ -10,4 +10,6 @@
 
 - `Misc_extraction_coshgauss_352830705_B.ipynb`: group multiple eclipses together (roughly by TESS sectors) for fitting due to low SNR
 - `Misc_ETV_extraction_coshgauss_156846286.ipynb`: incorporate ASAS-SN data; grouping multiple eclipses together due to sparse data
+- `Misc_extraction_coshgauss_122994468.ipynb`: codes to mask out a second set of eclipses
+
 
