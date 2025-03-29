@@ -750,7 +750,13 @@ def fit_each_eclipse_of_model(
     manifest_table = pd.read_csv("{}".format(outfile_path))
     number_done = manifest_table["number"]
 
-    tr_index = range(0, n_transits)
+    # use n_transits + 1 at the end as a workaround because
+    # the `n_transits` supplied by callers are often off by one,
+    # missing the last dip.
+    # So we add 1 to compensate.
+    # The workaround does not hurt in the event that the `n_transits`
+    # is accurate (as the codes will simply skip that index due to no data)
+    tr_index = range(0, n_transits + 1)
 
     for i in tr_index:
         if not np.isin(i, number_done):
