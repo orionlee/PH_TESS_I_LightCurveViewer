@@ -1364,6 +1364,17 @@ Search <a href="https://academic.oup.com/view-large/225349534" target="_blank">t
     result_list = Vizier(catalog="J/A+A/683/A158/table1", columns=["*"]).query_constraints(TIC=targets)
     res["Zasche+, 2024 (6  new eccentric eclipsing systems with a third body.)"] = result_list
 
+    # coordinate search:
+    tic_rs = catalog_info_of_tics(targets)
+    # set the coordinates to the columns expected by Vizier search
+    tic_rs["_RAJ2000"] = tic_rs["ra"]
+    tic_rs["_RAJ2000"].unit = u.deg
+    tic_rs["_DEJ2000"] = tic_rs["dec"]
+    tic_rs["_DEJ2000"].unit = u.deg
+
+    result_list = Vizier(catalog="J/A+A/682/A164/table1", columns=["*", "+_r"]).query_region(tic_rs, radius=30 * u.arcsec)
+    res["Vaessen+, 2024 (Double eclipsing binaries from ZTF)"] = result_list
+
     do_display(res)
 
     return res
