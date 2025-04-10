@@ -93,7 +93,7 @@ def _normalize_to_percent_quiet(lc):
     # for consistency
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=LightkurveWarning, message=".*in relative units.*")
-        return lc.normalize(unit="percent")
+        return lke.normalize(lc, unit="percent")
 
 
 # Plot the flux changes (not flux themselves) to get a sense of the rate of changes, not too helpful yet.
@@ -269,10 +269,10 @@ def mask_gap(x, y, min_x_diff):
 
 def normalize_percent(lc):
     """
-    A syntactic surgar for lambda for normalize as percentage.
+    A syntactic sugar for lambda for normalize as percentage.
     Useful when calling ``lc.fold()``, ``tpf.interact()``, etc.
     """
-    return lc.normalize(unit="percent")
+    return lke.normalize(lc, unit="percent")
 
 
 def _add_flux_origin_to_ylabel(ax, lc):
@@ -1247,7 +1247,7 @@ def normalize_lc_across_collection(lc, lcf_coll, **kwargs):
     median_all = np.nanmedian(np.concatenate([a_lc.flux.value for a_lc in lcf_coll]))
     median_lc = np.nanmedian(lc.flux.value)
 
-    res = lc.normalize(**kwargs)
+    res = lke.normalize(lc, **kwargs)
     res.flux = res.flux * (median_lc / median_all)
     res.flux_err = res.flux_err * (median_lc / median_all)
 

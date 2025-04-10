@@ -1504,6 +1504,18 @@ def bin_flux(lc, columns=["flux", "flux_err"], **kwargs):
     return lc_subset.bin(**kwargs)
 
 
+def normalize(lc, **kwargs):
+    if "TASOC" == lc.meta.get("AUTHOR") and str(lc.flux.unit) == "ppm":
+        # convert TASOC's flux (e.g. corr_flux), in ppm and median at 0,
+        # to the more typical unscaled one with median at 1
+        # so that it works nice with lightkurve's normalize()
+        lc = lc.copy()
+        lc.flux = lc.flux.to(u.dimensionless_unscaled) + 1
+        lc.flux_err = lc.flux_err.to(u.dimensionless_unscaled)
+
+    return lc.normalize(**kwargs)
+
+
 def abbrev_sector_list(lcc_or_sectors_or_lc_or_sr):
     """Abbreviate a list of sectors, e.g., `1,2,3, 9` becomes `1-3, 9`."""
 
