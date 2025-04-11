@@ -23,6 +23,8 @@ from astropy.time import Time
 import astropy.units as u
 from astroquery.utils import TableList
 
+import asyncio_compat
+
 import download_utils
 import lightkurve as lk
 import lightkurve_ext as lke
@@ -568,7 +570,7 @@ def search_tess_point(tic):
         tic, ra, dec
     )
 
-    return pd.DataFrame(
+    return Table(
         data=dict(
             tic=outID,
             sector=outSec,
@@ -595,21 +597,60 @@ def _search_tglc_lightcurve_csv(tic, csv_dir=".", grep_cmd="grep -H"):
 
     if "rg" not in grep_cmd:
         cmdline = rf"{grep_cmd}  ,{tic}, s*.csv"
-    else:  # special case for ripgrep
+    else:
+        # special case for ripgrep, glob does not work on Windows
+        # https://github.com/BurntSushi/ripgrep/issues/234
         cmdline = rf"{grep_cmd}  ,{tic}, ."
     res = subprocess.run(cmdline, cwd=csv_dir, capture_output=True, text=True)
     if res.returncode == 0:
-        # TODO: do search_tess_point(), and combine the result to get tglc download
         return parse_grep_out(res.stdout)
+    elif res.returncode == 1:  # rg signals no match found
+        return []
 
-    # case error
+    # case unexpected error
     raise Exception(f"Error in search TGLC lcs: {res.stderr} . Returncode: {res.returncode}", res)
 
 
-def search_tglc_lightcurve(tic, csv_dir=".", grep_cmd="grep -H"):
+async def search_tglc_lightcurve(tic, csv_dir=".", grep_cmd="grep -H"):
+    tess_point_task = asyncio_compat.create_background_task(search_tess_point, tic)
     csv_out = _search_tglc_lightcurve_csv(tic, csv_dir=csv_dir, grep_cmd=grep_cmd)
+    tess_point_out = await tess_point_task
 
-    return csv_out
+    out = []
+    for r in csv_out:
+        sector, tic, gaia_source = r
+        tp = tess_point_out[tess_point_out["sector"] == sector][0]
+        camera, ccd = tp["camera"], tp["ccd"]
+
+        # eg:
+        #   'https://archive.stsci.edu/hlsps/tglc/s0045/cam1-ccd1/0033/2814/1948/3267/
+        #    hlsp_tglc_tess_ffi_gaiaid-3328141948326716800-s0045-cam1-ccd1_tess_v1_llc.fits'
+        #
+        #   'https://archive.stsci.edu/hlsps/tglc/s0039/cam3-ccd4/0046/2303/6865/3737/
+        #    hlsp_tglc_tess_ffi_gaiaid-4623036865373793408-s0039-cam3-ccd4_tess_v1_llc.fits'
+
+        gp = f"{gaia_source:021}"
+
+        download_url = (
+            f"https://archive.stsci.edu/hlsps/tglc/s{sector:04}/cam{camera}-ccd{ccd}/"
+            f"{gp[0:4]}/{gp[4:8]}/{gp[8:12]}/{gp[12:16]}/"
+            f"hlsp_tglc_tess_ffi_gaiaid-{gaia_source}-s{sector:04}-cam{camera}-ccd{ccd}_tess_v1_llc.fits"
+        )
+        out.append(
+            dict(
+                tic=tic,
+                sector=sector,
+                url=download_url,
+            )
+        )
+
+    # convert to astropy Table
+    if len(out) > 0:
+        tab = Table(rows=out)
+    else:
+        tab = Table(data=dict(tic=[], sector=[], url=[]))
+    tab.sort(keys=["tic", "sector"])
+    return tab
 
 
 #
