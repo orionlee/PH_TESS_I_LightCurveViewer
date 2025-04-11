@@ -551,6 +551,68 @@ class WTVResultAccessor:
 
 
 #
+# TGLC lightcurve search based on downloaded target list CSV files locally
+#   https://archive.stsci.edu/hlsp/tglc
+#
+
+
+def search_tess_point(tic):
+    from tess_stars2px import tess_stars2px_function_entry
+
+    rs = catalog_info_of_tics_in_vizier(tic)
+    ra, dec = rs[0]["RAJ2000"], rs[0]["DEJ2000"]
+
+    # note: the search below does not use tic,
+    # it's just there for convenience to keep track of targets
+    outID, outEclipLong, outEclipLat, outSec, outCam, outCcd, outColPix, outRowPix, scinfo = tess_stars2px_function_entry(
+        tic, ra, dec
+    )
+
+    return pd.DataFrame(
+        data=dict(
+            tic=outID,
+            sector=outSec,
+            camera=outCam,
+            ccd=outCcd,
+            column=outColPix,
+            row=outRowPix,
+        )
+    )
+
+
+def _search_tglc_lightcurve_csv(tic, csv_dir=".", grep_cmd="grep -H"):
+    def parse_line(line):
+        # eg: s0005.csv:5573000755560118784,393294857,91.82816617709965,-40.32806441931107
+        f = re.split("[:,]", line)
+        sector = int(re.search(r"\d+", f[0])[0])
+        # return (sector, TIC, gaia_source)
+        return (sector, int(f[2]), int(f[1]))
+
+    def parse_grep_out(lines):
+        return [parse_line(l) for l in lines.splitlines()]
+
+    import subprocess
+
+    if "rg" not in grep_cmd:
+        cmdline = rf"{grep_cmd}  ,{tic}, s*.csv"
+    else:  # special case for ripgrep
+        cmdline = rf"{grep_cmd}  ,{tic}, ."
+    res = subprocess.run(cmdline, cwd=csv_dir, capture_output=True, text=True)
+    if res.returncode == 0:
+        # TODO: do search_tess_point(), and combine the result to get tglc download
+        return parse_grep_out(res.stdout)
+
+    # case error
+    raise Exception(f"Error in search TGLC lcs: {res.stderr} . Returncode: {res.returncode}", res)
+
+
+def search_tglc_lightcurve(tic, csv_dir=".", grep_cmd="grep -H"):
+    csv_out = _search_tglc_lightcurve_csv(tic, csv_dir=csv_dir, grep_cmd=grep_cmd)
+
+    return csv_out
+
+
+#
 # TESS Flux - Magnitude Conversion
 #
 
@@ -671,6 +733,14 @@ def catalog_info_of_tics(tic):
     from astroquery.mast import Catalogs
 
     return Catalogs.query_criteria(catalog="Tic", ID=tic)
+
+
+def catalog_info_of_tics_in_vizier(tic):
+    """Return the info of a TIC in the TIC catalog (from Vizier)"""
+    from astroquery.vizier import Vizier
+
+    Vizier.ROW_LIMIT = -1
+    return Vizier(catalog="IV/39").query_constraints(TIC=tic)[0]
 
 
 def _to_stellar_meta(target):
