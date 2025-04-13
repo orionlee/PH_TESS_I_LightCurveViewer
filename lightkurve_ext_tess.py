@@ -776,12 +776,13 @@ def catalog_info_of_tics(tic):
     return Catalogs.query_criteria(catalog="Tic", ID=tic)
 
 
-def catalog_info_of_tics_in_vizier(tic):
+def catalog_info_of_tics_in_vizier(tic, columns=["*", "Tmag"]):
     """Return the info of a TIC in the TIC catalog (from Vizier)"""
+    # (Vizier tends to be speedier. The result is cached by astroquery on disk)
     from astroquery.vizier import Vizier
 
     Vizier.ROW_LIMIT = -1
-    return Vizier(catalog="IV/39").query_constraints(TIC=tic)[0]
+    return Vizier(catalog="IV/39", columns=columns).query_constraints(TIC=tic)[0]
 
 
 def _to_stellar_meta(target):
