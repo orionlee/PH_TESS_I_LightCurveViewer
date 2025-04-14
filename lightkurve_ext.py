@@ -1442,6 +1442,38 @@ def convert_lc_time_to_hjd_utc(lc, target_coord, cache_dir=".", cache_key=None, 
     return lc_hjd
 
 
+# fast_nanmean(): an optimized nanmean for binning
+# https://github.com/astropy/astropy/pull/17574
+# (planned for astropy 7.1.0)
+
+
+def nanmean_reduceat(data, indices):
+    mask = np.isnan(data)
+
+    if mask.any():  # If there are NaNs
+        # Create a writeable copy and mask NaNs
+        data = data.copy()
+        data[mask] = 0
+        count_data = np.add.reduceat(~mask, indices)
+        # Avoid division by zero warnings
+        count_data = count_data.astype(data.dtype)
+        count_data[count_data == 0] = np.nan
+    else:
+        # Derive counts from indices
+        count_data = np.diff(indices, append=len(data))
+        count_data[count_data <= 0] = 1
+
+    sum_data = np.add.reduceat(data, indices)
+    return sum_data / count_data
+
+
+def fast_nanmean(a, **kwargs):
+    return np.nanmean(a, **kwargs)
+
+
+fast_nanmean.reduceat = nanmean_reduceat
+
+
 HAS_BOTTLENECK = False
 try:
     import bottleneck
@@ -1457,7 +1489,7 @@ def parse_aggregate_func(cenfunc):
 
     # cenfunc should really be aggfunc, but I keep the name from SigmaClip
     if cenfunc is None:
-        cenfunc = "mean"
+        cenfunc = fast_nanmean
 
     if isinstance(cenfunc, str):
         if cenfunc == "median":
@@ -1484,6 +1516,9 @@ def bin_flux(lc, columns=["flux", "flux_err"], **kwargs):
     # that this impl cannot address:
     # https://github.com/astropy/astropy/issues/13058
 
+    aggregate_func = parse_aggregate_func(kwargs.get("aggregate_func"))
+    kwargs["aggregate_func"] = aggregate_func
+
     # construct a lc_subset that only has a subset of columns,
     # to minimize the number of columns that need to be binned
     # see: https://github.com/lightkurve/lightkurve/issues/1191
@@ -1494,12 +1529,18 @@ def bin_flux(lc, columns=["flux", "flux_err"], **kwargs):
     lc_subset.meta.update(lc.meta)
     for c in columns:
         if c in lc.colnames:
-            lc_subset[c] = lc[c]
+            col = lc[c]
+            # convert astropy Masked to regular Column / Quantity
+            # needed for the default custom fast_nanmean above
+            # see: https://github.com/astropy/astropy/pull/17875
+            # OPEN: consider to always convert to Column / Quantity
+            # even without using the fast_nanmean, binning with regular Column / Quantity
+            # is several times faster than with Masked (in astropy 6.0.1)
+            if aggregate_func is fast_nanmean and isinstance(col, astropy.utils.masked.Masked):
+                col = col.filled(np.nan)
+            lc_subset[c] = col
         else:
             warnings.warn(f"bin_flux(): column {c} cannot be found in lightcurve. It is ignored.")
-
-    aggregate_func = parse_aggregate_func(kwargs.get("aggregate_func"))
-    kwargs["aggregate_func"] = aggregate_func
 
     return lc_subset.bin(**kwargs)
 
