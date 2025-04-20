@@ -873,7 +873,30 @@ class TransitTimeSpecList(list):
         return Table(data, names=columns)
 
 
-def stitch(lcf_coll, ignore_incompatible_column_warning=False, **kwargs):
+def add_sector_like_as_column(lcf_coll, warn_if_failed=False):
+    """For each lightcurve, add a column indicating its sequence in a mission,
+    e.g., sector for TESS.
+    Useful when the lightcurves are stitched together.
+    """
+    # deduce the header indicating the sequence
+    header_name = None
+    if isinstance(lcf_coll[0], lk.TessLightCurve):
+        header_name = "SECTOR"
+    # TODO: handle Kepler / K2
+    else:
+        if warn_if_failed:
+            warnings.warn("Cannot determine the sector-like header.")
+        return lcf_coll
+
+    def add_sector_like_to_lc(lc):
+        lc = lc.copy()
+        lc[header_name.lower()] = lc.meta.get(header_name, -1)
+        return lc
+
+    return lk.LightCurveCollection([add_sector_like_to_lc(lc) for lc in lcf_coll])
+
+
+def stitch(lcf_coll, ignore_incompatible_column_warning=False, to_add_sector_like_as_column=False, **kwargs):
     """Wrapper over native stitch(), and tweak the metadata so that it behaves like a typical single-sector lightcurve."""
 
     def update_meta_if_exists_in(lc_src, keys):
@@ -885,6 +908,9 @@ def stitch(lcf_coll, ignore_incompatible_column_warning=False, **kwargs):
     def safe_del_meta(key):
         if lc_stitched.meta.get(key, None) is not None:
             del lc_stitched.meta[key]
+
+    if to_add_sector_like_as_column:
+        lcf_coll = add_sector_like_as_column(lcf_coll, warn_if_failed=True)
 
     if ignore_incompatible_column_warning:
         with warnings.catch_warnings():
