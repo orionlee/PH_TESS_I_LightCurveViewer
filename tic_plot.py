@@ -885,6 +885,27 @@ def number_of_decimal_places(num, min=0):
     raise TypeError(f"num must be a number or number-like string. Actual: {type(num)}")
 
 
+def _get_sector_for_time(t0, lcf):
+    # Used to determine the sector of a given time in a stitched LC
+    # in `plot_transit_interactive()`
+    sector_headers_dict = lcf.meta.get("HEADERS_ORIGINAL")
+    if sector_headers_dict is None:
+        # case e.g., a regular single sector Tess LC
+        return lcf.meta.get("SECTOR")
+
+    # case a specially stitched LC, with sector info in meta
+    for sector, meta in sector_headers_dict.items():
+        tstart, tstop = meta.get("TSTART"), meta.get("TSTOP")
+        if tstart is None or tstop is None:
+            warnings.warn(f"Cannot find TSTART or TSTOP for sector {sector}")
+            continue
+        if tstart <= t0 <= tstop:
+            return sector
+
+    warnings.warn("Cannot determine sector from TSTART/TSTOP, use default")
+    return lcf.meta.get("SECTOR")
+
+
 def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=None, plot_kwargs={}):
     """Interactive version of `plot_n_annotate_lcf()` / `plot_transit()`.
 
@@ -987,7 +1008,7 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
             codes_transit_spec = f"""# transit_specs for calling plot_transits()
 transit_specs = TransitTimeSpecList(  # {lcf.meta.get("LABEL")}
     dict(epoch={t0}, duration_hr={duration_hr}, period={period}, label="dip",
-         sector={lcf.meta.get('SECTOR')}, steps_to_show=[{step}],
+         sector={_get_sector_for_time(t0, lcf)}, steps_to_show=[{step}],
         ),
     defaults=dict(surround_time={surround_time})
 )
