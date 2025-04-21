@@ -752,8 +752,16 @@ def btjd_to_hjd_utc(time_val, position):
     t_btjd = Time(time_val, format="btjd", scale="tdb")
     t_bjd = t_btjd.copy("jd")
 
-    ra, dec = position.split(",")
-    sky_coord = coord.SkyCoord(ra, dec, unit=(u.deg, u.deg), frame="icrs")
+    if isinstance(position, coord.SkyCoord):
+        sky_coord = position
+    elif isinstance(position, str):
+        ra, dec = position.split(",")
+        sky_coord = coord.SkyCoord(ra, dec, unit=(u.deg, u.deg), frame="icrs")
+    elif isinstance(position, dict):
+        ra, dec = position["ra"], position["dec"]
+        sky_coord = coord.SkyCoord(ra, dec, unit=(u.deg, u.deg), frame="icrs")
+    else:
+        raise TypeError(f"position, of type {type(position)} is not in supported types.")
 
     return lke.to_hjd_utc(t_bjd, sky_coord).value
 
