@@ -5,9 +5,11 @@
 # comparing to their counterpart in `etv_functions.py`
 #
 
+import warnings
+
 import numpy as np
 
-from etv_functions import run_mcmc_initial_fit_of_model, phase_data
+from etv_functions import run_mcmc_initial_fit_of_model, phase_data, do_plot_autocorrelation
 
 
 def run_mcmc_initial_fit_p(
@@ -16,8 +18,10 @@ def run_mcmc_initial_fit_p(
     nruns=1000,
     discard=600,
     thin=15,
+    autocorr_time_kwargs=None,
     pool=None,
     plot_chains=False,
+    plot_autocorrelation=False,
     plot=True,
     also_return_stats=False,
     **kwargs,
@@ -41,7 +45,16 @@ def run_mcmc_initial_fit_p(
 
         sampler.run_mcmc(pos, nruns, progress=True, store=True)
 
-        tau = sampler.get_autocorr_time(tol=0)
+        # integrated autocorrelation time estimate
+        # (used for convergence check, and number of independent samples estimate)
+        autocorr_time = sampler.get_autocorr_time(tol=0)  # tol=0 to provide estimate without rasing errors
+
+        # issue a warning if the chain is possibly too short for the above estimate,
+        # the threshold is primarily tuned with `tol` parameter
+        if autocorr_time_kwargs is None:
+            autocorr_time_kwargs = dict(tol=50)
+        autocorr_time_kwargs["quiet"] = True  # to issue a warning instead of raising an error
+        sampler.get_autocorr_time(**autocorr_time_kwargs)
 
         samples = sampler.get_chain()
         labels = ["alpha0", "alpha1", "t0", "d", "Tau", "p"]
@@ -59,6 +72,10 @@ def run_mcmc_initial_fit_p(
 
             axes[-1].set_xlabel("step number")
             plt.show()
+
+        if plot_autocorrelation:
+            ax = do_plot_autocorrelation(samples, labels)
+            ax.set_title(f"Integrated autocorrelation time estimate:\n{[int(round(t, 0)) for t in autocorr_time]}")
 
         flat_samples = sampler.get_chain(discard=discard, thin=thin, flat=True)
 
@@ -115,6 +132,8 @@ def run_mcmc_initial_fit_p(
                 std_Tau=np.std(flat_samples[:, 4]),
                 std_p=np.std(flat_samples[:, 5]),
             )
+            stats["autocorr_time"] = autocorr_time
+            stats["sampler"] = sampler  # the underlying sampler
             return mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau, mean_p, stats
 
 

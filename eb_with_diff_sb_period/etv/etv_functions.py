@@ -9,6 +9,7 @@ from scipy.interpolate import interp1d
 import logging
 from os.path import basename, exists
 import os
+import warnings
 import multiprocessing
 from multiprocessing import Pool
 import sys
@@ -481,8 +482,10 @@ def run_mcmc_initial_fit(
     nruns=1000,
     discard=600,
     thin=15,
+    autocorr_time_kwargs=None,
     pool=None,
     plot_chains=False,
+    plot_autocorrelation=False,
     plot=True,
     also_return_stats=False,
     **kwargs,
@@ -497,8 +500,10 @@ def run_mcmc_initial_fit(
         nruns=nruns,
         discard=discard,
         thin=thin,
+        autocorr_time_kwargs=autocorr_time_kwargs,
         pool=pool,
         plot_chains=plot_chains,
+        plot_autocorrelation=plot_autocorrelation,
         plot=plot,
         also_return_stats=also_return_stats,
         **kwargs,
@@ -513,8 +518,10 @@ def run_mcmc_initial_fit_of_model(
     nruns=1000,
     discard=600,
     thin=15,
+    autocorr_time_kwargs=None,
     pool=None,
     plot_chains=False,
+    plot_autocorrelation=False,
     plot=True,
     also_return_stats=False,
     **kwargs,
@@ -537,7 +544,16 @@ def run_mcmc_initial_fit_of_model(
 
         sampler.run_mcmc(pos, nruns, progress=True, store=True)
 
-        tau = sampler.get_autocorr_time(tol=0)  # unclear on why it is needed
+        # integrated autocorrelation time estimate
+        # (used for convergence check, and number of independent samples estimate)
+        autocorr_time = sampler.get_autocorr_time(tol=0)  # tol=0 to provide estimate without rasing errors
+
+        # issue a warning if the chain is possibly too short for the above estimate,
+        # the threshold is primarily tuned with `tol` parameter
+        if autocorr_time_kwargs is None:
+            autocorr_time_kwargs = dict(tol=50)
+        autocorr_time_kwargs["quiet"] = True  # to issue a warning instead of raising an error
+        sampler.get_autocorr_time(**autocorr_time_kwargs)
 
         samples = sampler.get_chain()
         labels = list(start_vals_dict.keys())
@@ -555,6 +571,10 @@ def run_mcmc_initial_fit_of_model(
 
             axes[-1].set_xlabel("step number")
             plt.show()
+
+        if plot_autocorrelation:
+            ax = do_plot_autocorrelation(samples, labels)
+            ax.set_title(f"Integrated autocorrelation time estimate:\n{[int(round(t, 0)) for t in autocorr_time]}")
 
         flat_samples = sampler.get_chain(discard=discard, thin=thin, flat=True)
 
@@ -598,7 +618,27 @@ def run_mcmc_initial_fit_of_model(
             return mean_fitted_vals
         else:
             stats = {f"std_{param_name}": np.std(flat_samples[:, i]) for i, param_name in enumerate(start_vals_dict.keys())}
+            stats["autocorr_time"] = autocorr_time
+            stats["sampler"] = sampler  # the underlying sampler
             return *mean_fitted_vals, stats
+
+
+def do_plot_autocorrelation(samples, labels):
+    def get_mean_samples(samples):
+        nruns, nwalker, nparams = samples.shape
+        return np.array([[np.mean(samples[i, :, j]) for j in range(nparams)] for i in range(nruns)])
+
+    # get the mean of ensemble for each step.
+    mean_samples = get_mean_samples(samples)
+
+    ax = plt.figure().gca()
+    for i, label in enumerate(labels):
+        ax.plot(emcee.autocorr.function_1d(mean_samples[:, i]), label=label)
+    ax.set_xlabel("lag [steps]")
+    ax.set_ylabel("autocorrelation")
+    ax.legend()
+
+    return ax
 
 
 #
