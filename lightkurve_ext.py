@@ -1921,6 +1921,8 @@ def gaia_dr3_mag_to_vmag(gmag, b_minus_r):
 
     Applicable to Gaia EDR3 data as well: The formula is identical.
     """
+    if isinstance(gmag, list):
+        gmag = np.asarray(gmag)
     g_minus_v = -0.02704 + 0.01424 * b_minus_r - 0.2156 * b_minus_r**2 + 0.01426 * b_minus_r**3
 
     # check BP-RP is in appiicale range,
