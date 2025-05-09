@@ -1939,3 +1939,81 @@ def gaia_dr3_mag_to_vmag(gmag, b_minus_r):
             )
 
     return gmag - g_minus_v
+
+
+def are_stars_bound_by_plx_pm(
+    rs,
+    plx_diff_sig_threshold=3,
+    cpm_index_threshold=10,
+    parllax_col_name="Plx",
+    parllax_err_col_name="e_Plx",
+    pmra_col_name="pmRA",
+    pmde_col_name="pmDE",
+    verbose=False,
+):
+    """Deterine if two stars are bound by parllax and proper motion.
+    The two stars are the first two rows of the table,
+    with the default table format / expected columns from Gaia DR3 Main in Vizier (I/355).
+
+    The methdology and the default cutoff thresholds are based on 2025arXiv250501470M (Section 3)
+    https://ui.adsabs.harvard.edu/abs/2025arXiv250501470M/abstract
+
+    """
+
+    # Note: in the paper search radius for potential companion is dependent on target parllax,
+    # so that separation is <= 10000 AU
+    #   - eq 1: r [arcsec] = 10 * pi * plx [mas]
+
+    def calc_plx_diff(rs, parllax_col_name="Plx", parllax_err_col_name="e_Plx"):
+        # OPEN: the paper suggests epsi is also used in considering signifiance but I don't know how.
+        # e.g. for TOI-4661, the paper reports plx_diff_sig=2.0, while the procedure here reports 2.25
+        #      it is as if epsi is somehow added to Gaia DR3's plx_diff_err (as the denominator)
+        # implication: plx_diff_sig calculated here is possibly slightly larger than that of the paper (table 4)
+        plx_diff = abs(rs[parllax_col_name][0] - rs[parllax_col_name][1])
+        plx_diff_err = max(rs[parllax_err_col_name][0], rs[parllax_err_col_name][1])
+        plx_diff_sig = plx_diff / plx_diff_err
+        return plx_diff, plx_diff_err, plx_diff_sig
+
+    def calc_pm_diff(rs, pmra_col_name="pmRA", pmde_col_name="pmDE"):
+        # i.e., differential proper motion 𝜇~rel~ relative to the target (row 0). See paper Section 3
+        pmra_d = rs[pmra_col_name][1] - rs[pmra_col_name][0]
+        pmde_d = rs[pmde_col_name][1] - rs[pmde_col_name][0]
+        pm_diff = np.sqrt(pmra_d**2 + pmde_d**2)
+        pmra_err_col_name = "e_pmRA"
+        pmde_err_col_name = "e_pmDE"
+        pm0_err = np.sqrt(rs[pmra_err_col_name][0] ** 2 + rs[pmde_err_col_name][0] ** 2)
+        pm1_err = np.sqrt(rs[pmra_err_col_name][1] ** 2 + rs[pmde_err_col_name][1] ** 2)
+        pm_diff_err = (pm0_err + pm1_err) / 2
+        return pm_diff, pm_diff_err
+
+    def calc_pm_diff_n_cpm_index(rs, pmra_col_name="pmRA", pmde_col_name="pmDE"):
+        # an index characterizing the degree of common proper motion. eq (2) in the paper
+        # combined PM
+        pmra_c = rs[pmra_col_name][1] + rs[pmra_col_name][0]
+        pmde_c = rs[pmde_col_name][1] + rs[pmde_col_name][0]
+        pm_c = np.sqrt(pmra_c**2 + pmde_c**2)
+
+        pm_diff, pm_diff_err = calc_pm_diff(rs, pmra_col_name=pmra_col_name, pmde_col_name=pmde_col_name)
+        pm_diff_sig = pm_diff / pm_diff_err
+
+        cpm_index = pm_c / pm_diff
+
+        return pm_diff, pm_diff_err, pm_diff_sig, cpm_index
+
+    plx_diff, plx_diff_err, plx_diff_sig = calc_plx_diff(
+        rs, parllax_col_name=parllax_col_name, parllax_err_col_name=parllax_err_col_name
+    )
+    pm_diff, pm_diff_err, pm_diff_sig, cpm_index = calc_pm_diff_n_cpm_index(
+        rs, pmra_col_name=pmra_col_name, pmde_col_name=pmde_col_name
+    )
+
+    bound = plx_diff_sig < plx_diff_sig_threshold and cpm_index >= cpm_index_threshold
+
+    if verbose:
+        print(
+            f"are_stars_bound_by_plx_pm(): bound={bound}, "
+            f"plx_diff={plx_diff:.3f}, plx_diff_err={plx_diff_err:.3f}, plx_diff_sig={plx_diff_sig:.2f}, "
+            f"pm_diff={pm_diff:.3f}, pm_diff_err={pm_diff_err:.3f}, pm_diff_sig={pm_diff_sig:.2f}, cpm_index={cpm_index:.1f}"
+        )
+
+    return bound
