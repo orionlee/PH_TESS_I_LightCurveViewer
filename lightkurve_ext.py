@@ -1879,7 +1879,7 @@ def search_nearby(
     result["_r"].unit = u.arcsec
     result["_p"].unit = u.deg
     if calc_separation_from_first_row:
-        result = calc_separation("first_row", result)
+        result = calc_separation("first_row", result, ra_colname="RA_ICRS", dec_colname="DE_ICRS")
 
     if warn_if_all_filtered and len(result) == 0 and len(result_pre_filter) > 0:
         warnings.warn(f"All query results filtered due to mag/PM filter. Num. of entries pre-filter: {len(result_pre_filter)}")
