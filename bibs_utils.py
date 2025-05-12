@@ -44,6 +44,6 @@ BIBS = SimpleNamespace(
     TESSEB_LIVE_N="TESS Eclipsing Binary Catalogue (online data)",
     # links to live TESS EB is case specific
     # PHt II paper discussed methodlogy, with (indirect) mentions of eclipsingbinary tagging
-    PHT_II_N="Planet Hunters TESS II: findings from the first two years of TESS",
+    PHT_II_N="Eisner, N. L.; et al., 2021, Planet Hunters TESS II: findings from the first two years of TESS",
     PHT_II_B="2021MNRAS.501.4669E",
 )
