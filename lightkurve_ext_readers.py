@@ -311,6 +311,56 @@ def read_ztf_csv(
     return lc
 
 
+def read_catalina_csv(url, to_time_format=None, label=None):
+    """Read CSV lightcurve files from Catalina Surveys Data Release.
+    (i.e, the ASCII format in the UI)
+    http://nesssi.cacr.caltech.edu/DataRelease/
+    """
+
+    tab = Table.read(
+        url,
+        format="ascii.csv",
+        converters={
+            "MasterID": np.uint64,
+            "ID": str,  # only in long format,
+            #     ^^^ the int values (20 digits) could be too big for np.int64,
+            #         not sure even np.unit64 could fit all. So use str to be safe.
+            "FrameID": np.uint64,  # only in long format
+        },
+    )
+
+    # rename columns to fit lightcurve convention
+    tab.rename_column("MJD", "time")
+    for c in tab.colnames:
+        tab.rename_column(c, c.lower())
+    if "flux" in tab.colnames:
+        # Optional column "Flux" is in the long format
+        # rename it to avoid collision with lightkurve's special flux column
+        tab.rename_column("flux", "raw_flux")
+
+    # add units
+    tab["mag"] *= u.mag
+    tab["magerr"] *= u.mag
+    tab["ra"] *= u.deg
+    tab["dec"] *= u.deg
+    tab["time"] = Time(tab["time"], format="mjd", scale="utc")
+    if to_time_format is not None:
+        # for user convenience, e.g., to convert the default mjd to jd
+        tab["time"].format = to_time_format
+
+    # copy mag as the primary column
+    tab["flux"] = tab["mag"]
+    tab["flux_err"] = tab["magerr"]
+
+    lc = lk.LightCurve(data=tab)
+    lc.meta["FLUX_ORIGIN"] = "mag"
+    lc.meta["FILEURL"] = url
+    if label is not None:
+        lc.meta["LABEL"] = label
+
+    return lc
+
+
 def read_hipparcos_data(url):
     """Read Hipparcos and Tycho Epoch Photometry hosted on Vizier.
     https://cdsarc.cds.unistra.fr/viz-bin/VizieR?-meta&-meta.ucd&-source=I/239
