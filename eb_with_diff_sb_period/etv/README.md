@@ -16,4 +16,5 @@
   - The period for primary is different from the period in secondary.
   - ETV in both per-sector and per-cycle basis.
   - Custom log_prior so that emcee will not sample amplitude (`alpha1`) that is way too large (on secondary)
+- `Misc_ETV_extraction_coshgauss_220410224.ipynb`: a) handle varying eclipse depth, b) include sparse ASAS-SN data in ETV
 
