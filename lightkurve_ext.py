@@ -2017,3 +2017,11 @@ def are_stars_bound_by_plx_pm(
         )
 
     return bound
+
+
+def to_separation_in_au(
+    rs,  # result set table
+):
+    plx = rs["Plx"][0]  # assumed to be in mas
+    sep_angular = rs["_r"][1]  # assumed to be in arcsec
+    return 1000 / plx * sep_angular
