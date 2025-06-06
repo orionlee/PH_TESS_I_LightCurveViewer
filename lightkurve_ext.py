@@ -1038,6 +1038,10 @@ def estimate_snr(
       https://exoplanetarchive.ipac.caltech.edu/docs/KSCI-19085-001.pdf
     - Poster with more in-depth treatment on white noises, red noises, etc.
       https://mirasolinstitute.org/kaspar/publications/Window_Functions.pdf
+
+    See also:
+    - https://arxiv.org/abs/2506.04136
+      on how TESS SPOC estimate SNR using a similar procedure (it uses a more robust CDPP estimate.)
     """
 
     if not isinstance(signal_duration, u.Quantity):
