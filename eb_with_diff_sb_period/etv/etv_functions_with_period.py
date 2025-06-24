@@ -11,6 +11,43 @@ import numpy as np
 
 from etv_functions import run_mcmc_initial_fit_of_model, phase_data, do_plot_autocorrelation
 
+# the period-aware coshgauss model and log likelihood functions
+
+
+def log_prior_p(theta):
+    alpha0, alpha1, t0, d, Tau, p = theta
+
+    # no t0 check, as t0 is time, not phase
+    if (0 < alpha0 < 10) and (-10 < alpha1 < 0) and (0 < d < 10) and (0.5 < Tau < 50):
+        return 0.0
+    return -np.inf
+
+
+def log_likelihood_p(theta, x, y, yerr):
+
+    alpha0, alpha1, t0, d, Tau, p = theta
+
+    x_phase = phase_data(x, t0, p)
+    t0_phase = phase_data([t0], t0, p)[0]
+    cosh_term = np.cosh((x_phase - t0_phase) / d)
+    exp_term = np.exp(1 - cosh_term)
+    pow_term = pow((1 - exp_term), Tau)
+
+    psi = 1 - pow_term
+
+    model = alpha0 + (alpha1 * psi)
+
+    return -0.5 * np.sum((y - model) ** 2 / (yerr**2))
+
+
+def log_probability_p(theta, x, y, yerr):
+
+    # check that the priors are satisfied
+    lp = log_prior_p(theta)
+    if not np.isfinite(lp):
+        return -np.inf
+    return lp + log_likelihood_p(theta, x, y, yerr)
+
 
 def run_mcmc_initial_fit_p(
     data,
@@ -18,6 +55,7 @@ def run_mcmc_initial_fit_p(
     nruns=1000,
     discard=600,
     thin=15,
+    log_probability_func=log_probability_p,
     autocorr_time_kwargs=None,
     pool=None,
     plot_chains=False,
@@ -41,7 +79,7 @@ def run_mcmc_initial_fit_p(
         nwalkers = 128
         ndim = len(start_vals)
 
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability_p, args=(data.time, data.flux, data.err), pool=pool)
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability_func, args=(data.time, data.flux, data.err), pool=pool)
 
         sampler.run_mcmc(pos, nruns, progress=True, store=True)
 
@@ -75,7 +113,14 @@ def run_mcmc_initial_fit_p(
 
         if plot_autocorrelation:
             ax = do_plot_autocorrelation(samples, labels)
-            ax.set_title(f"Integrated autocorrelation time estimate:\n{[int(round(t, 0)) for t in autocorr_time]}")
+
+            def to_int(t):
+                if np.isfinite(t):
+                    return int(round(t, 0))
+                else:  # handle nan, etc.
+                    return t
+
+            ax.set_title(f"Integrated autocorrelation time estimate:\n{[to_int(t) for t in autocorr_time]}")
 
         flat_samples = sampler.get_chain(discard=discard, thin=thin, flat=True)
 
@@ -168,43 +213,6 @@ def x_new_broken_run_mcmc_initial_fit_p(
         also_return_stats=also_return_stats,
         **kwargs,
     )
-
-
-# the period-aware coshgauss model and log likelihood functions
-
-def log_prior_p(theta):
-    alpha0, alpha1, t0, d, Tau, p = theta
-
-    # no t0 check, as t0 is time, not phase
-    if (0 < alpha0 < 10) and (-10 < alpha1 < 0) and (0 < d < 10) and (0.5 < Tau < 50):
-        return 0.0
-    return -np.inf
-
-
-def log_likelihood_p(theta, x, y, yerr):
-
-    alpha0, alpha1, t0, d, Tau, p = theta
-
-    x_phase = phase_data(x, t0, p)
-    t0_phase = phase_data([t0], t0, p)[0]
-    cosh_term = np.cosh((x_phase - t0_phase) / d)
-    exp_term = np.exp(1 - cosh_term)
-    pow_term = pow((1 - exp_term), Tau)
-
-    psi = 1 - pow_term
-
-    model = alpha0 + (alpha1 * psi)
-
-    return -0.5 * np.sum((y - model) ** 2 / (yerr**2))
-
-
-def log_probability_p(theta, x, y, yerr):
-
-    # check that the priors are satisfied
-    lp = log_prior_p(theta)
-    if not np.isfinite(lp):
-        return -np.inf
-    return lp + log_likelihood_p(theta, x, y, yerr)
 
 
 def coshgauss_model_fit_p(x, alpha0, alpha1, t0, d, Tau, p):

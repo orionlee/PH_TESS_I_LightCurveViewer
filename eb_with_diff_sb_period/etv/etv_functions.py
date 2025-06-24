@@ -574,7 +574,14 @@ def run_mcmc_initial_fit_of_model(
 
         if plot_autocorrelation:
             ax = do_plot_autocorrelation(samples, labels)
-            ax.set_title(f"Integrated autocorrelation time estimate:\n{[int(round(t, 0)) for t in autocorr_time]}")
+
+            def to_int(t):
+                if np.isfinite(t):
+                    return int(round(t, 0))
+                else:  # handle nan, etc.
+                    return t
+
+            ax.set_title(f"Integrated autocorrelation time estimate:\n{[to_int(t) for t in autocorr_time]}")
 
         flat_samples = sampler.get_chain(discard=discard, thin=thin, flat=True)
 
