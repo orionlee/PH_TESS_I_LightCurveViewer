@@ -10,7 +10,8 @@
 
 - `Misc_extraction_coshgauss_352830705_B.ipynb`: group multiple eclipses together (roughly by TESS sectors) for fitting due to low SNR
 - `Misc_ETV_extraction_coshgauss_156846286.ipynb`: incorporate ASAS-SN data; grouping multiple eclipses together due to sparse data
-- `Misc_extraction_coshgauss_122994468.ipynb`: codes to mask out a second set of eclipses
+- `Misc_extraction_coshgauss_130946041_EB1.ipynb`: codes to mask out a second set of eclipses before doing anything elese
+- `Misc_extraction_coshgauss_122994468.ipynb`: codes to mask out a second set of eclipses (and some unsuccessful attenpts to remove puslation signal)
 - `Misc_ETV_extraction_coshgauss_378275980.ipynb`:
   - both primary and secondary have varying depths over time. Custom indiviudal fit needed (as the standard one assumes fixed shape. (the varying depth make shape changes as well)
   - The period for primary is different from the period in secondary.
