@@ -322,6 +322,7 @@ def read_catalina_csv(url, to_time_format=None, label=None):
         format="ascii.csv",
         converters={
             "MasterID": np.uint64,
+            "MasterFrame": np.uint64,  # it shows up in the csv from bulk match (in place of MaserID)
             "ID": str,  # only in long format,
             #     ^^^ the int values (20 digits) could be too big for np.int64,
             #         not sure even np.unit64 could fit all. So use str to be safe.
