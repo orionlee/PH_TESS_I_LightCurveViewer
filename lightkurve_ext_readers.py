@@ -512,3 +512,47 @@ def read_asas3(url, flux_column="mag_3", grade_mask=["A", "B", "C"]):
     if asas_id is not None:
         lc.meta["LABEL"] = f"ASAS {asas_id}"
     return lc
+
+
+def read_aavso_csv(url):
+    """Read AAVSO photometry.
+    From CSV export of https://apps.aavso.org/v2/data/search/photometry/
+    """
+
+    def to_float_with_empty_str_as_nan(vals):
+        def to_val(v):
+            return np.nan if v is None or v == "" or v == "None" else float(v)
+
+        return np.asarray([to_val(v) for v in vals.filled("")])
+
+    # Logically, fainterthan and transformed columns are booleans
+    # but leave them as str due to the complication of missing values
+    # converters={"fainterthan": bool, "transformed": bool}
+    tab = Table.read(url)
+
+    if np.issubdtype(tab["uncertainty"].dtype, str):
+        # e.g., for Visual data, uncertainty column values are either empty string or the string "None"
+        tab["uncertainty"] = to_float_with_empty_str_as_nan(tab["uncertainty"])
+
+    tab.remove_column("#")  # the sequence column not useful
+
+    tab["time"] = Time(tab["jd"], format="jd", scale="utc")
+    tab.remove_column("jd")
+
+    tab.rename_column("uncertainty", "mag_err")
+    tab["mag"] *= u.mag
+    # tab["mag_err"] *= u.mag  # somehow got UFuncTypeError: Cannot cast ufunc 'multiply' output from dtype('O') to dtype('float64') with casting rule 'same_kind'
+    tab["mag_err"] = tab["mag_err"].value * u.mag
+
+    tab["flux"] = tab["mag"]
+    tab["flux_err"] = tab["mag_err"]
+    lc = lk.LightCurve(data=tab)
+
+    lc.meta["FLUX_ORIGIN"] = "mag"
+    lc.meta["FILEURL"] = url
+    target_name = lc["target"][0]
+    lc.meta["TARGETID"] = target_name
+    lc.meta["OBJECT"] = target_name
+    lc.meta["LABEL"] = target_name
+
+    return lc
