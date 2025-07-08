@@ -519,6 +519,19 @@ def read_aavso_csv(url):
     From CSV export of https://apps.aavso.org/v2/data/search/photometry/
     """
 
+    def read_table(url):
+        # AAVSO CSV export by default is in a zip file
+        # handle both the case that it's a zip file or a plain CSV
+        if url.lower().endswith(".zip"):
+            import zipfile
+
+            with zipfile.ZipFile(url) as fz:
+                nl = [n for n in fz.namelist() if n.endswith(".csv")]
+                with fz.open(nl[0]) as f_csv:
+                    return Table.read(f_csv, format="ascii.csv")
+        else:
+            return Table.read(url, format="ascii.csv")
+
     def to_float_with_empty_str_as_nan(vals):
         def to_val(v):
             return np.nan if v is None or v == "" or v == "None" else float(v)
@@ -528,7 +541,7 @@ def read_aavso_csv(url):
     # Logically, fainterthan and transformed columns are booleans
     # but leave them as str due to the complication of missing values
     # converters={"fainterthan": bool, "transformed": bool}
-    tab = Table.read(url)
+    tab = read_table(url)
 
     if np.issubdtype(tab["uncertainty"].dtype, str):
         # e.g., for Visual data, uncertainty column values are either empty string or the string "None"
