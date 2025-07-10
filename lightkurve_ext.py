@@ -1386,6 +1386,24 @@ def to_normalized_flux_from_mag(lc):
     return lc
 
 
+def to_normalized_flux_from_mag_vals(vals, errs):
+    """Convert values from magnitude to normalized values."""
+    if vals.unit is not u.mag:
+        raise ValueError("The values must be in magnitude")
+
+    median_flux_mag = np.nanmedian(vals.value)
+
+    flux_delta_mag = vals.value - median_flux_mag
+    vals_norm = 1 / np.power(10, flux_delta_mag / 2.5)
+
+    if errs is not None:
+        errs_norm = np.abs(1 - 1 / np.power(10, errs.value / 2.5))
+    else:
+        errs_norm = None
+
+    return vals_norm, errs_norm
+
+
 def ratio_to_mag(val_in_ratio):
     """Convert normalized transit depth to magnitude."""
     return 2.5 * np.log10(1 / (1 - val_in_ratio))
