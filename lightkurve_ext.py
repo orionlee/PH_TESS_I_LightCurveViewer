@@ -949,6 +949,20 @@ def stitch(lcf_coll, ignore_incompatible_column_warning=False, to_add_sector_lik
     return lc_stitched
 
 
+def stitch_lc_dict(lc_dict: dict, source_colname="source", normalize=True) -> lk.LightCurve:
+    lcc = []
+    for k in lc_dict:
+        lc = lc_dict[k].copy()
+        lc[source_colname] = k
+        if normalize:
+            if lc.flux.unit is u.mag:
+                lc = to_normalized_flux_from_mag(lc)
+            else:
+                lc = lc.normalize()
+        lcc.append(lc)
+    return stitch(lk.LightCurveCollection(lcc), ignore_incompatible_column_warning=True, corrector_func=lambda lc: lc)
+
+
 def to_window_length_for_2min_cadence(length_day):
     """Helper for LightCurve.flatten().
     Return a `window_length` for the given number of days, assuming the data has 2-minute cadence."""
