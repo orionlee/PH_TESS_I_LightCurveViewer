@@ -1808,7 +1808,11 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
 
         # ensure all plots have the same scale
         ax.set_xlim(lc.time.min().value, lc.time.max().value)
-        ax.set_ylim(lc.flux.min().value, lc.flux.max().value)
+        if lc.flux.unit is not u.mag:
+            ax.set_ylim(lc.flux.min().value, lc.flux.max().value)
+        else:
+            # invert y axis if it is in ma
+            ax.set_ylim(lc.flux.max().value, lc.flux.min().value)
 
         # keep legend in a fixed location to avoid jumps between frames
         ax.legend(loc="upper right")
