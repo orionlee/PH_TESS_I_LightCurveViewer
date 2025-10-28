@@ -1038,6 +1038,19 @@ def search_gaiadr3_of_tics(
     # Other Gaia crossmatch tips:
     # https://www.cosmos.esa.int/web/gaia-users/archive/combine-with-other-data
 
+    def get_Fe_H_colname(rs):
+        # for column "[Fe/H]" in Gaia DR3 astrophysical parameters
+        # the column name returned by astroquery is changed
+        # from (buggy)"__Fe_H_" (v0.4.7) to (correct) "[Fe/H]" (v0.4.8+)
+        #   see https://github.com/astropy/astroquery/pull/3153
+        # Accommodate both variants
+        if "[Fe/H]" in rs.colnames:
+            return "[Fe/H]"
+        elif "__Fe_H_" in rs.colnames:
+            return "__Fe_H_"
+        else:
+            raise ValueError(f"Expected column Fe/H is absent. All columns: {rs.colnames}")
+
     if isinstance(targets, (Sequence, np.ndarray, lk.collections.Collection)):
         add_target_as_col = True
     else:
@@ -1175,6 +1188,7 @@ def search_gaiadr3_of_tics(
         ]
         if not add_target_as_col:
             result.remove_column("target")
+
         result_paramp = result_paramp[
             # separation "_r" is included, to make it easier to cross-reference
             # a row with the main result above
@@ -1184,7 +1198,7 @@ def search_gaiadr3_of_tics(
             "Pbin",
             "Teff",
             "logg",
-            "__Fe_H_",
+            get_Fe_H_colname(result_paramp),  # "[Fe/H]" or "__Fe_H_"
             "Dist",
             "GMAG",
             "Rad",
