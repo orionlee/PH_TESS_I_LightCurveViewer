@@ -21,6 +21,8 @@ BIBS = SimpleNamespace(
     # links to TCE is case specific
     TIC_N="Stassun, K. G.; et al., 2019, The Revised TESS Input Catalog and Candidate Target List",  # the paper describing TIC v8, the subsequent paper for v8.1/8.2 focuses mainly on the changes and is not as helpful
     TIC_B="2019AJ....158..138S",
+    HIP_N="Perryman, M. A. C.; et al., 1997, The HIPPARCOS and TYCHO catalogues",
+    HIP_B="1997HIP...C......0E",
     ASAS_SN_N="Kochanek, C. S.; et al., 2017, The All-Sky Automated Survey for Supernovae (ASAS-SN) Light Curve Server v1.0",
     ASAS_SN_B="2017PASP..129j4502K",
     ASAS_SNv2a_N="Hart, K.; et al, 2023, ASAS-SN Sky Patrol V2.0",
