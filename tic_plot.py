@@ -128,6 +128,16 @@ def plot_lcf_flux_delta(lcf, ax, xmin=None, xmax=None, moving_avg_window="30min"
     return ax
 
 
+def _show_plot_in_interactive():
+    # In recent matplotlib / Jupyter, when using ipywidget interactive feature,
+    # somehow matplotlib figure is not updated without an explicit plt.show()
+    # The versions I started noticing the problem:
+    # - notebook=7.4.7 , ipywidgets=8.1.7, matplotlib=3.10.7
+    # The last version combination I tried that does not need a workaround
+    # - notebook=7.1.3, ipywidgets=8.1.2, matplotlib=3.8.4
+    plt.show()
+
+
 def lk_ax(*args, **kwargs):
     """Create a matplotlib figure, and return its Axes object (`gca()`) with Lightkurve style."""
     with plt.style.context(lk.MPLSTYLE):
@@ -805,6 +815,8 @@ def _update_plot_lcf_interactive(figsize, flux_col, xrange, moving_avg_window, y
         ax.set_ylim(ymin_to_use, ymax_to_use)
         codes_text += f"\n\nax.set_ylim({ymin_to_use}, {ymax_to_use})"
 
+    _show_plot_in_interactive()
+
     widget_out2.clear_output()
     with widget_out2:
         print(codes_text)
@@ -936,8 +948,11 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
         ax = lk_ax(figsize=figsize)
         codes_text = "# Snippets to generate the plot"
         moving_avg_window_for_codes = "None" if moving_avg_window is None else f"'{moving_avg_window}'"
+
+        # do the main plot with 2 cases (whole lc if t0 < 0, zoomed plot otherwise)
         if t0 < 0:
             plot_n_annotate_lcf(lcf, ax, flux_col=flux_col, moving_avg_window=moving_avg_window, **plot_kwargs)
+            _show_plot_in_interactive()
             codes_text += f"\nplot_n_annotate_lcf(lcf, ax, moving_avg_window={moving_avg_window_for_codes})"
         else:
             t0_to_use = t0 + step * period
@@ -1004,6 +1019,10 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
                 legend_kwargs=dict(loc="upper left"),
                 **plot_kwargs,
             )
+            # TODO: Force the plot to be rendered with the latest Jupyter / matplotlib (2025-10-29)
+            # but somehow the initial plot is still not shown. One needs to change widget values
+            # for the plot to be rendered
+            _show_plot_in_interactive()
 
             codes_transit_spec = f"""# transit_specs for calling plot_transits()
 transit_specs = TransitTimeSpecList(  # {lcf.meta.get("LABEL")}
@@ -1021,6 +1040,7 @@ moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
 {codes_transit_spec}
 """
 
+        # Main plot done, render code snippets in widget_out2
         ymin_to_use = ymin if ymin >= 0 else None
         ymax_to_use = ymax if ymax >= 0 else None
         if (ymin_to_use is not None) or (ymax_to_use is not None):
