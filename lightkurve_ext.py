@@ -1551,7 +1551,10 @@ def parse_aggregate_func(cenfunc):
 
     # cenfunc should really be aggfunc, but I keep the name from SigmaClip
     if cenfunc is None:
-        cenfunc = fast_nanmean
+        if astropy.__version__ >= "7.1.0":  # use astropy optimized default
+            cenfunc = None
+        else:  # use our own (basically a copy of 7.1.0 feature)
+            cenfunc = fast_nanmean
 
     if isinstance(cenfunc, str):
         if cenfunc == "median":
@@ -1587,22 +1590,28 @@ def bin_flux(lc, columns=["flux", "flux_err"], **kwargs):
 
     # lc_subset = lc['time', 'flux', 'flux_err'] does not work
     # due to https://github.com/lightkurve/lightkurve/issues/1194
-    lc_subset = type(lc)(time=lc.time.copy())
-    lc_subset.meta.update(lc.meta)
-    for c in columns:
-        if c in lc.colnames:
-            col = lc[c]
-            # convert astropy Masked to regular Column / Quantity
-            # needed for the default custom fast_nanmean above
-            # see: https://github.com/astropy/astropy/pull/17875
-            # OPEN: consider to always convert to Column / Quantity
-            # even without using the fast_nanmean, binning with regular Column / Quantity
-            # is several times faster than with Masked (in astropy 6.0.1)
-            if aggregate_func is fast_nanmean and isinstance(col, astropy.utils.masked.Masked):
-                col = col.filled(np.nan)
-            lc_subset[c] = col
-        else:
-            warnings.warn(f"bin_flux(): column {c} cannot be found in lightcurve. It is ignored.")
+    if not isinstance(lc.time, Time):
+        # edge case, typically a Folded LC with normalized phase such that lc.time is `Quantity`
+        # the subset logic does not work so we just use the original lc
+        lc_subset = lc
+    else:
+        # case normal subset logic
+        lc_subset = type(lc)(time=lc.time.copy())
+        lc_subset.meta.update(lc.meta)
+        for c in columns:
+            if c in lc.colnames:
+                col = lc[c]
+                # convert astropy Masked to regular Column / Quantity
+                # needed for the default custom fast_nanmean above
+                # see: https://github.com/astropy/astropy/pull/17875
+                # OPEN: consider to always convert to Column / Quantity
+                # even without using the fast_nanmean, binning with regular Column / Quantity
+                # is several times faster than with Masked (in astropy 6.0.1)
+                if aggregate_func is fast_nanmean and isinstance(col, astropy.utils.masked.Masked):
+                    col = col.filled(np.nan)
+                lc_subset[c] = col
+            else:
+                warnings.warn(f"bin_flux(): column {c} cannot be found in lightcurve. It is ignored.")
 
     return lc_subset.bin(**kwargs)
 
