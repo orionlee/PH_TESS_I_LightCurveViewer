@@ -952,7 +952,6 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
         # do the main plot with 2 cases (whole lc if t0 < 0, zoomed plot otherwise)
         if t0 < 0:
             plot_n_annotate_lcf(lcf, ax, flux_col=flux_col, moving_avg_window=moving_avg_window, **plot_kwargs)
-            _show_plot_in_interactive()
             codes_text += f"\nplot_n_annotate_lcf(lcf, ax, moving_avg_window={moving_avg_window_for_codes})"
         else:
             t0_to_use = t0 + step * period
@@ -1019,10 +1018,6 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
                 legend_kwargs=dict(loc="upper left"),
                 **plot_kwargs,
             )
-            # TODO: Force the plot to be rendered with the latest Jupyter / matplotlib (2025-10-29)
-            # but somehow the initial plot is still not shown. One needs to change widget values
-            # for the plot to be rendered
-            _show_plot_in_interactive()
 
             codes_transit_spec = f"""# transit_specs for calling plot_transits()
 transit_specs = TransitTimeSpecList(  # {lcf.meta.get("LABEL")}
@@ -1040,7 +1035,6 @@ moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
 {codes_transit_spec}
 """
 
-        # Main plot done, render code snippets in widget_out2
         ymin_to_use = ymin if ymin >= 0 else None
         ymax_to_use = ymax if ymax >= 0 else None
         if (ymin_to_use is not None) or (ymax_to_use is not None):
@@ -1049,6 +1043,12 @@ moving_avg_window={moving_avg_window_for_codes}, t0mark_ymax={t0mark_ymax})
 # Zoom in on flux
 ax.set_ylim({ymin_to_use}, {ymax_to_use})
 """
+        # TODO: Force the plot to be rendered with the latest Jupyter / matplotlib (2025-10-29)
+        # but somehow the initial plot is still not shown. One needs to change widget values
+        # for the plot to be rendered
+        _show_plot_in_interactive()
+
+        # Main plot done, render code snippets in widget_out2
         widget_out2.clear_output()
         with widget_out2:
             print(codes_text)
