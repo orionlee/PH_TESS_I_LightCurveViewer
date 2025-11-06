@@ -340,6 +340,16 @@ def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, ax
     )
 
 
+def _show_plot_in_interactive():
+    # In recent matplotlib / Jupyter, when using ipywidget interactive feature,
+    # somehow matplotlib figure is not updated without an explicit plt.show()
+    # The versions I started noticing the problem:
+    # - notebook=7.4.7 , ipywidgets=8.1.7, matplotlib=3.10.7
+    # The last version combination I tried that does not need a workaround
+    # - notebook=7.1.3, ipywidgets=8.1.2, matplotlib=3.8.4
+    plt.show()
+
+
 def plot_initial_guess_interactive(
     data, ph_binned, flux_binned, err_binned, t0_varname, *start_vals, figsize=(8, 4), use_fixed_t0=True
 ):
@@ -357,6 +367,7 @@ def plot_initial_guess_interactive(
 
     def _do_plot(alpha0, alpha1, t0, d, Tau):
         plot_initial_guess(data, ph_binned, flux_binned, err_binned, alpha0, alpha1, t0, d, Tau)
+        _show_plot_in_interactive()
         if use_fixed_t0:
             params_text = f"""\
 [{alpha0}, {alpha1}, {t0_varname}, {d}, {Tau}]
