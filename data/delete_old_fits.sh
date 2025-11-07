@@ -2,13 +2,20 @@
 
 set -e
 
+# the primary data directory
+data_dir=`realpath $0`
+data_dir=`dirname ${data_dir}`
+echo data_dir: ${data_dir}
+
+cd ${data_dir}
+
 echo "Disk usage before cleanup"
 df -h .
 du -h -s mastDownload tesscut .
 
 # Ideally want touch use -atime (last access time), 
 # insetad of -mtime  (modified time)
-# but -atime does notify seem touch work (no file selected)
+# but -atime does not seem to work (no file selected)
 find . -type f -name "*.fits" -mtime +120 -delete
 
 # tesscut (from Eleanor, raw TessCut,  etc)
@@ -34,6 +41,14 @@ cd ~/Downloads
 find . -type f -name "tess*.pdf" -mtime +2 -delete
 cd -
 
+# Delete FITS file in default and legacy lightkurve cache dirs 
+# - these dirs are unintentionally that used at times
+du -h -s ~/.lightkurve/cache  ~/.lightkurve-cache
+cd ~/.lightkurve/cache
+find . -type f -name "*.fits" -mtime +2 -delete 
+cd ~/.lightkurve-cache
+find . -type f -name "*.fits" -mtime +2 -delete 
+
 # Delete old Pyaneti reports
 echo "Manually delete old Pyaneti reports at:"
 echo "/c/dev/_juypter/LATTE/dataLATTE/"
@@ -55,4 +70,5 @@ cd -
 
 echo "Disk usage after cleanup"
 df -h .
+cd ${data_dir}
 du -h -s mastDownload tesscut .
