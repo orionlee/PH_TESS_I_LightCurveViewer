@@ -742,7 +742,7 @@ def display_crowdsap(lc):
                 f"""Fraction of flux in aperture attributed to the target, <span style="font-family: monospace;">CROWDSAP</span>:
         <span style="background-color: {'red' if lc.meta.get("CROWDSAP") < 0.8 else 'transparent'}; padding: 2px;">{lc.meta.get("CROWDSAP")}</span>
         &emsp;<span style="font-family: monospace;">FLFRCSAP</span>: {lc.meta.get('FLFRCSAP')}
-        &emsp;<a href="https://heasarc.gsfc.nasa.gov/docs/tess/UnderstandingCrowding.html" target="_crowdsap_tutorial">(Help)</a>
+        &emsp;<a href="https://heasarc.gsfc.nasa.gov/docs/tess/UnderstandingCrowdingv2.html" target="_crowdsap_tutorial">(Help)</a>
         """
             )
         )
