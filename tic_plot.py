@@ -396,7 +396,7 @@ def plot_n_annotate_lcf(
         print(
             (
                 "Warning: specified (xmin, xmax) is out of the range of the lightcurve "
-                f"{lc.label} sector {lcfh['SECTOR']}. Nothing to plot"
+                f"{lcfh.get('LABEL', '<No label>')} sector {lcfh.get('SECTOR', 'N/A')}. Nothing to plot"
             )
         )
         return ax
@@ -443,7 +443,7 @@ def plot_n_annotate_lcf(
         plot_momentum_dumps(lc, ax)
 
     if set_title:
-        title_text = lc.label
+        title_text = lc.meta.get("LABEL", "<No label>")
         if len(lcfh.get("SECTORS", [])) > 1:
             sector_text = lke.abbrev_sector_list(lcfh.get("SECTORS", []))
         else:
