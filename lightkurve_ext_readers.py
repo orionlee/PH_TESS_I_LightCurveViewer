@@ -514,7 +514,7 @@ def read_asas3(url, flux_column="mag_3", grade_mask=["A", "B", "C"]):
     return lc
 
 
-def read_mascara_vars_fits(url, reference_mag, time_in_hjd=True):
+def read_mascara_vars_fits(url, reference_mag):
     """Read MASCARA Variable lightcurve FITS file.
     Available at: https://home.strw.leidenuniv.nl/~burggraaff/MASCARA_variables/
     """
@@ -532,9 +532,14 @@ def read_mascara_vars_fits(url, reference_mag, time_in_hjd=True):
     with fits.open(url) as hdul:
         tab = Table.read(hdul[1], format="fits")
         lc = lk.LightCurve(
-            time=Time(
-                tab["hjd"], format="mjd", scale="utc"
-            ),  # the value looks like MJD, so I think it's HJD UTC but in MJD format
+            # the hjd column value looks like MJD, but the description of epoch
+            # below suggests it is HJD - 2450000,
+            #   https://home.strw.leidenuniv.nl/~burggraaff/MASCARA_variables/
+            # However, HJD - 2450000 values don't make sense (in the future).
+            # So it seems that the correct interpretation is HJD - 2400000 (Reduced JD).
+            # It is not MJD (HJD - 2400000.5), because when
+            # combining result with other data (TESs, HIP, etc.), it'd be off by 0.5 d
+            time=Time(tab["hjd"] + 2400000, format="jd", scale="utc"),
             flux=tab["mag"],
             flux_err=tab["emag"],
         )
@@ -545,9 +550,6 @@ def read_mascara_vars_fits(url, reference_mag, time_in_hjd=True):
             if not isinstance(reference_mag, u.Quantity):
                 reference_mag = reference_mag * u.mag
             lc.flux += reference_mag
-
-        if time_in_hjd:  # convert the MJD to HJD if specified
-            lc.time.format = "jd"
 
         ascc_id = get_ascc_id(url)
         label = "MASCARA Variable" if ascc_id is None else f"MASCARA ASCC {ascc_id}"
