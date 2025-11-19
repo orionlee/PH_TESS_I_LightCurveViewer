@@ -514,6 +514,48 @@ def read_asas3(url, flux_column="mag_3", grade_mask=["A", "B", "C"]):
     return lc
 
 
+def read_mascara_vars_fits(url, reference_mag, time_in_hjd=True):
+    """Read MASCARA Variable lightcurve FITS file.
+    Available at: https://home.strw.leidenuniv.nl/~burggraaff/MASCARA_variables/
+    """
+    # URL e.g. https://home.strw.leidenuniv.nl/~burggraaff/MASCARA_variables/on_disk/Data/65605_data.fit
+    # reference mag for MASCARA Variable can be found at Vizier, e.g.,
+    # https://vizier.cds.unistra.fr/viz-bin/VizieR-5?-ref=VIZ6917a60c220321&-out.add=.&-source=J/A%2bA/617/A32/tableb1&recno=21
+
+    def get_ascc_id(URL):
+        matches = re.search(r"(\d+)_data[.]fit$", url)
+        if matches is None:
+            return None
+        else:
+            return matches[1]
+
+    with fits.open(url) as hdul:
+        tab = Table.read(hdul[1], format="fits")
+        lc = lk.LightCurve(
+            time=Time(
+                tab["hjd"], format="mjd", scale="utc"
+            ),  # the value looks like MJD, so I think it's HJD UTC but in MJD format
+            flux=tab["mag"],
+            flux_err=tab["emag"],
+        )
+        # ignore columns lst (Local Sidereal Time) and phase (we do our own phase folding)
+
+        # the mag in the FITS file is only the delta mag
+        if reference_mag is not None:
+            if not isinstance(reference_mag, u.Quantity):
+                reference_mag = reference_mag * u.mag
+            lc.flux += reference_mag
+
+        if time_in_hjd:  # convert the MJD to HJD if specified
+            lc.time.format = "jd"
+
+        ascc_id = get_ascc_id(url)
+        label = "MASCARA Variable" if ascc_id is None else f"MASCARA ASCC {ascc_id}"
+        lc.meta["LABEL"] = label
+
+        return lc
+
+
 def read_aavso_csv(url):
     """Read AAVSO photometry.
     From CSV export of https://apps.aavso.org/v2/data/search/photometry/
