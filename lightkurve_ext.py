@@ -1504,6 +1504,84 @@ def convert_lc_time_to_hjd_utc(lc, target_coord, cache_dir=".", cache_key=None, 
     return lc_hjd
 
 
+def hjd_to_bjd(t_obj: Time, sky_coord: SkyCoord) -> Time:
+    t_jd_utc = t_obj.copy("jd").utc
+
+    # 1. convert the given time in HJD UTC to local time UTC
+    greenwich = coord.EarthLocation.of_site("greenwich")
+    ltt_helio = t_jd_utc.light_travel_time(sky_coord, location=greenwich, kind="heliocentric")
+    t_local_jd_utc = (t_jd_utc - ltt_helio).utc
+
+    # 2. convert local time UTC to BJD TDB
+    ltt_bary = t_local_jd_utc.light_travel_time(sky_coord, location=greenwich, kind="barycentric")
+    t_bjd_tdb = t_local_jd_utc.tdb + ltt_bary
+
+    return t_bjd_tdb
+
+
+def convert_lc_time_to_bjd_tdb(lc, target_coord, cache_dir=".", cache_key=None, cache_key_suffix=None):
+    """Convert the lightcurve's HJD time to BJD TDB, with the BJD time cached in disk.
+
+    `cache_key_suffix`: optional, applicable only when `cache_key` is `None`. It lets user to
+    identify different variants of the same LC (which may have slightly different sets of cadence),
+     e.g., one with outliers removed, detrended, etc.
+    """
+
+    # a reasonable default for TESS / Kepler / K2 based lc
+    def get_cache_key(lc):
+        target_str = lc.meta.get("LABEL", "").replace(" ", "_")
+        author = lc.meta.get("AUTHOR", None)
+        if author is not None:
+            target_str = f"{target_str}_{author}"
+        sectors_str = "_".join([str(s) for s in lc.meta.get("SECTORS", [])])
+        if sectors_str == "":
+            sectors_str = lc.meta.get("SECTOR", "na")
+        if cache_key_suffix is None:
+            return f"bjd_{target_str}_{sectors_str}.txt"
+        else:
+            return f"bjd_{target_str}_{sectors_str}_{cache_key_suffix}.txt"
+
+    def time_in_bjd_tdb(lc, target_coord, cache_dir):
+        # actual time conversion to HJD UTC
+        # it can be take a while (close to 1 minute for 160K)
+        # so we support caching the result persistently
+        bjd_time_val = None
+        nonlocal cache_key
+        if cache_key is None:
+            cache_key = get_cache_key(lc)
+        cache_file = f"{cache_dir}/bjd/{cache_key}"
+        if (os.path.exists(cache_file)) and (os.path.getsize(cache_file) > 0):
+            bjd_time_val = np.genfromtxt(cache_file)
+            #  ensure the cached time is compatible with the input LC
+            if len(lc) == len(bjd_time_val):
+                return bjd_time_val
+            else:
+                print(f"The cached BJD time in {cache_file} has different length. discard it.")
+                bjd_time_val = None
+
+        # else cache miss
+        if not isinstance(target_coord, SkyCoord):
+            target_coord = SkyCoord(target_coord["ra"], target_coord["dec"], unit=(u.deg, u.deg), frame="icrs")
+        bjd_time_val = hjd_to_bjd(lc.time, target_coord).value
+
+        # write to cache
+        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+        np.savetxt(cache_file, bjd_time_val, fmt="%f", header="bjd")
+        return bjd_time_val
+
+    # the main logic
+    bjd_time_val = time_in_bjd_tdb(lc, target_coord, cache_dir)
+
+    # create a new LC object with the HJD time.
+    # It does not modify the time of an existing LC object, because it is extremely slow.
+    data = QTable(data=lc)
+    data.remove_column("time")
+    lc_bjd = lc.__class__(time=Time(bjd_time_val, format="jd", scale="tdb"), data=data)
+    lc_bjd.meta.update(lc.meta)
+
+    return lc_bjd
+
+
 # fast_nanmean(): an optimized nanmean for binning
 # https://github.com/astropy/astropy/pull/17574
 # (planned for astropy 7.1.0)
