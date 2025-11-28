@@ -8,6 +8,7 @@ from astropy.time import Time, TimeDelta
 from astropy import units as u
 import numpy as np
 
+import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
 import tic_plot as tplt
@@ -153,9 +154,10 @@ def plot_multi_bands(
     ax=None,
     plot_options=None,
     mag_shift_precision=2,
-    # parameters used by fold_n_plot_multi_bands() use case
+    # parameters used by fold_n_plot_multi_bands() use cases
     include_labels=True,
     time_shift_func=None,
+    show_colorbar_if_applicable=False,  # <-- needed to avoid showing colorbar twice in doing a 2X folded plot
 ):
     if ax is None:
         ax = tplt.lk_ax(figsize=figsize)
@@ -167,9 +169,14 @@ def plot_multi_bands(
     for i, band in enumerate(lc_combined_dict):
         lc = lc_combined_dict[band]
         plot_funcname, plot_kwargs = plot_options[i]
+        show_colorbar = False
         if plot_funcname == "errorbar":
             plot_kwargs["yerr"] = lc.flux_err.value
         plot_func = getattr(ax, plot_funcname)
+        if plot_kwargs.get("c") == "_time_":
+            plot_kwargs["c"] = lc.time_original.value
+            if show_colorbar_if_applicable:
+                show_colorbar = True
         if include_labels:
             plot_label = get_label_of_source(lc_combined_dict, band, mag_shift_precision)
         else:
@@ -177,7 +184,10 @@ def plot_multi_bands(
         x_vals = lc.time.value
         if time_shift_func is not None:
             x_vals = time_shift_func(x_vals)
-        plot_func(x_vals, lc.flux.value, label=plot_label, **plot_kwargs)
+        path_collection = plot_func(x_vals, lc.flux.value, label=plot_label, **plot_kwargs)
+        if show_colorbar:
+            cbar = plt.colorbar(path_collection, ax=ax)
+            cbar.set_label("Time")
         _flip_yaxis_for_mag(ax, lc, plot_kwargs)
     ax.legend()
 
@@ -268,6 +278,7 @@ def fold_n_plot_multi_bands(
         ax=ax,
         plot_options=plot_options,
         mag_shift_precision=mag_shift_precision,
+        show_colorbar_if_applicable=True,  # show colorbar only in 1st plot for case phase_scale == 2
     )
     if phase_scale == 2:
         # phase [-0.5, +0.5] has been plotted above
