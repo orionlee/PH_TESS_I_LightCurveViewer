@@ -595,12 +595,15 @@ def _search_tglc_lightcurve_csv(tic, csv_dir=".", grep_cmd="grep -H"):
 
     import subprocess
 
+    # Note: the grep pattern ",{tic}," would be more precise for the original CSVs
+    # but with the minimized CSVs (which only have Gaia DR3 Name, TIC),
+    # it needs to be relaxed to be ",{tic}"
     if "rg" not in grep_cmd:
-        cmdline = rf"{grep_cmd}  ,{tic}, s*.csv"
+        cmdline = rf"{grep_cmd}  ,{tic} s*.csv"
     else:
         # special case for ripgrep, glob does not work on Windows
         # https://github.com/BurntSushi/ripgrep/issues/234
-        cmdline = rf"{grep_cmd}  ,{tic}, ."
+        cmdline = rf"{grep_cmd}  ,{tic} ."
     res = subprocess.run(cmdline, cwd=csv_dir, capture_output=True, text=True)
     if res.returncode == 0:
         return parse_grep_out(res.stdout)
