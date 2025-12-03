@@ -66,13 +66,35 @@ def combine_tess_n_k2(lc_tess, lc_k2, shift_to_tess=True):
 
 
 def get_label_of_source(lc_dict, source, mag_shift_precision=3):
+
+    def get_rounded_str(val, precision):
+        # Can't use the naive version: `f"{np.round(val, precision)}"`
+        #
+        # for some reason, in a specific case
+        # (in my notebook TIC_75722876_EA.ipynb),
+        # in rounding the value 1.1312150955200195 mag (TESS mag shift, in MaskedQuantity),
+        # the naive version returns 1.1299999952316284 mag
+        # I cannot reproduce the problem in isolated codes.
+        #
+        # This function is a workaround, which requires:
+        # 1. strip the unit (handle it separately), and
+        # 2. use str() on the rounded value (f-string would produce the incorrect value)
+
+        if isinstance(val, u.Quantity):
+            val_unit = f" {val.unit}"  # space prepended
+            val = val.value
+        else:
+            val_unit = ""
+        val_rounded = np.round(val, precision)
+        return str(val_rounded), val_unit  # must use str(), cannot use f-string
+
     lc = lc_dict[source]
     mag_shift = lc.meta.get("FLUX_SHIFT", None)
     if mag_shift is not None and mag_shift != 0:
         sign_str = "+" if mag_shift > 0 else ""
-        mag_shift_rounded = np.round(mag_shift, mag_shift_precision)
-        if mag_shift_rounded != 0:
-            return f"{source} {sign_str}{mag_shift_rounded}"
+        mag_shift_rounded, mag_unit = get_rounded_str(mag_shift, mag_shift_precision)
+        if mag_shift_rounded != "0":
+            return f"{source} {sign_str}{mag_shift_rounded}{mag_unit}"
         else:
             return source
     else:
