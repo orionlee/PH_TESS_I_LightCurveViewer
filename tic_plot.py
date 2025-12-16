@@ -526,8 +526,13 @@ def plot_transits(lcf_coll, transit_specs, ax_fn=lambda: lk_ax(), **kwargs):
             t0 = spec["epoch"]
             duration = spec["duration_hr"] / 24
             period = spec["period"]
-            steps_to_show = spec["steps_to_show"]
+            steps_to_show = spec.get("steps_to_show", None)
             surround_time = spec.get("surround_time", 1.5)  # a hardcoded last resort default
+
+            if steps_to_show is None:
+                # derive the expected transit times in the LC, and use all of them
+                steps_to_show = lke.get_transit_times_in_lc(lcf, t0, period, in_cycles=True)
+                print(f"INFO steps_to_show is None. Derived value: {steps_to_show}")
 
             # TODO: warn if period is 0, but steps to show is not [0]
 

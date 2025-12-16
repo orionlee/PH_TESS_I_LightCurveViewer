@@ -676,7 +676,7 @@ def get_transit_times_in_range(t0, period, start, end):
     return [t_start + period * i for i in range(num_t)]
 
 
-def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
+def get_transit_times_in_lc(lc, t0, period, in_cycles=False, return_string=False, **kwargs):
     """Get the transit times with observations of the given lightcurve, based on the supplied transit parameters.
 
     The method will exclude the times where there is no observation due to data gaps.
@@ -689,6 +689,8 @@ def get_transit_times_in_lc(lc, t0, period, return_string=False, **kwargs):
     transit_times = []
     for start, end in times_list:
         transit_times.extend(get_transit_times_in_range(t0, period, start, end))
+    if in_cycles:  # convert transit times to cycles, if specified
+        transit_times = [round((t - t0) / period) for t in transit_times]
     if return_string:
         return ",".join(map(str, transit_times))
     else:
