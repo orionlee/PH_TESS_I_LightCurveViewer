@@ -3,6 +3,8 @@
 # for the use in `lightkurve_ext_tess.get_tic_meta_in_html()`
 # (alternative is to add it to sys.path)
 tess_dv_fast.py
+tess_dv_fast_common.py
+tess_dv_fast_spec.py
 
 # Backup files
 *~
