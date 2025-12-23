@@ -3,6 +3,7 @@
 #
 
 from collections.abc import Sequence
+from functools import lru_cache
 import pathlib
 import re
 from types import SimpleNamespace
@@ -857,6 +858,55 @@ def _to_stellar_meta(target):
             teff=row["Teff"],
         )
     raise TypeError(f"target, of type {type(target)} is not supported")
+
+
+# the caching is primarily for interactive usage in notebooks.
+@lru_cache(maxsize=8)
+def get_exofop_planet_parameters(tic, also_return_codes=True):
+    """Get the Planet parameters of a given TIC from ExoFOP.
+
+    The Codes column would be partly truncated with pandas default display. Show the entire one with:
+    ```
+    with pd.option_context("display.max_colwidth", None):
+        display(df[["Name", "Codes"]])
+    ```
+    """
+
+    def to_codes(row):
+        def get(colname, default=None):
+            val = row[colname]
+            if (isinstance(val, (int, float)) and np.isnan(val)) or "NaN" == val:
+                val = default
+            return val
+
+        def escape_double_quote(text):
+            return text.replace('"', r"\"")
+
+        # use TOI if available, otherwise use the name (usually a known planet)
+        label = get("TOI", None)
+        if label is None:
+            label = get("Name", "dip")
+        if get("Table") == "Planet":
+            label += f"_user_{get('User', '')}"
+
+        epoch = round(Time(get("Epoch (BJD)", default=0.0), format="jd", scale="tdb").to_value("btjd"), 2)
+        duration_hr = round(get("Duration (hrs)", default=0.0), 2)
+        period = get("Period (days)", default=9999.0)
+        transit_depth_percent = round(get("Depth (ppm)", default=0.0) / 10000, 4)
+
+        return (
+            f"epoch={epoch}, duration_hr={duration_hr}, period={period}, "
+            f'label="{escape_double_quote(label)}", transit_depth_percent={transit_depth_percent},'
+        )
+
+    df = pd.read_csv(
+        f"https://exofop.ipac.caltech.edu/tess/download_planet.php?id={tic}",
+        sep="|",
+    )
+
+    if also_return_codes:
+        df["Codes"] = df.apply(to_codes, axis=1)
+    return df
 
 
 def decode_gaiadr3_nss_flag(nss_flag):
