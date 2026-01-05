@@ -633,7 +633,8 @@ async def search_tglc_lightcurve(tic, csv_dir=".", grep_cmd="grep -H"):
         #   'https://archive.stsci.edu/hlsps/tglc/s0039/cam3-ccd4/0046/2303/6865/3737/
         #    hlsp_tglc_tess_ffi_gaiaid-4623036865373793408-s0039-cam3-ccd4_tess_v1_llc.fits'
 
-        gp = f"{gaia_source:021}"
+        # the path scheme below always starts with "00", irrespective the number of digits in Gaia Source
+        gp = f"00{gaia_source}"
 
         download_url = (
             f"https://archive.stsci.edu/hlsps/tglc/s{sector:04}/cam{camera}-ccd{ccd}/"
