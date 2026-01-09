@@ -25,6 +25,7 @@ from astropy import coordinates as coord
 from astropy.coordinates import SkyCoord
 from astropy.table import QTable, Table
 from astropy.time import Time
+from astropy.utils.decorators import deprecated
 import astropy.units as u
 
 import numpy as np
@@ -1420,9 +1421,15 @@ def to_normalized_flux_from_mag_vals(vals, errs):
     return vals_norm, errs_norm
 
 
+def normalized_amplitude_to_delta_mag(normalized_amplitude):
+    """Convert normalized transit depth to magnitude."""
+    return 2.5 * np.log10(1 / (1 - normalized_amplitude))
+
+
+@deprecated("2026-01-08", alternative="normalized_amplitude_to_delta_mag", warning_type=DeprecationWarning)
 def ratio_to_mag(val_in_ratio):
     """Convert normalized transit depth to magnitude."""
-    return 2.5 * np.log10(1 / (1 - val_in_ratio))
+    return normalized_amplitude_to_delta_mag(val_in_ratio)
 
 
 def to_hjd_utc(t_obj: Time, sky_coord: SkyCoord) -> Time:
