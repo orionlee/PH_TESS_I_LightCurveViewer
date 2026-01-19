@@ -3,6 +3,7 @@
 Helpers to plot the lightcurve of a TESS subject, given a
 LightCurveCollection
 """
+
 # so that type hint Optional(LC_Ylim_Func_Type) can be used
 # otherwise Python complains TypeError: Cannot instantiate typing.Optional
 from __future__ import annotations
@@ -31,7 +32,12 @@ from ipywidgets import interactive, interactive_output, fixed
 import ipywidgets as widgets
 
 import lightkurve as lk
-from lightkurve import LightCurve, LightCurveCollection, LightkurveWarning, FoldedLightCurve
+from lightkurve import (
+    LightCurve,
+    LightCurveCollection,
+    LightkurveWarning,
+    FoldedLightCurve,
+)
 from lightkurve.utils import TessQualityFlags
 from lightkurve_ext import of_sectors
 import lightkurve_ext as lke
@@ -48,7 +54,9 @@ def get_tic_meta_in_html(lc, a_subject_id=None, download_dir=None, **kwargs):
     # it will not break the rest of the codes
     import lightkurve_ext_tess as lke_tess
 
-    return lke_tess.get_tic_meta_in_html(lc, a_subject_id=a_subject_id, download_dir=download_dir, **kwargs)
+    return lke_tess.get_tic_meta_in_html(
+        lc, a_subject_id=a_subject_id, download_dir=download_dir, **kwargs
+    )
 
 
 def beep():
@@ -92,7 +100,9 @@ def _normalize_to_percent_quiet(lc):
     # Some product are in normalized flux, e.g., as 1, we still want to normalize them to percentage
     # for consistency
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=LightkurveWarning, message=".*in relative units.*")
+        warnings.filterwarnings(
+            "ignore", category=LightkurveWarning, message=".*in relative units.*"
+        )
         return lke.normalize(lc, unit="percent")
 
 
@@ -206,7 +216,9 @@ def scatter(lc, **kwargs):
     figsize = kwargs.pop("figsize", None)
     if figsize is not None:
         if kwargs.get("ax", None) is not None:
-            raise ValueError("Only one of 'ax' and 'figsize' parameters can be specified.")
+            raise ValueError(
+                "Only one of 'ax' and 'figsize' parameters can be specified."
+            )
         ax = lk_ax(figsize=(figsize))
         kwargs["ax"] = ax
     ax = lc.scatter(**kwargs)
@@ -215,7 +227,9 @@ def scatter(lc, **kwargs):
 
 def errorbar(lc, **kwargs):
     """lc.errorbar() with the proper support of plotting flux in magnitudes"""
-    if "marker" not in kwargs:  # do not use kwargs.get("marker") is None, so that caller can explicitly set marker=None
+    if (
+        "marker" not in kwargs
+    ):  # do not use kwargs.get("marker") is None, so that caller can explicitly set marker=None
         # lightkurve's default style for errorbar hides the marker. I find having a marker is typically useful.
         kwargs = kwargs.copy()
         kwargs["marker"] = "o"
@@ -223,7 +237,9 @@ def errorbar(lc, **kwargs):
     figsize = kwargs.pop("figsize", None)
     if figsize is not None:
         if kwargs.get("ax", None) is not None:
-            raise ValueError("Only one of 'ax' and 'figsize' parameters can be specified.")
+            raise ValueError(
+                "Only one of 'ax' and 'figsize' parameters can be specified."
+            )
         ax = lk_ax(figsize=(figsize))
         kwargs["ax"] = ax
     ax = lc.errorbar(**kwargs)
@@ -236,7 +252,9 @@ def plot(lc, **kwargs):
     figsize = kwargs.pop("figsize", None)
     if figsize is not None:
         if kwargs.get("ax", None) is not None:
-            raise ValueError("Only one of 'ax' and 'figsize' parameters can be specified.")
+            raise ValueError(
+                "Only one of 'ax' and 'figsize' parameters can be specified."
+            )
         ax = lk_ax(figsize=(figsize))
         kwargs["ax"] = ax
     ax = lc.plot(**kwargs)
@@ -253,7 +271,9 @@ def add_flux_moving_average(lc, moving_avg_window):
     #    is so large that creating pd.Timestamp with it causes Overflow error
     # 2. if we want the timestamp to reflect the actual time, we need to convert the BTJD in time to timetamp, e.g.
     #      pd.Timestamp(astropy.time.Time(x + 2457000, format='jd', scale='tdb').datetime.timestamp(), unit='s')
-    df["flux_mavg"] = df.rolling(moving_avg_window, center=True, on="time_ts")["flux"].mean()
+    df["flux_mavg"] = df.rolling(moving_avg_window, center=True, on="time_ts")[
+        "flux"
+    ].mean()
     return df
 
 
@@ -302,8 +322,12 @@ def _add_flux_origin_to_ylabel(ax, lc):
         return r"$\it{" + text.replace("_", r"\_") + "}$"
 
     flux_origin = lc.meta.get("FLUX_ORIGIN", None)
-    if flux_origin is not None and flux_origin != standard_flux_col_map.get(lc.meta.get("AUTHOR", None), None):
-        ax.yaxis.set_label_text(ax.yaxis.get_label_text().replace("Flux", make_italic(lc.flux_origin)))
+    if flux_origin is not None and flux_origin != standard_flux_col_map.get(
+        lc.meta.get("AUTHOR", None), None
+    ):
+        ax.yaxis.set_label_text(
+            ax.yaxis.get_label_text().replace("Flux", make_italic(lc.flux_origin))
+        )
 
 
 _cache_plot_n_annotate_lcf = dict(lcf=None, flux_col=None, normalize=None, lc=None)
@@ -389,7 +413,9 @@ def plot_n_annotate_lcf(
             plot_kwargs["s"] = 36
         if plot_kwargs.get("marker") is None:
             plot_kwargs["marker"] = "x"
-    plot_fn = globals()[plot_fn_name]  # the scatter / plot / errorbar wrapper in this module
+    plot_fn = globals()[
+        plot_fn_name
+    ]  # the scatter / plot / errorbar wrapper in this module
     ax = plot_fn(lc, **plot_kwargs)
 
     if len(lc) < 1:
@@ -413,7 +439,9 @@ def plot_n_annotate_lcf(
             label=f"Moving average ({moving_avg_window})",
         )
     else:
-        df = add_flux_moving_average(lc, "10min")  # still needed for some subsequent calc, but don't plot it
+        df = add_flux_moving_average(
+            lc, "10min"
+        )  # still needed for some subsequent calc, but don't plot it
 
     # annotate the graph
     if t_start is not None:
@@ -457,13 +485,17 @@ def plot_n_annotate_lcf(
         if t0 is not None:
             transit_duration_msg = ""
             if t_start is not None and t_end is not None:
-                transit_duration_msg = f"\ntransit duration ~= {as_4decimal(24 * (t_end - t_start))}h"
+                transit_duration_msg = (
+                    f"\ntransit duration ~= {as_4decimal(24 * (t_end - t_start))}h"
+                )
             flux_t0 = flux_mavg_near(df, t0)
             if flux_t0 is not None:
                 flux_begin = max(flux_mavg_near(df, t_start), flux_mavg_near(df, t_end))
                 flux_dip = flux_begin - flux_t0
                 r_obj_msg = ""
-                r_obj = lke.estimate_object_radius_in_r_jupiter(lc, flux_dip / 100)  # convert flux_dip in percent to fractions
+                r_obj = lke.estimate_object_radius_in_r_jupiter(
+                    lc, flux_dip / 100
+                )  # convert flux_dip in percent to fractions
                 if show_r_obj_estimate and r_obj is not None:
                     r_obj_msg = f", R_p ~= {r_obj:0.2f} R_j"
                 title_text += (
@@ -517,21 +549,31 @@ def plot_transits(lcf_coll, transit_specs, ax_fn=lambda: lk_ax(), **kwargs):
     """Helper to plot transits zoomed-in."""
     flux_col = kwargs.get("flux_col", "flux")
     if not isinstance(flux_col, str) or flux_col.lower() not in ["flux", "pdcsap_flux"]:
-        display(HTML(f"""<span style="background-color: yellow"> Note: </span> Not standard flux is plotted: {flux_col}"""))
+        display(
+            HTML(
+                f"""<span style="background-color: yellow"> Note: </span> Not standard flux is plotted: {flux_col}"""
+            )
+        )
 
     axs = []
     for spec in transit_specs:
-        for lcf in of_sectors(lcf_coll, spec["sector"]):  # in case we have multiple lcf per sector
+        for lcf in of_sectors(
+            lcf_coll, spec["sector"]
+        ):  # in case we have multiple lcf per sector
             #  process the supplied spec and apply defaults
             t0 = spec["epoch"]
             duration = spec["duration_hr"] / 24
             period = spec["period"]
             steps_to_show = spec.get("steps_to_show", None)
-            surround_time = spec.get("surround_time", 1.5)  # a hardcoded last resort default
+            surround_time = spec.get(
+                "surround_time", 1.5
+            )  # a hardcoded last resort default
 
             if steps_to_show is None:
                 # derive the expected transit times in the LC, and use all of them
-                steps_to_show = lke.get_transit_times_in_lc(lcf, t0, period, in_cycles=True)
+                steps_to_show = lke.get_transit_times_in_lc(
+                    lcf, t0, period, in_cycles=True
+                )
                 print(f"INFO steps_to_show is None. Derived value: {steps_to_show}")
 
             # TODO: warn if period is 0, but steps to show is not [0]
@@ -541,7 +583,15 @@ def plot_transits(lcf_coll, transit_specs, ax_fn=lambda: lk_ax(), **kwargs):
                 t0_label_suffix = None
                 if spec.get("label", "") not in ["", "dip", "dips"]:
                     t0_label_suffix = spec.get("label")
-                ax = plot_transit(lcf, ax_fn(), cur_t0, duration, surround_time, t0_label_suffix=t0_label_suffix, **kwargs)
+                ax = plot_transit(
+                    lcf,
+                    ax_fn(),
+                    cur_t0,
+                    duration,
+                    surround_time,
+                    t0_label_suffix=t0_label_suffix,
+                    **kwargs,
+                )
                 axs.append(ax)
     return axs
 
@@ -555,12 +605,23 @@ def print_data_range(lcf_coll):
     * camera used
     """
     html = '<pre style="line-height: 1.1;">\n'
-    html += "<summary>Sectors: " + lke.abbrev_sector_list(lcf_coll) + f" ({len(lcf_coll)})" + "\n"
+    html += (
+        "<summary>Sectors: "
+        + lke.abbrev_sector_list(lcf_coll)
+        + f" ({len(lcf_coll)})"
+        + "\n"
+    )
     html += "Observation period range / data range:" + "\n"
     html += "<details>"
     for lc in lcf_coll:
-        html += f"  Sector {lc.meta.get('SECTOR')}: {lc.meta.get('TSTART')} - {lc.meta.get('TSTOP')}" + "\n"
-        html += f"   (cam.ccd {lc.meta.get('CAMERA')}.{lc.meta.get('CCD')})   {lc.time.min()} - {lc.time.max()}" + "\n"
+        html += (
+            f"  Sector {lc.meta.get('SECTOR')}: {lc.meta.get('TSTART')} - {lc.meta.get('TSTOP')}"
+            + "\n"
+        )
+        html += (
+            f"   (cam.ccd {lc.meta.get('CAMERA')}.{lc.meta.get('CCD')})   {lc.time.min()} - {lc.time.max()}"
+            + "\n"
+        )
     html += "</details></summary></pre>"
     display(HTML(html))
 
@@ -572,7 +633,10 @@ def get_momentum_dump_times(lcf):
         lcf.meta["momentum_dumps"] = time_mom_dumps
 
     # in case the lcf has been truncated, we preserve the truncation
-    return time_mom_dumps[(lcf.time.min().value <= time_mom_dumps) & (time_mom_dumps <= lcf.time.max().value)]
+    return time_mom_dumps[
+        (lcf.time.min().value <= time_mom_dumps)
+        & (time_mom_dumps <= lcf.time.max().value)
+    ]
 
 
 def vlines_y_in_axes_coord(ax, x, ymin, ymax, **kwargs):
@@ -583,7 +647,9 @@ def vlines_y_in_axes_coord(ax, x, ymin, ymax, **kwargs):
 
     trans = ax.get_xaxis_transform()  # for ymin/ymax in axes coordinates
     if kwargs.get("transform", None) is not None and kwargs["transform"] is not trans:
-        raise ValueError("_vlines_y_in_axes_coord() does not accept transform() parameter. It uses its own")
+        raise ValueError(
+            "_vlines_y_in_axes_coord() does not accept transform() parameter. It uses its own"
+        )
     kwargs["transform"] = trans
     res = ax.vlines(x, ymin, ymax, **kwargs)
 
@@ -598,7 +664,9 @@ def vlines_y_in_axes_coord(ax, x, ymin, ymax, **kwargs):
     return res
 
 
-def plot_momentum_dumps(lcf, ax, use_relative_time=False, mark_height_scale=0.15, color="red"):
+def plot_momentum_dumps(
+    lcf, ax, use_relative_time=False, mark_height_scale=0.15, color="red"
+):
     """Mark  momentum dumps on the given plot."""
 
     # The momentum dump is for TESS data, in btjd
@@ -724,7 +792,9 @@ def plot_all(
         else:  # case user-supplied plot args
             plot_kwargs_for_cur_lc = plot_kwargs_for_cur_lc.copy()  # we'll modify it
         plot_kwargs_for_cur_lc["ax"] = ax  # add the ax we created
-        plot_fn = globals()[plot_fn_name]  # the scatter / plot / errorbar wrapper in this module
+        plot_fn = globals()[
+            plot_fn_name
+        ]  # the scatter / plot / errorbar wrapper in this module
         ax = plot_fn(lc, **plot_kwargs_for_cur_lc)
 
         # convert to dataframe to add moving average
@@ -753,7 +823,9 @@ def plot_all(
         else:
             t_start = lc.meta.get("TSTART")
             if t_start is not None:
-                ax.xaxis.set_label_text(ax.xaxis.label.get_text() + f", TSTART={t_start:0.2f}")
+                ax.xaxis.set_label_text(
+                    ax.xaxis.label.get_text() + f", TSTART={t_start:0.2f}"
+                )
 
         _add_flux_origin_to_ylabel(ax, lc)
 
@@ -799,7 +871,9 @@ def plot_all(
 _lcf_4_plot_interactive = None
 
 
-def _update_plot_lcf_interactive(figsize, flux_col, xrange, moving_avg_window, ymin, ymax, widget_out2):
+def _update_plot_lcf_interactive(
+    figsize, flux_col, xrange, moving_avg_window, ymin, ymax, widget_out2
+):
     # use global to accept lct
     global _lcf_4_plot_interactive
     lcf = _lcf_4_plot_interactive
@@ -878,8 +952,12 @@ def plot_lcf_interactive(lcf, figsize=(15, 8), flux_col="flux"):
             description="Moving average window",
             style=desc_style,
         ),
-        ymin=widgets.FloatText(value=-1, description="Flux min, -1 for default", style=desc_style),
-        ymax=widgets.FloatText(value=-1, description="Flux max, -1 for default", style=desc_style),
+        ymin=widgets.FloatText(
+            value=-1, description="Flux min, -1 for default", style=desc_style
+        ),
+        ymax=widgets.FloatText(
+            value=-1, description="Flux max, -1 for default", style=desc_style
+        ),
         widget_out2=fixed(widget_out2),
     )
     w.layout.border = "1px solid lightgray"
@@ -923,7 +1001,9 @@ def _get_sector_for_time(t0, lcf):
     return lcf.meta.get("SECTOR")
 
 
-def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=None, plot_kwargs={}):
+def plot_transit_interactive(
+    lcf, figsize=(15, 8), flux_col="flux", defaults=None, plot_kwargs={}
+):
     """Interactive version of `plot_n_annotate_lcf()` / `plot_transit()`.
 
     `plot_kwargs`:  parameters to be passed to `plot_n_annotate_lcf()`
@@ -952,11 +1032,19 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
         # for typical inline matplotlib backend, the figure needs to be recreated every time.
         ax = lk_ax(figsize=figsize)
         codes_text = "# Snippets to generate the plot"
-        moving_avg_window_for_codes = "None" if moving_avg_window is None else f"'{moving_avg_window}'"
+        moving_avg_window_for_codes = (
+            "None" if moving_avg_window is None else f"'{moving_avg_window}'"
+        )
 
         # do the main plot with 2 cases (whole lc if t0 < 0, zoomed plot otherwise)
         if t0 < 0:
-            plot_n_annotate_lcf(lcf, ax, flux_col=flux_col, moving_avg_window=moving_avg_window, **plot_kwargs)
+            plot_n_annotate_lcf(
+                lcf,
+                ax,
+                flux_col=flux_col,
+                moving_avg_window=moving_avg_window,
+                **plot_kwargs,
+            )
             codes_text += f"\nplot_n_annotate_lcf(lcf, ax, moving_avg_window={moving_avg_window_for_codes})"
         else:
             t0_to_use = t0 + step * period
@@ -969,7 +1057,9 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
             if t0 != last_t0:
                 # see if new t0 is in range
                 # - use t0 rather than t0_to_use, as we're going to reset step to 0
-                xmin, xmax = _get_plot_transit_x_range(t0, duration_hr / 24, surround_time)
+                xmin, xmax = _get_plot_transit_x_range(
+                    t0, duration_hr / 24, surround_time
+                )
                 times = lcf.time.value
                 no_data = len(times[(xmin <= times) & (times <= xmax)]) < 1
                 if no_data:  # reset to last t0
@@ -983,7 +1073,9 @@ def plot_transit_interactive(lcf, figsize=(15, 8), flux_col="flux", defaults=Non
             # case 2. handle case user changes step, automatically adjust the step
             # if the implied range has no LC data (data gap, before start, after end)
             elif step != last_step:
-                xmin, xmax = _get_plot_transit_x_range(t0_to_use, duration_hr / 24, surround_time)
+                xmin, xmax = _get_plot_transit_x_range(
+                    t0_to_use, duration_hr / 24, surround_time
+                )
                 times = lcf.time.value
                 no_data = len(times[(xmin <= times) & (times <= xmax)]) < 1
                 if no_data:
@@ -1081,16 +1173,25 @@ ax.set_ylim({ymin_to_use}, {ymax_to_use})
     w_val = defaults.get("duration_hr", 1)
     w_step = 1 / 10 ** number_of_decimal_places(w_val, 1)
     w_val = float(w_val)  # in case it's specified as string to signify decimal places
-    duration_hr = widgets.FloatText(value=w_val, step=w_step, description="duration (hours)", style=desc_style)
+    duration_hr = widgets.FloatText(
+        value=w_val, step=w_step, description="duration (hours)", style=desc_style
+    )
     w_val = defaults.get("period", 1)
     w_step = 1 / 10 ** number_of_decimal_places(w_val, 2)
     w_val = float(w_val)  # in case it's specified as string to signify decimal places
-    period = widgets.FloatText(value=w_val, step=w_step, description="period (days)", style=desc_style)
+    period = widgets.FloatText(
+        value=w_val, step=w_step, description="period (days)", style=desc_style
+    )
     step = widgets.IntText(
-        value=defaults.get("step", 0), description=r"cycle (0 for transit at $t_{epoch}$)", style=desc_style
+        value=defaults.get("step", 0),
+        description=r"cycle (0 for transit at $t_{epoch}$)",
+        style=desc_style,
     )
     surround_time = widgets.FloatText(
-        value=defaults.get("surround_time", 7), step=0.5, description="padding (days)", style=desc_style
+        value=defaults.get("surround_time", 7),
+        step=0.5,
+        description="padding (days)",
+        style=desc_style,
     )
     moving_avg_window = widgets.Dropdown(
         options=[
@@ -1106,8 +1207,12 @@ ax.set_ylim({ymin_to_use}, {ymax_to_use})
         description="moving average window",
         style=desc_style,
     )
-    ymin = widgets.FloatText(value=-1, step=0.1, description="flux min, -1 for default", style=desc_style)
-    ymax = widgets.FloatText(value=-1, step=0.1, description="flux max, -1 for default", style=desc_style)
+    ymin = widgets.FloatText(
+        value=-1, step=0.1, description="flux min, -1 for default", style=desc_style
+    )
+    ymax = widgets.FloatText(
+        value=-1, step=0.1, description="flux max, -1 for default", style=desc_style
+    )
     t0mark_ymax = widgets.BoundedFloatText(
         value=0.05,
         step=0.05,
@@ -1178,7 +1283,9 @@ ax.set_ylim({ymin_to_use}, {ymax_to_use})
     return w
 
 
-def plot_flux_sap_flux_comparison(lc, sap_col="sap_flux", ax=None, offset=None, **kwargs):
+def plot_flux_sap_flux_comparison(
+    lc, sap_col="sap_flux", ax=None, offset=None, **kwargs
+):
     """Plot flux (typically PDCSAP_FLUX) and sap_flux together,
     to spot any anomaly in processed lightcurve."""
     lc_sap = lc.copy()
@@ -1223,7 +1330,9 @@ def mark_transit_times(
     """Plot the given LC, and mark the transit times based on `tt_specs`."""
     break_tolerance = 5 if not mark_data_gap else 1e7
     tt_list = [
-        lke.get_transit_times_in_lc(lc, a_spec["epoch"], a_spec["period"], break_tolerance=break_tolerance)
+        lke.get_transit_times_in_lc(
+            lc, a_spec["epoch"], a_spec["period"], break_tolerance=break_tolerance
+        )
         for a_spec in tt_specs
     ]
 
@@ -1253,10 +1362,14 @@ def mark_transit_times(
     #
     if axvline_kwargs_specs is None:
         axvline_kwargs_specs = [dict(label="dip", linestyle="--", color="red")]
-    axvline_kwargs_specs = [aks.copy() for aks in axvline_kwargs_specs]  # avoid modifying user's argument by making local copy
+    axvline_kwargs_specs = [
+        aks.copy() for aks in axvline_kwargs_specs
+    ]  # avoid modifying user's argument by making local copy
 
     # use the label in tt_specs if not specified in axvline_kwargs
-    for a_spec, an_axvline_kwargs, idx_0_based in zip(tt_specs, axvline_kwargs_specs, range(len(axvline_kwargs_specs))):
+    for a_spec, an_axvline_kwargs, idx_0_based in zip(
+        tt_specs, axvline_kwargs_specs, range(len(axvline_kwargs_specs))
+    ):
         if an_axvline_kwargs.get("label") is None:
             an_axvline_kwargs["label"] = a_spec.get("label", f"dip {idx_0_based + 1}")
 
@@ -1268,14 +1381,18 @@ def mark_transit_times(
     # TODO: use `vlines_y_in_axes_coord()` helper instead.
     for transit_times, axvline_kwargs in zip(tt_list, axvline_kwargs_specs):
         if len(transit_times) > 0 and axvline_kwargs is not None:
-            axvline_kwargs = axvline_kwargs.copy()  # as we might need to modify them locally
+            axvline_kwargs = (
+                axvline_kwargs.copy()
+            )  # as we might need to modify them locally
             ymin, ymax = axvline_kwargs.pop("ymin", 0), axvline_kwargs.pop("ymax", 0.1)
             ax.axvline(transit_times[0], ymin, ymax, **axvline_kwargs)
     ax.legend(loc=legend_loc)
 
     for transit_times, axvline_kwargs in zip(tt_list, axvline_kwargs_specs):
         if axvline_kwargs is not None:
-            axvline_kwargs = axvline_kwargs.copy()  # as we might need to modify them locally
+            axvline_kwargs = (
+                axvline_kwargs.copy()
+            )  # as we might need to modify them locally
             ymin, ymax = axvline_kwargs.pop("ymin", 0), axvline_kwargs.pop("ymax", 0.1)
             for tt in transit_times:
                 ax.axvline(tt, ymin, ymax, **axvline_kwargs)
@@ -1342,7 +1459,13 @@ def plot_skip_data_gap(lc, wspace=0.2, figsize=(16, 4), data_gap_min_days=10, **
     num_plots = len(intervals)
     with plt.style.context(lk.MPLSTYLE):
         figsize = kwargs.pop("figsize", figsize)
-        fig, axs = plt.subplots(1, num_plots, sharey=True, figsize=figsize, gridspec_kw={"width_ratios": width_ratio})
+        fig, axs = plt.subplots(
+            1,
+            num_plots,
+            sharey=True,
+            figsize=figsize,
+            gridspec_kw={"width_ratios": width_ratio},
+        )
         if isinstance(axs, matplotlib.axes.Axes):
             # case it returns a single Axes object
             axs = [axs]
@@ -1417,10 +1540,14 @@ def plot_skip_data_gap(lc, wspace=0.2, figsize=(16, 4), data_gap_min_days=10, **
             clip_on=False,
         )
         if i < num_plots - 1:
-            ax.plot(1, 0, transform=ax.transAxes, **marker_kwargs)  # the right bottom mark
+            ax.plot(
+                1, 0, transform=ax.transAxes, **marker_kwargs
+            )  # the right bottom mark
             ax.plot(1, 1, transform=ax.transAxes, **marker_kwargs)  # the right top mark
         if i > 0:
-            ax.plot(0, 0, transform=ax.transAxes, **marker_kwargs)  # the left bottom mark
+            ax.plot(
+                0, 0, transform=ax.transAxes, **marker_kwargs
+            )  # the left bottom mark
             ax.plot(0, 1, transform=ax.transAxes, **marker_kwargs)  # the left top mark
 
         # 1 xlabel for entire plot that will be constructed later
@@ -1437,9 +1564,20 @@ def plot_skip_data_gap(lc, wspace=0.2, figsize=(16, 4), data_gap_min_days=10, **
     # so that it can be positioned at the center
     custom_xlabel_text_obj = fig.text(0.5, 0, xlabel_text, ha="center")
     # propagagate the text properties from the native xlabel to our custom oe
-    for prop in ["color", "fontsize", "fontproperties", "fontfamily", "fontname", "fontstyle", "fontweight", "fontvariant"]:
+    for prop in [
+        "color",
+        "fontsize",
+        "fontproperties",
+        "fontfamily",
+        "fontname",
+        "fontstyle",
+        "fontweight",
+        "fontvariant",
+    ]:
         # generalized version of: custom_xlabel_text_obj.set_fontsize(axs[0].xaxis.get_label().get_fontsize())
-        getattr(custom_xlabel_text_obj, f"set_{prop}")(getattr(axs[0].xaxis.get_label(), f"get_{prop}")())
+        getattr(custom_xlabel_text_obj, f"set_{prop}")(
+            getattr(axs[0].xaxis.get_label(), f"get_{prop}")()
+        )
 
     # OPEN: create a wrapper over the axs, say, `HorizontalAxesCollection`, such that users have convenience plot methods
     # as if it is a single plot object, e.g.,
@@ -1463,7 +1601,9 @@ def plot_centroids(lc, transit_time=None, window=None):
     if (window is None) or (transit_time is None):
         transit_mask = lc_bin.time.value > 0
     else:
-        transit_mask = (lc_bin.time.value > transit_time - window) & (lc_bin.time.value < transit_time + window)
+        transit_mask = (lc_bin.time.value > transit_time - window) & (
+            lc_bin.time.value < transit_time + window
+        )
 
     # make a plot with three panels so that we can see the lightcurve and the centroid positions
     with plt.style.context(lk.MPLSTYLE):
@@ -1471,13 +1611,19 @@ def plot_centroids(lc, transit_time=None, window=None):
 
     # plot the lightcurve in the top panel (in orange)
     ax[0].plot(
-        lc_bin.time.value[transit_mask], lc_bin.sap_flux.value[transit_mask], color="darkorange", lw=0, marker=".", ms=3
+        lc_bin.time.value[transit_mask],
+        lc_bin.sap_flux.value[transit_mask],
+        color="darkorange",
+        lw=0,
+        marker=".",
+        ms=3,
     )
 
     # plot the centroid motions in the column direction in the middle panel
     ax[1].plot(
         lc_bin.time.value[transit_mask],
-        lc_bin.mom_centr1.value[transit_mask] - np.nanmean(lc_bin.mom_centr1.value[transit_mask]),
+        lc_bin.mom_centr1.value[transit_mask]
+        - np.nanmean(lc_bin.mom_centr1.value[transit_mask]),
         color="black",
         lw=0,
         marker=".",
@@ -1486,7 +1632,8 @@ def plot_centroids(lc, transit_time=None, window=None):
     )
     ax[1].plot(
         lc_bin.time.value[transit_mask],
-        lc_bin.pos_corr1.value[transit_mask] - np.nanmean(lc_bin.pos_corr1.value[transit_mask]),
+        lc_bin.pos_corr1.value[transit_mask]
+        - np.nanmean(lc_bin.pos_corr1.value[transit_mask]),
         color="red",
         lw=0,
         marker=".",
@@ -1497,7 +1644,8 @@ def plot_centroids(lc, transit_time=None, window=None):
     # plot the centroid motions in the row direction in the middle panel
     ax[2].plot(
         lc_bin.time.value[transit_mask],
-        lc_bin.mom_centr2.value[transit_mask] - np.nanmedian(lc_bin.mom_centr2.value[transit_mask]),
+        lc_bin.mom_centr2.value[transit_mask]
+        - np.nanmedian(lc_bin.mom_centr2.value[transit_mask]),
         color="black",
         lw=0,
         marker=".",
@@ -1507,7 +1655,8 @@ def plot_centroids(lc, transit_time=None, window=None):
     )
     ax[2].plot(
         lc_bin.time.value[transit_mask],
-        lc_bin.pos_corr2.value[transit_mask] - np.nanmedian(lc_bin.pos_corr2.value[transit_mask]),
+        lc_bin.pos_corr2.value[transit_mask]
+        - np.nanmedian(lc_bin.pos_corr2.value[transit_mask]),
         color="red",
         lw=0,
         marker=".",
@@ -1561,13 +1710,19 @@ def scatter_centroids(
     if time_range is not None:
         lc = lc.truncate(time_range[0], time_range[1])
 
-    fig.gca().yaxis.set_major_formatter(FormatStrFormatter("%.3f"))  # avoid scientific notations
-    fig.gca().scatter(lc.centroid_col.value, lc.centroid_row.value, c=c, label=f"TIC {lc.targetid}")
+    fig.gca().yaxis.set_major_formatter(
+        FormatStrFormatter("%.3f")
+    )  # avoid scientific notations
+    fig.gca().scatter(
+        lc.centroid_col.value, lc.centroid_row.value, c=c, label=f"TIC {lc.targetid}"
+    )
 
     if highlight_time_range is not None:
         lc_highlight = lc.truncate(highlight_time_range[0], highlight_time_range[1])
         if len(lc_highlight) < 1:
-            print("WARNING: scatter_centroids() no observations in highlight_time_range")
+            print(
+                "WARNING: scatter_centroids() no observations in highlight_time_range"
+            )
         fig.gca().scatter(
             lc_highlight.centroid_col.value,
             lc_highlight.centroid_row.value,
@@ -1608,7 +1763,10 @@ def _update_anim(n, ax, lc, label, num_centroids_to_show, use_relative_time, c):
         row = lc.centroid_row[n_start:n]
         time_label = f"{as_4decimal(lc.time[n_start])} - {as_4decimal(lc.time[n])}"
         if use_relative_time:
-            time_label = time_label + f" ({as_4decimal(lc.time_rel[n_start])} - {as_4decimal(lc.time_rel[n])})"
+            time_label = (
+                time_label
+                + f" ({as_4decimal(lc.time_rel[n_start])} - {as_4decimal(lc.time_rel[n])})"
+            )
 
     ax.set_title(f"TIC {lc.targetid} Centroids, {label}\nday: {time_label}")
     ax.scatter(col, row, c=c)
@@ -1636,12 +1794,18 @@ def animate_centroids(
     # Zoom to a particular time range if specified
     if time_range is not None:
         # use pandas to zoom to a particular time_range
-        df = _normalize_to_percent_quiet(lc).to_pandas(columns=["time", "flux", "centroid_row", "centroid_col"])
+        df = _normalize_to_percent_quiet(lc).to_pandas(
+            columns=["time", "flux", "centroid_row", "centroid_col"]
+        )
         df = df[(df.time >= time_range[0]) & (df.time <= time_range[1])]
         if len(df) < 1:
-            raise Exception(f"Zoomed lightcurve has no observation. time_range={time_range}")
+            raise Exception(
+                f"Zoomed lightcurve has no observation. time_range={time_range}"
+            )
 
-        lc_z = SimpleNamespace()  # zoomed-in lightcurve-like object for the purpose of animation
+        lc_z = (
+            SimpleNamespace()
+        )  # zoomed-in lightcurve-like object for the purpose of animation
         setattr(lc_z, "time", df.time.values)
         setattr(lc_z, "flux", df.flux.values)
         setattr(lc_z, "centroid_row", df.centroid_row.values)
@@ -1653,13 +1817,17 @@ def animate_centroids(
         fig = plt.figure(figsize=(12, 12))
     if frames is None:
         num_obs = len(lc.centroid_row)
-        num_frames = int(num_obs / num_obs_per_frame)  # default 240 is about every 8 hours, given 2-minute intervals
+        num_frames = int(
+            num_obs / num_obs_per_frame
+        )  # default 240 is about every 8 hours, given 2-minute intervals
         ary_n = np.linspace(1, num_obs, num=num_frames, endpoint=False)
         ary_n[0] = np.ceil(ary_n[1] / 2)
         ary_n = list(map(lambda n: int(n), ary_n))
     else:
         ary_n = frames
-        num_obs_per_frame = frames[-1] - frames[-2]  # assume the spacing of input is linear
+        num_obs_per_frame = (
+            frames[-1] - frames[-2]
+        )  # assume the spacing of input is linear
 
     num_centroids_to_show = num_obs_per_frame
     if accumulative:
@@ -1685,7 +1853,9 @@ def animate_centroids(
 
             return iDisplay(HTML(anim.to_jshtml(default_mode="once")))
         except ImportError:
-            print("WARNING: animate_centroids() - inline display not possible Not in IPython environment.")
+            print(
+                "WARNING: animate_centroids() - inline display not possible Not in IPython environment."
+            )
             return anim
 
 
@@ -1700,7 +1870,9 @@ def markTimes(ax, times, **kwargs):
         ax.axvline(t, **axvline_kwargs)
 
 
-def plot_n_annotate_folded(lc_f, figsize=(10, 5), annotate=True, also_plot_zoom_transit=False, duration=None):
+def plot_n_annotate_folded(
+    lc_f, figsize=(10, 5), annotate=True, also_plot_zoom_transit=False, duration=None
+):
     ax = lk_ax(figsize=figsize)
     scatter(lc_f, ax=ax, s=1)
 
@@ -1794,15 +1966,20 @@ def fold_and_plot_odd_even(
     return ax, lc_folded
 
 
-def fold_2x_periods_and_plot(lc, period, epoch_time, figsize=(10, 5), title_extra="", scatter_kwargs={}):
-    lc_folded = lc.fold(period=period * 2, epoch_time=epoch_time, epoch_phase=period / 2)
+def fold_2x_periods_and_plot(
+    lc, period, epoch_time, figsize=(10, 5), title_extra="", scatter_kwargs={}
+):
+    lc_folded = lc.fold(
+        period=period * 2, epoch_time=epoch_time, epoch_phase=period / 2
+    )
 
     ax = lk_ax(figsize=figsize)
     scatter(lc_folded, ax=ax, **scatter_kwargs)
 
     ax.legend()
     ax.xaxis.set_label_text(
-        ax.xaxis.get_label_text() + f" , {lc.time.format.upper()} {lc.time.min().value:.2f} - {lc.time.max().value:.2f}"
+        ax.xaxis.get_label_text()
+        + f" , {lc.time.format.upper()} {lc.time.min().value:.2f} - {lc.time.max().value:.2f}"
     )
     plt.title(f"{lc.label} folded at 2X periods {title_extra}\nperiod={period:.4f} d")
 
@@ -1816,16 +1993,29 @@ def calc_cycles(lc: FoldedLightCurve):
         # because lightkurve fold() will put an explicit None in meta if epoch_time is not specified.
         epoch_time = lc.time.min()
     cycle_epoch_start = epoch_time - lc.period / 2
-    cycles = np.asarray(np.floor(((lc.time_original - cycle_epoch_start) / lc.period).value), dtype=int)
+    cycles = np.asarray(
+        np.floor(((lc.time_original - cycle_epoch_start) / lc.period).value), dtype=int
+    )
     # the cycle where epoch is set as 0, adjust it so that the first cycle is 0
     cycles = cycles - cycles.min()
 
     return cycles
 
 
-def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, interval=1000, plot_kwargs={}, ax_fn=None):
-    def _update_anim(frame, ax, lc, cycle_column, cycle_list, num_cycles_per_plot, plot_kwargs):
-        cycle_list_subset = cycle_list[num_cycles_per_plot * frame : num_cycles_per_plot * (frame + 1)]
+def animate_folded_lightcurve(
+    lc: FoldedLightCurve,
+    ax=None,
+    num_frames=10,
+    interval=1000,
+    plot_kwargs={},
+    ax_fn=None,
+):
+    def _update_anim(
+        frame, ax, lc, cycle_column, cycle_list, num_cycles_per_plot, plot_kwargs
+    ):
+        cycle_list_subset = cycle_list[
+            num_cycles_per_plot * frame : num_cycles_per_plot * (frame + 1)
+        ]
 
         ax.cla()
         lc_subset = lc[np.in1d(cycle_column, cycle_list_subset)]
@@ -1846,7 +2036,9 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
         if len(cycle_list_subset) < 2:
             cycle_list_subset_label = cycle_list_subset[0]
         else:
-            cycle_list_subset_label = f"{np.min(cycle_list_subset)} - {np.max(cycle_list_subset)}"
+            cycle_list_subset_label = (
+                f"{np.min(cycle_list_subset)} - {np.max(cycle_list_subset)}"
+            )
         ax.set_title(
             f"""{lc.label} , cycle {cycle_list_subset_label}, {lc_subset.time_original.format.upper()} \
 {lc_subset.time_original.min().value:.4f} - {lc_subset.time_original.max().value:.4f}"""
@@ -1887,7 +2079,9 @@ def animate_folded_lightcurve(lc: FoldedLightCurve, ax=None, num_frames=10, inte
 
         return iDisplay(HTML(anim.to_jshtml(default_mode="once")))
     except ImportError:
-        print("WARNING: animate_folded_lightcurve() - display not possible in non-IPython environment.")
+        print(
+            "WARNING: animate_folded_lightcurve() - display not possible in non-IPython environment."
+        )
         return anim
 
 
@@ -1895,7 +2089,14 @@ from bokeh.plotting import ColumnDataSource
 
 
 class MarkListUiModel(object):
-    def __init__(self, mark_list, plot_height, upper_fraction=0.2, lower_fraction=0, data_source_attr_list=["time"]):
+    def __init__(
+        self,
+        mark_list,
+        plot_height,
+        upper_fraction=0.2,
+        lower_fraction=0,
+        data_source_attr_list=["time"],
+    ):
         self._mark_list = mark_list
         self._data_source_attr_list = data_source_attr_list
         self.plot_height = plot_height
@@ -1972,7 +2173,9 @@ def interact(
 
     def create_interact_ui(doc):
         lc_source = lk_interact.prepare_lightcurve_datasource(lc)
-        fig_lc, vertical_line = lk_interact.make_lightcurve_figure_elements(lc, lc_source, ylim_func=ylim_func)
+        fig_lc, vertical_line = lk_interact.make_lightcurve_figure_elements(
+            lc, lc_source, ylim_func=ylim_func
+        )
         fig_lc.output_backend = "webgl"  # use GPU accelerated graphics when possible
 
         # customize the plot to make it more suitable for our purpose
@@ -2042,10 +2245,14 @@ def interact(
         delta_info_div = Div(styles={"font-family": "monospace"})
 
         mark_btn = Button(label="Mark", button_type="default", width=100)
-        mark_label_input = TextInput(width=200, placeholder="Optional label for the mark")
+        mark_label_input = TextInput(
+            width=200, placeholder="Optional label for the mark"
+        )
 
         # UI(Glyph) and UI Model for marks
-        marks_ui_model = MarkListUiModel(mark_list, fig_lc.height, lower_fraction=0, upper_fraction=0.2)
+        marks_ui_model = MarkListUiModel(
+            mark_list, fig_lc.height, lower_fraction=0, upper_fraction=0.2
+        )
         marks_whisker = Whisker(
             base="time",
             upper="upper",
@@ -2081,7 +2288,9 @@ def interact(
         def update_select_mark_dropdown_ui(attr, old, new):
             # don't care about attr, old, new, but needed to work as bokeh callback
             time = [mark["time"] for mark in mark_list]
-            select_mark_dropdown.menu = [(f"{t:.3f}", str(i)) for i, t in enumerate(time)]
+            select_mark_dropdown.menu = [
+                (f"{t:.3f}", str(i)) for i, t in enumerate(time)
+            ]
             select_mark_dropdown.disabled = True if len(time) < 1 else False
 
         marks_ui_model.source.on_change("data", update_select_mark_dropdown_ui)
@@ -2102,7 +2311,9 @@ def interact(
                 return -1
             idx = lc_source.selected.indices[0]
             selected_time = lc_source.data["time"][idx]
-            match_indices = [i for i, mark in enumerate(mark_list) if mark["time"] == selected_time]
+            match_indices = [
+                i for i, mark in enumerate(mark_list) if mark["time"] == selected_time
+            ]
             if len(match_indices) < 1:
                 return -1
             return match_indices[0]
@@ -2113,7 +2324,11 @@ def interact(
             idx_in_mark_list = idx_of_selected_in_mark_list()
             if idx_in_mark_list < 0:
                 idx = lc_source.selected.indices[0]
-                mark = dict(time=lc_source.data["time"][idx], flux=lc_source.data["flux"][idx], idx=idx)
+                mark = dict(
+                    time=lc_source.data["time"][idx],
+                    flux=lc_source.data["flux"][idx],
+                    idx=idx,
+                )
                 label = mark_label_input.value
                 if label != "":
                     mark["label"] = label
@@ -2122,7 +2337,11 @@ def interact(
             else:
                 marks_ui_model.del_by_idx(idx_in_mark_list)
 
-            out_div.text = Table(mark_list)._repr_html_() if len(mark_list) > 0 else out_div_default_text
+            out_div.text = (
+                Table(mark_list)._repr_html_()
+                if len(mark_list) > 0
+                else out_div_default_text
+            )
 
         mark_btn.on_click(toggle_selected_mark)
 
@@ -2179,9 +2398,15 @@ def interact(
         #
         # Goto specific time widgets / callbacks
         #
-        goto_input = TextInput(width=150, placeholder="Goto the specified time, can be a Python expression.")
+        goto_input = TextInput(
+            width=150,
+            placeholder="Goto the specified time, can be a Python expression.",
+        )
         goto_btn = Button(label="Goto", button_type="default")
-        goto_err_div = Div(styles={"font-size": "90%", "color": "red", "max-width": "30ch"}, visible=False)
+        goto_err_div = Div(
+            styles={"font-size": "90%", "color": "red", "max-width": "30ch"},
+            visible=False,
+        )
         goto_div = column(row(goto_input, goto_btn), goto_err_div)
 
         def pan_to_time():
@@ -2194,7 +2419,9 @@ def interact(
                 return False
             if not isinstance(time_new, numbers.Number):
                 goto_err_div.visible = True
-                goto_err_div.text = "Must be a number, or an expression that is evaluated to a number."
+                goto_err_div.text = (
+                    "Must be a number, or an expression that is evaluated to a number."
+                )
                 return False
 
             goto_err_div.text = ""
@@ -2253,12 +2480,16 @@ def _plot_lc_aperture(lc, supported_author, aperture_hdu_idx, ax=None):
     """Plot the aperture associated with the lightcurve.
     The specifics depends on the pipeline produced the lightcurve."""
     if lc.meta.get("AUTHOR") != supported_author:
-        warnings.warn(f"The given lightcurve is not a {supported_author} lightcurve. No-op")
+        warnings.warn(
+            f"The given lightcurve is not a {supported_author} lightcurve. No-op"
+        )
         return ax
 
     with fits.open(lc.filename) as hdu:
         # it'd be great is I could show the actual CCD row/column, but the data is not there.
-        ax = lk.utils.plot_image(hdu[aperture_hdu_idx].data, title=lc.meta.get("LABEL"), ax=ax)
+        ax = lk.utils.plot_image(
+            hdu[aperture_hdu_idx].data, title=lc.meta.get("LABEL"), ax=ax
+        )
         return ax
 
 
@@ -2317,12 +2548,17 @@ def plot_eleanor_aperture(lc, ax=None):
     with fits.open(lc.filename) as hdu:
         # ext2 first column is the aperture
         aperture_name = hdu[2].header["TTYPE1"]
-        title = lc.meta.get("LABEL") + f" S.{lc.meta.get('SECTOR')}, aperture: {aperture_name}"
+        title = (
+            lc.meta.get("LABEL")
+            + f" S.{lc.meta.get('SECTOR')}, aperture: {aperture_name}"
+        )
 
         aperture = hdu[2].data[aperture_name]
 
         # determine actual CCD row / column
-        cen_col = int(hdu[0].header["CHIPPOS1"])  # central x pixel of TPF in FFI chip, integer portion
+        cen_col = int(
+            hdu[0].header["CHIPPOS1"]
+        )  # central x pixel of TPF in FFI chip, integer portion
         cen_row = int(hdu[0].header["CHIPPOS2"])
         origin_col = cen_col - int(aperture.shape[1] / 2)
         origin_row = cen_row - int(aperture.shape[0] / 2)
@@ -2335,7 +2571,14 @@ def plot_eleanor_aperture(lc, ax=None):
         )
 
         # use scale=None to make the aperture pixels standout more
-        ax = lk.utils.plot_image(aperture, extent=img_extent, title=title, show_colorbar=None, scale=None, ax=ax)
+        ax = lk.utils.plot_image(
+            aperture,
+            extent=img_extent,
+            title=title,
+            show_colorbar=None,
+            scale=None,
+            ax=ax,
+        )
         return ax
 
 
@@ -2364,10 +2607,17 @@ def _do_plot_partition_by(plot_fn_name, lc, partition_by_column, ax=None, **kwar
     if ax is None:
         ax = lk_ax()
 
-    plot_fn = globals()[plot_fn_name]  # the scatter / plot / errorbar wrapper in this module
+    plot_fn = globals()[
+        plot_fn_name
+    ]  # the scatter / plot / errorbar wrapper in this module
 
     for val in np.unique(lc[partition_by_column]):
-        plot_fn(lc[lc[partition_by_column] == val], ax=ax, label=f"{partition_by_column} {val}", **kwargs)
+        plot_fn(
+            lc[lc[partition_by_column] == val],
+            ax=ax,
+            label=f"{partition_by_column} {val}",
+            **kwargs,
+        )
     label = lc.meta.get("LABEL")
     if label is not None:
         ax.set_title(label)
@@ -2403,16 +2653,27 @@ transform: rotate({-deg_from_north}deg);transform-origin: left; cursor:pointer;"
     )
 
 
-def interact_sky(tpf, notebook_url="localhost:8888", aperture_mask="empty", magnitude_limit=18, **kwargs):
+def interact_sky(
+    tpf,
+    notebook_url="localhost:8888",
+    aperture_mask="empty",
+    magnitude_limit=18,
+    **kwargs,
+):
     """tpf.interact_sky wrapper to handle different lightkurve versions."""
     if "aperture_mask" in inspect.getfullargspec(tpf.interact_sky).args:
         # case using a pre-release lightkurve that supports aperture_mask
         return tpf.interact_sky(
-            notebook_url=notebook_url, aperture_mask=aperture_mask, magnitude_limit=magnitude_limit, **kwargs
+            notebook_url=notebook_url,
+            aperture_mask=aperture_mask,
+            magnitude_limit=magnitude_limit,
+            **kwargs,
         )
     else:
         # using release lightkurve that not yet supports aperture_mask
-        return tpf.interact_sky(notebook_url=notebook_url, magnitude_limit=magnitude_limit, **kwargs)
+        return tpf.interact_sky(
+            notebook_url=notebook_url, magnitude_limit=magnitude_limit, **kwargs
+        )
 
 
 def show_nearby_tic_summary_form():
@@ -2461,7 +2722,11 @@ document.querySelector('#outStarInfo').value = summary;
 
 
 def plot_with_aperture_n_background(
-    tpf: lk.targetpixelfile.TargetPixelFile, aperture_mask=None, background_mask=None, ax=None, title_extra=""
+    tpf: lk.targetpixelfile.TargetPixelFile,
+    aperture_mask=None,
+    background_mask=None,
+    ax=None,
+    title_extra="",
 ) -> matplotlib.axes.Axes:
     """Plot the given targetpixel file, with  aperture mask and background_mask."""
     if aperture_mask is None:
@@ -2471,7 +2736,9 @@ def plot_with_aperture_n_background(
         background_mask = tpf.background_mask
 
     ax = tpf.plot(ax=ax, aperture_mask=aperture_mask)
-    ax = tpf.plot(ax=ax, aperture_mask=background_mask, mask_color="white", show_colorbar=False)
+    ax = tpf.plot(
+        ax=ax, aperture_mask=background_mask, mask_color="white", show_colorbar=False
+    )
     ax.set_title(f"{getattr(tpf, 'targetid', '')}{title_extra}")
     return ax
 
@@ -2509,13 +2776,19 @@ def plot_in_out_diff(
         T0 = T0_list[idx]  # the time of the transit-like event
         t = t_list[idx]  # the time array
 
-        intr = abs(T0 - t) < transit_half_duration  # create a mask of the in transit times
+        intr = (
+            abs(T0 - t) < transit_half_duration
+        )  # create a mask of the in transit times
         oot = (abs(T0 - t) < oot_outer_relative) * (
             abs(T0 - t) > oot_inner_relative
         )  # create a mask of the out of transit times
-        img_intr = tpf_filt[intr, :, :].sum(axis=0) / float(intr.sum())  # apply the masks and normalize the flux
+        img_intr = tpf_filt[intr, :, :].sum(axis=0) / float(
+            intr.sum()
+        )  # apply the masks and normalize the flux
         img_oot = tpf_filt[oot, :, :].sum(axis=0) / float(oot.sum())
-        img_diff = img_oot - img_intr  # calculate the difference image (out of transit minus in-transit)
+        img_diff = (
+            img_oot - img_intr
+        )  # calculate the difference image (out of transit minus in-transit)
         if pixel_mask is not None and pixel_mask.any():
             print("INFO Some pixels masked")
             img_diff[pixel_mask] = np.nan
@@ -2574,11 +2847,30 @@ def plot_in_out_diff(
         with plt.style.context(lk.MPLSTYLE):
             ax = plt.figure(figsize=(6, 3)).gca()
             ax = lc.scatter(ax=ax)
-            ax.axvline(T0, color="red", ymax=0.15, linewidth=1, linestyle="--", label="epoch")
-            ax.axvspan(T0 - transit_half_duration, T0 + transit_half_duration, facecolor="red", alpha=0.3, label="In Transit")
-            ax.axvspan(T0 - oot_outer_relative, T0 - oot_inner_relative, facecolor="green", alpha=0.3, label="Out of Transit")
+            ax.axvline(
+                T0, color="red", ymax=0.15, linewidth=1, linestyle="--", label="epoch"
+            )
+            ax.axvspan(
+                T0 - transit_half_duration,
+                T0 + transit_half_duration,
+                facecolor="red",
+                alpha=0.3,
+                label="In Transit",
+            )
+            ax.axvspan(
+                T0 - oot_outer_relative,
+                T0 - oot_inner_relative,
+                facecolor="green",
+                alpha=0.3,
+                label="Out of Transit",
+            )
             # no label to avoid double legend
-            ax.axvspan(T0 + oot_inner_relative, T0 + oot_outer_relative, facecolor="green", alpha=0.3)
+            ax.axvspan(
+                T0 + oot_inner_relative,
+                T0 + oot_outer_relative,
+                facecolor="green",
+                alpha=0.3,
+            )
             ax.legend(loc="upper right", fontsize="small")
         axs.append(ax)
 
@@ -2586,7 +2878,12 @@ def plot_in_out_diff(
 
 
 def plot_pixel_level_LC(
-    tpf, epoch, aperture_mask=None, transit_half_duration=0.25, oot_outer_relative=0.5, oot_inner_relative=0.3
+    tpf,
+    epoch,
+    aperture_mask=None,
+    transit_half_duration=0.25,
+    oot_outer_relative=0.5,
+    oot_inner_relative=0.3,
 ):
     """
     Plot the LC for each pixel around the time of the transit like event.
@@ -2622,26 +2919,37 @@ def plot_pixel_level_LC(
         T0 = transit_list[idx]  # the time of the transit-like event
         t = t_list[idx]  # the time array
 
-        intr = abs(T0 - t) < transit_half_duration  # create a mask of the in transit times
+        intr = (
+            abs(T0 - t) < transit_half_duration
+        )  # create a mask of the in transit times
         oot = (abs(T0 - t) < oot_outer_relative) * (
             abs(T0 - t) > oot_inner_relative
         )  # create a mask of the out of transit times
 
         fig, ax = plt.subplots(
-            arrshape[1], arrshape[2], sharex=True, sharey=False, gridspec_kw={"hspace": 0, "wspace": 0}, figsize=(5.5, 5.5)
+            arrshape[1],
+            arrshape[2],
+            sharex=True,
+            sharey=False,
+            gridspec_kw={"hspace": 0, "wspace": 0},
+            figsize=(5.5, 5.5),
         )
 
         plt.tight_layout()
 
         # see if the background of this plot can be the average pixel flux (if there are too many nans this will fail and the background will just be black which is also okay)
         try:
-            color = plt.cm.viridis(np.linspace(0, 1, int(np.nanmax(bkg)) - int(np.nanmin(bkg)) + 1))
+            color = plt.cm.viridis(
+                np.linspace(0, 1, int(np.nanmax(bkg)) - int(np.nanmin(bkg)) + 1)
+            )
             simplebkg = False
         except:
             simplebkg = True
 
         for i in range(0, arrshape[1]):
-            ii = arrshape[1] - 1 - i  # we want to plot this such that the pixels increase from left to right and bottom to top
+            ii = (
+                arrshape[1] - 1 - i
+            )  # we want to plot this such that the pixels increase from left to right and bottom to top
 
             for j in range(0, arrshape[2]):
                 apmask = np.zeros(arrshape[1:], dtype=int)
@@ -2672,7 +2980,9 @@ def plot_pixel_level_LC(
                 flux_binned = np.array(Xb[1])
 
                 # create a mask that only looks at the times cut around the transit-event
-                timemask = (time_binned < peak + plot_half_width) & (time_binned > peak - plot_half_width)
+                timemask = (time_binned < peak + plot_half_width) & (
+                    time_binned > peak - plot_half_width
+                )
 
                 time_binned = time_binned[timemask]
                 flux_binned = flux_binned[timemask]
@@ -2690,17 +3000,36 @@ def plot_pixel_level_LC(
                     linecolor = "w"
                     transitcolor = "gold"
                 else:
-                    ax[ii, j].set_facecolor(color=color[int(bkg[ii, j]) - int(np.nanmin(bkg))])
+                    ax[ii, j].set_facecolor(
+                        color=color[int(bkg[ii, j]) - int(np.nanmin(bkg))]
+                    )
 
-                    if int(bkg[ii, j]) - abs(int(np.nanmin(bkg))) > ((np.nanmax(bkg)) - abs(int(np.nanmin(bkg)))) / 2:
+                    if (
+                        int(bkg[ii, j]) - abs(int(np.nanmin(bkg)))
+                        > ((np.nanmax(bkg)) - abs(int(np.nanmin(bkg)))) / 2
+                    ):
                         linecolor = "k"
                         transitcolor = "orangered"
                     else:
                         linecolor = "w"
                         transitcolor = "gold"
 
-                ax[ii, j].plot(time_binned, flux_binned, color=linecolor, marker=".", markersize=1, lw=0)
-                ax[ii, j].plot(time_binned[intr], flux_binned[intr], color=transitcolor, marker=".", markersize=1, lw=0)
+                ax[ii, j].plot(
+                    time_binned,
+                    flux_binned,
+                    color=linecolor,
+                    marker=".",
+                    markersize=1,
+                    lw=0,
+                )
+                ax[ii, j].plot(
+                    time_binned[intr],
+                    flux_binned[intr],
+                    color=transitcolor,
+                    marker=".",
+                    markersize=1,
+                    lw=0,
+                )
 
                 # get rid of ticks and ticklabels
                 ax[ii, j].set_yticklabels([])
@@ -2726,13 +3055,17 @@ def plot_pixel_level_LC(
         # label the pixels
 
         fig.text(0.5, 0.01, "column (pixel)", ha="center", fontsize=13)
-        fig.text(0.01, 0.5, "row (pixel)", va="center", rotation="vertical", fontsize=13)
+        fig.text(
+            0.01, 0.5, "row (pixel)", va="center", rotation="vertical", fontsize=13
+        )
 
         # - - - - - - - - - -
 
         plt.subplots_adjust(top=0.95, right=0.99, bottom=0.04, left=0.04)
 
-        plt.suptitle(r"T0 = {} $\pm$ {:.2f} d".format(peak, plot_half_width), y=0.98, fontsize=12)
+        plt.suptitle(
+            r"T0 = {} $\pm$ {:.2f} d".format(peak, plot_half_width), y=0.98, fontsize=12
+        )
         plt.xlim(peak - plot_half_width, peak + plot_half_width)
         plt.show()
 
@@ -2741,5 +3074,10 @@ def rebin(arr, new_shape):
     """
     function used to rebin the data
     """
-    shape = (new_shape[0], arr.shape[0] // new_shape[0], new_shape[1], arr.shape[1] // new_shape[1])
+    shape = (
+        new_shape[0],
+        arr.shape[0] // new_shape[0],
+        new_shape[1],
+        arr.shape[1] // new_shape[1],
+    )
     return arr.reshape(shape).mean(-1).mean(1)

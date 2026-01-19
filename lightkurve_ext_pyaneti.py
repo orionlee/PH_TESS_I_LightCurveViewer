@@ -149,7 +149,9 @@ def _filter_by_priority(
 
         # secondary priority
         exptime_default = max(dict(exptime_sort_keys).values()) + 1
-        exptime_key = exptime_sort_keys.get(_map_cadence_type(row["exptime"] / 60 / 60 / 24), exptime_default)
+        exptime_key = exptime_sort_keys.get(
+            _map_cadence_type(row["exptime"] / 60 / 60 / 24), exptime_default
+        )
         return author_key + exptime_key
 
     sr.table["_filter_priority"] = [calc_filter_priority(r) for r in sr.table]
@@ -188,7 +190,12 @@ def _stitch_lc_collection(lcc, warn_if_multiple_authors=True):
 
 
 def download_lightcurves_by_cadence_type(
-    tic, sector, cadence="short", author_priority=["SPOC", "TESS-SPOC", "QLP"], download_dir=None, return_sr=False
+    tic,
+    sector,
+    cadence="short",
+    author_priority=["SPOC", "TESS-SPOC", "QLP"],
+    download_dir=None,
+    return_sr=False,
 ):
     """Download the lightcurves of the given TIC - sector combination.
     The downloaded lightcurves are partitioned by cadence type (long / short),
@@ -200,7 +207,9 @@ def download_lightcurves_by_cadence_type(
 
     sr_all = lk.search_lightcurve(f"TIC{tic}", mission="TESS")
 
-    sr = _filter_by_priority(sr_all, author_priority=author_priority, exptime_priority=["short, long"])
+    sr = _filter_by_priority(
+        sr_all, author_priority=author_priority, exptime_priority=["short, long"]
+    )
 
     # filter by sector and cadence
     sr = sr[np.in1d(sr.table["sequence_number"], sector)]
@@ -243,7 +252,9 @@ def display_lc_by_band_summary(lc_by_band, header):
     for band, lc in lc_by_band.items():
         authors = np.unique(lc.meta.get("AUTHORS"))
         sectors = lc.meta.get("SECTORS")
-        html += f"Band {band}  : {lc.label} ; Sectors: {sectors} ; Author(s): {authors}\n"
+        html += (
+            f"Band {band}  : {lc.label} ; Sectors: {sectors} ; Author(s): {authors}\n"
+        )
     html += "</pre>"
     return display(HTML(html))
 
@@ -299,7 +310,9 @@ def _truncate_lc_to_around_transits(lc, transit_specs):
     duration = [calc_duration_to_use(t) for t in transit_specs]
     transit_time = [t["epoch"] for t in transit_specs]
     # a mask to include the transits and their surrounding (out of transit observations)
-    mask = lc.create_transit_mask(period=period, duration=duration, transit_time=transit_time)
+    mask = lc.create_transit_mask(
+        period=period, duration=duration, transit_time=transit_time
+    )
 
     return lc[mask]
 
@@ -316,21 +329,29 @@ def _merge_and_truncate_lcs(lc_or_lc_by_band, transit_specs):
         lc_trunc["band"] = [band] * len(lc_trunc)
         lc_trunc_by_band[band] = lc_trunc
 
-    lc_trunc = lk.LightCurveCollection(lc_trunc_by_band.values()).stitch(corrector_func=None)
+    lc_trunc = lk.LightCurveCollection(lc_trunc_by_band.values()).stitch(
+        corrector_func=None
+    )
     lc_trunc.sort("time")
     return lc_trunc, lc_trunc_by_band
 
 
-def to_pyaneti_dat(lc_or_lc_by_band, transit_specs, pyaneti_env, return_processed_lc=False):
+def to_pyaneti_dat(
+    lc_or_lc_by_band, transit_specs, pyaneti_env, return_processed_lc=False
+):
     "Output lc data to a file readable by Pyaneti, with lc pre-processed to be suitable for Pyaneti modeling"
-    lc_trunc, lc_trunc_by_band = _merge_and_truncate_lcs(lc_or_lc_by_band, transit_specs)
+    lc_trunc, lc_trunc_by_band = _merge_and_truncate_lcs(
+        lc_or_lc_by_band, transit_specs
+    )
 
     out_path = pyaneti_env.lc_dat_filepath
 
     # finally write to output
     # lc column subset does not work due to bug: https://github.com/lightkurve/lightkurve/issues/1194
     #  lc_trunc["time", "flux", "flux_err"]
-    lc1 = type(lc_trunc)(time=lc_trunc.time.copy(), flux=lc_trunc.flux, flux_err=lc_trunc.flux_err)
+    lc1 = type(lc_trunc)(
+        time=lc_trunc.time.copy(), flux=lc_trunc.flux, flux_err=lc_trunc.flux_err
+    )
     if "band" in lc_trunc.colnames:
         lc1["band"] = lc_trunc["band"]
     _create_dir_if_needed(out_path)
@@ -356,7 +377,11 @@ def scatter_by_band(lc, **kwargs):
     return ax
 
 
-RHO_SUN_CGS = (astropy.constants.M_sun / (4 / 3 * np.pi * astropy.constants.R_sun**3)).to(u.g / u.cm**3).value
+RHO_SUN_CGS = (
+    (astropy.constants.M_sun / (4 / 3 * np.pi * astropy.constants.R_sun**3))
+    .to(u.g / u.cm**3)
+    .value
+)
 
 
 @cached
@@ -412,7 +437,9 @@ def stellar_parameters_from_gaia(gaia_dr2_id):
         val = row[key_val]
         if val is not None:
             # Gaia DR2 gives more precise lower/upper bound of 68% CI, we convert them to a single one error
-            e_val = max(row[key_val] - row[key_p_lower], row[key_p_upper] - row[key_val])
+            e_val = max(
+                row[key_val] - row[key_p_lower], row[key_p_upper] - row[key_val]
+            )
             return val, e_val
         else:
             return None, None
@@ -455,13 +482,18 @@ WHERE source_id=%d"""
     return result
 
 
-def stellar_parameters_of_tic(tic, also_use_gaia=True, diff_warning_threshold_percent=10):
+def stellar_parameters_of_tic(
+    tic, also_use_gaia=True, diff_warning_threshold_percent=10
+):
     """Obtain stellar parameters from MAST, and optionally from Gaia as well."""
 
     def warn_if_significant_diff(meta_mast, meta_gaia, param_name):
         val_mast, val_gaia = meta_mast[param_name], meta_gaia[param_name]
         if val_mast is not None and val_gaia is not None:
-            if abs(val_mast - val_gaia) / val_mast > diff_warning_threshold_percent / 100:
+            if (
+                abs(val_mast - val_gaia) / val_mast
+                > diff_warning_threshold_percent / 100
+            ):
                 warnings.warn(
                     f"Significant difference (> {diff_warning_threshold_percent}%) in {param_name} . MAST: {val_mast} ; Gaia DR2: {val_gaia}"
                 )
@@ -487,7 +519,10 @@ def get_limb_darkening_params(tic_meta):
     """
     # Logic derived from:
     # https://github.com/hippke/tls/blob/v1.0.31/transitleastsquares/catalog.py
-    logg, Teff, = (
+    (
+        logg,
+        Teff,
+    ) = (
         tic_meta.get("logg"),
         tic_meta.get("Teff"),
     )
@@ -605,13 +640,19 @@ def display_stellar_meta_links(meta, header=None):
 
 class ModelTemplate:
     FIT_TYPES = ["orbital_distance", "rho", "single_transit"]
-    _FIT_TYPES_ABBREV = {"orbital_distance": "fit_a", "rho": "fit_rho", "single_transit": "single_transit"}
+    _FIT_TYPES_ABBREV = {
+        "orbital_distance": "fit_a",
+        "rho": "fit_rho",
+        "single_transit": "single_transit",
+    }
     ORBIT_TYPES = ["circular", "eccentric"]
     _ORBIT_TYPES_ABBREV = {"circular": "circular", "eccentric": "eccentric"}
     _ORBIT_TYPES_ABBREV2 = {"circular": "c", "eccentric": "e"}
 
     def __init__(self, num_planets, orbit_type, fit_type) -> None:
-        self._validate_and_set(num_planets, [1], "num_planets")  # support 1 planet for now
+        self._validate_and_set(
+            num_planets, [1], "num_planets"
+        )  # support 1 planet for now
         self._validate_and_set(orbit_type, self.ORBIT_TYPES, "orbit_type")
         self._validate_and_set(fit_type, self.FIT_TYPES, "fit_type")
 
@@ -635,7 +676,9 @@ class ModelTemplate:
     @staticmethod
     def _validate(val, allowed_values, val_name):
         if val not in allowed_values:
-            raise ValueError(f"{val_name} 's value {val} is invalid. Options: {allowed_values}")
+            raise ValueError(
+                f"{val_name} 's value {val} is invalid. Options: {allowed_values}"
+            )
 
 
 def create_input_fit(
@@ -669,8 +712,9 @@ def create_input_fit(
         else:
             return [val] * repeat_n
 
-    def process_priors(map, key_prior, src, key_prior_src=None, fraction_base_func=None, repeat_n=None):
-
+    def process_priors(
+        map, key_prior, src, key_prior_src=None, fraction_base_func=None, repeat_n=None
+    ):
         if repeat_n is None or repeat_n < 1:
             repeat_n = 1
 
@@ -690,17 +734,28 @@ def create_input_fit(
         key_prior_type = f"type_{key_prior}"
         key_prior_val1 = f"val1_{key_prior}"
         key_prior_val2 = f"val2_{key_prior}"
-        if src.get(key_prior_src) is not None and src.get(key_prior_src_error) is not None:
+        if (
+            src.get(key_prior_src) is not None
+            and src.get(key_prior_src_error) is not None
+        ):
             logger.info(f"Prior {key_prior}: resolved to Gaussian")
             map[key_prior_type] = do_repeat("g")  # Gaussian Prior
             map[key_prior_val1] = do_repeat(src.get(key_prior_src))  # Mean
-            map[key_prior_val2] = do_repeat(src.get(key_prior_src_error))  # Standard Deviation
-        elif src.get(key_prior_src_min) is not None and src.get(key_prior_src_max) is not None:
+            map[key_prior_val2] = do_repeat(
+                src.get(key_prior_src_error)
+            )  # Standard Deviation
+        elif (
+            src.get(key_prior_src_min) is not None
+            and src.get(key_prior_src_max) is not None
+        ):
             logger.info(f"Prior {key_prior}: resolved to Uniform")
             map[key_prior_type] = do_repeat("u")  # Uniform Prior
             map[key_prior_val1] = do_repeat(src.get(key_prior_src_min))  # Minimum
             map[key_prior_val2] = do_repeat(src.get(key_prior_src_max))  # Maximum
-        elif src.get(key_prior_src) is not None and src.get(key_prior_src_window) is not None:
+        elif (
+            src.get(key_prior_src) is not None
+            and src.get(key_prior_src_window) is not None
+        ):
             logger.info(f"Prior {key_prior}: resolved to Uniform (by mean and window)")
             window = src.get(key_prior_src_window)
             # check for `value` attribute rather than testing against Fraction instance
@@ -708,18 +763,30 @@ def create_input_fit(
             # fraction is defined initially in `transit_specs`.
             # if isinstance(window, Fraction):
             if hasattr(window, "value"):  # i.e, a Fraction type
-                fraction_base = src.get(key_prior_src) if fraction_base_func is None else fraction_base_func(src)
+                fraction_base = (
+                    src.get(key_prior_src)
+                    if fraction_base_func is None
+                    else fraction_base_func(src)
+                )
                 window = fraction_base * window.value
             map[key_prior_type] = do_repeat("u")  # Uniform Prior
-            map[key_prior_val1] = do_repeat(src.get(key_prior_src) - window / 2)  # Minimum
-            map[key_prior_val2] = do_repeat(src.get(key_prior_src) + window / 2)  # Maximum
+            map[key_prior_val1] = do_repeat(
+                src.get(key_prior_src) - window / 2
+            )  # Minimum
+            map[key_prior_val2] = do_repeat(
+                src.get(key_prior_src) + window / 2
+            )  # Maximum
         elif src.get(key_prior_src) is not None:
             logger.info(f"Prior {key_prior}: resolved to Fixed")
             map[key_prior_type] = do_repeat("f")  # Fixed Prior
             map[key_prior_val1] = do_repeat(src.get(key_prior_src))  # Fixed value
-            map[key_prior_val2] = do_repeat(src.get(key_prior_src))  # does not matter for fixed value
+            map[key_prior_val2] = do_repeat(
+                src.get(key_prior_src)
+            )  # does not matter for fixed value
         else:
-            raise ValueError(f"Prior {key_prior} is not defined or only partly defined.")
+            raise ValueError(
+                f"Prior {key_prior} is not defined or only partly defined."
+            )
 
     def process_orbit_type(map, num_planets):
         if template.orbit_type == "circular":
@@ -764,7 +831,10 @@ def create_input_fit(
 
         def calc_cadence(lc):
             # deduce the cadence
-            cadence_in_min = np.round(np.nanmedian(np.asarray([t.to(u.min).value for t in np.diff(lc.time)])), decimals=1)
+            cadence_in_min = np.round(
+                np.nanmedian(np.asarray([t.to(u.min).value for t in np.diff(lc.time)])),
+                decimals=1,
+            )
             # For n_cad, we use the following reference:
             # - t_cad_in_min == 30 (Kepler) ==> n_cad = 10
             # - t_cad_in_min == 2 (TESS Short cadence) ==> n_cad = 1
@@ -809,7 +879,12 @@ def create_input_fit(
 
     # TODO: handle multiple planets
     process_orbit_type(mapping, 1)
-    process_priors(mapping, "epoch", transit_specs[0], fraction_base_func=lambda spec: spec["duration_hr"] / 24)
+    process_priors(
+        mapping,
+        "epoch",
+        transit_specs[0],
+        fraction_base_func=lambda spec: spec["duration_hr"] / 24,
+    )
     process_priors(mapping, "period", transit_specs[0])
     process_priors(mapping, "b", mapping)
     process_fit_type(mapping)
@@ -838,7 +913,9 @@ def create_input_fit(
         result = result.replace("{" + key + "}", str(value))
 
     if re.search(r"{[^}]+}", result):
-        warnings.warn("create_input_fit(): the created `input_fit.py` still has values not yet defined.")
+        warnings.warn(
+            "create_input_fit(): the created `input_fit.py` still has values not yet defined."
+        )
 
     input_fit_filepath = Path(pti_env.target_in_dir, "input_fit.py")
     if write_to_file:
@@ -942,7 +1019,9 @@ def display_model(
     if show_correlations:
         display(Image(Path(target_out_dir, f"{alias}_correlations.png")))
     if show_transits:
-        display(Image(Path(target_out_dir, f"{alias}b_tr.png")))  # TODO: handle multiple planets
+        display(
+            Image(Path(target_out_dir, f"{alias}b_tr.png"))
+        )  # TODO: handle multiple planets
     if show_lightcurve:
         display(Image(Path(target_out_dir, f"{alias}_lightcurve.png")))
     if show_chains:

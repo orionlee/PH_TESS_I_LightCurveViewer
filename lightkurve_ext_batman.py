@@ -9,7 +9,10 @@ import lightkurve as lk
 
 
 def create_lightcurve_from_batman(
-    ma: batman.TransitParams, time: Union[Time, Tuple], noise: Union[float, Callable[[List[Number]], List[Number]]], **kwargs
+    ma: batman.TransitParams,
+    time: Union[Time, Tuple],
+    noise: Union[float, Callable[[List[Number]], List[Number]]],
+    **kwargs,
 ) -> lk.LightCurve:
     """Create a lightcurve using a Transit Model from `batman <https://lweb.cfa.harvard.edu/~lkreidberg/batman/>`_.
 
@@ -33,7 +36,11 @@ def create_lightcurve_from_batman(
     if not isinstance(time, Time):
         time_raw_start, time_raw_stop_exclusive, format, scale, num_samples = time
         time = Time(
-            np.linspace(time_raw_start, time_raw_stop_exclusive, num=num_samples, endpoint=False), format=format, scale=scale
+            np.linspace(
+                time_raw_start, time_raw_stop_exclusive, num=num_samples, endpoint=False
+            ),
+            format=format,
+            scale=scale,
         )
 
     m = batman.TransitModel(ma, time.value, **kwargs)  # initializes model

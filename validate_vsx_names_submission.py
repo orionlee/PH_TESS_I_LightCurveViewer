@@ -3,7 +3,9 @@ import numpy as np
 import pandas as pd
 
 
-def validate_vsx_names_submission(csv_path="data/others/vsx_names_submissions_draft.csv"):
+def validate_vsx_names_submission(
+    csv_path="data/others/vsx_names_submissions_draft.csv",
+):
     """Validate the format of the VSX Names submission spreadsheet."""
 
     def validate_other_names(names_str):
@@ -22,7 +24,14 @@ def validate_vsx_names_submission(csv_path="data/others/vsx_names_submissions_dr
         return not pd.isna(a_str) and a_str != ""
 
     def print_df_with_defaults(df):
-        with pd.option_context("display.max_rows", None, "display.expand_frame_repr", False, "display.max_columns", None):
+        with pd.option_context(
+            "display.max_rows",
+            None,
+            "display.expand_frame_repr",
+            False,
+            "display.max_columns",
+            None,
+        ):
             print(df[["VSX Name", "Other names", "oid"]])
 
     #
@@ -30,7 +39,9 @@ def validate_vsx_names_submission(csv_path="data/others/vsx_names_submissions_dr
     df = pd.read_csv(csv_path)
 
     okay = True
-    df_invalid_other_names = df[~pd.Series([validate_other_names(n) for n in df["Other names"]])]
+    df_invalid_other_names = df[
+        ~pd.Series([validate_other_names(n) for n in df["Other names"]])
+    ]
     if len(df_invalid_other_names) > 0:
         print("Other names in some entries are invalid:")
         print_df_with_defaults(df_invalid_other_names)

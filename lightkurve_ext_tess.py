@@ -48,7 +48,10 @@ BTJD_REF = 2457000
 
 def _get_csv(url, filename, download_dir, cache_policy_func, **kwargs):
     local_filename = download_utils.download_file(
-        url, filename=filename, download_dir=download_dir, cache_policy_func=cache_policy_func
+        url,
+        filename=filename,
+        download_dir=download_dir,
+        cache_policy_func=cache_policy_func,
     )
     return pd.read_csv(local_filename, **kwargs)
 
@@ -86,17 +89,29 @@ class TOIAccessor:
     # TODO: in-memory cache (with @cached) needs to be redone to properly support cache_policy_func
     @classmethod
     def get_all_tois(cls, download_dir=None, cache_policy_func=None):
-        url = "https://exofop.ipac.caltech.edu/tess/download_toi.php?sort=toi&output=csv"
+        url = (
+            "https://exofop.ipac.caltech.edu/tess/download_toi.php?sort=toi&output=csv"
+        )
         filename = "tess_tois.csv"
-        res = _get_csv(url, filename, download_dir, cache_policy_func=cache_policy_func, dtype={cls.Headers.TOI: str})
+        res = _get_csv(
+            url,
+            filename,
+            download_dir,
+            cache_policy_func=cache_policy_func,
+            dtype={cls.Headers.TOI: str},
+        )
         # add derived columns
         res[cls.Headers.EPOCH_BTJD] = res[cls.Headers.EPOCH_BJD] - BTJD_REF
-        res[cls.Headers.PLANET_RADIUS_J] = res[cls.Headers.PLANET_RADIUS_E] * R_earth / R_jup
+        res[cls.Headers.PLANET_RADIUS_J] = (
+            res[cls.Headers.PLANET_RADIUS_E] * R_earth / R_jup
+        )
         res[cls.Headers.DEPTH_PCT] = res[cls.Headers.DEPTH_PPM] / 10000
         return res
 
     def __init__(self, download_dir=None, cache_policy_func=None):
-        self._all = self.get_all_tois(download_dir=download_dir, cache_policy_func=cache_policy_func)
+        self._all = self.get_all_tois(
+            download_dir=download_dir, cache_policy_func=cache_policy_func
+        )
 
     def all(self):
         return self._all
@@ -141,12 +156,16 @@ class CTOIAccessor:
         )
         # add derived columns
         res[cls.Headers.EPOCH_BTJD] = res[cls.Headers.EPOCH_BJD] - BTJD_REF
-        res[cls.Headers.PLANET_RADIUS_J] = res[cls.Headers.PLANET_RADIUS_E] * R_earth / R_jup
+        res[cls.Headers.PLANET_RADIUS_J] = (
+            res[cls.Headers.PLANET_RADIUS_E] * R_earth / R_jup
+        )
         res[cls.Headers.DEPTH_PCT] = res[cls.Headers.DEPTH_PPM] / 10000
         return res
 
     def __init__(self, download_dir=None, cache_policy_func=None):
-        self._all = self.get_all_ctois(download_dir=download_dir, cache_policy_func=cache_policy_func)
+        self._all = self.get_all_ctois(
+            download_dir=download_dir, cache_policy_func=cache_policy_func
+        )
 
     def all(self):
         return self._all
@@ -201,7 +220,9 @@ def _get_tois_in_html(tic, download_dir=None):
     if len(tois) < 1:
         return "<p>No TOIs.</p>"
 
-    add_transit_as_codes_column_to_df(tois, h, label_value_func=lambda df: "TOI " + df[h.TOI])
+    add_transit_as_codes_column_to_df(
+        tois, h, label_value_func=lambda df: "TOI " + df[h.TOI]
+    )
     report_view = tois[
         [
             h.TOI,
@@ -270,7 +291,9 @@ def _get_ctois_in_html(tic, download_dir=None):
     if len(ctois) < 1:
         return "<p>No CTOIs.</p>"
 
-    add_transit_as_codes_column_to_df(ctois, h, label_value_func=lambda df: "CTOI " + df[h.CTOI])
+    add_transit_as_codes_column_to_df(
+        ctois, h, label_value_func=lambda df: "CTOI " + df[h.CTOI]
+    )
     report_view = ctois[
         [
             h.CTOI,
@@ -331,7 +354,11 @@ def _get_ctois_in_html(tic, download_dir=None):
 
 
 def get_tic_meta_in_html(
-    lc_or_tic, a_subject_id=None, download_dir=None, tce_filter_func=None, include_transit_model_stellar_density=False
+    lc_or_tic,
+    a_subject_id=None,
+    download_dir=None,
+    tce_filter_func=None,
+    include_transit_model_stellar_density=False,
 ):
     # tess_dv_fast.py is at https://github.com/orionlee/tess_dv_fast
     # copy it over (or include it in sys.path)
@@ -352,7 +379,9 @@ def get_tic_meta_in_html(
     elif isinstance(lc_or_tic, (str, int)):
         tic_id = lc_or_tic
     else:
-        raise TypeError("lc_or_tic must be either a LightCurve object or a tic id (int/str)")
+        raise TypeError(
+            "lc_or_tic must be either a LightCurve object or a tic id (int/str)"
+        )
 
     m = _to_stellar_meta(lc_or_tic)
 
@@ -367,7 +396,9 @@ def get_tic_meta_in_html(
 <div id="tic_metadata_body">
 <h3>TIC {tic_id}</h3>
 """
-    html += "&emsp;" + link("ExoFOP", f"https://exofop.ipac.caltech.edu/tess/target.php?id={tic_id}")
+    html += "&emsp;" + link(
+        "ExoFOP", f"https://exofop.ipac.caltech.edu/tess/target.php?id={tic_id}"
+    )
     html += "\n&emsp;|&emsp;"
     html += link(
         "PHT Talk",
@@ -382,7 +413,7 @@ def get_tic_meta_in_html(
         )
         # show the sector number (here we assume a_subject_id does correspond the the sector)
         # the sector is useful to be included so that users can easily locate the TCE matching the sector.
-        html += f' (sector {safe_m_get("sector", "")})'
+        html += f" (sector {safe_m_get('sector', '')})"
     html += "<br>\n"
 
     # stellar parameters
@@ -397,7 +428,7 @@ def get_tic_meta_in_html(
         s_rho = -1
     if include_transit_model_stellar_density:
         html += prop("rho<sub>S</sub> (in g/cm<sup>3</sup>)", f"{s_rho:.3f}")
-    html += prop("Magnitude (TESS)", f'{safe_m_get("tess_mag", -1):.2f}')
+    html += prop("Magnitude (TESS)", f"{safe_m_get('tess_mag', -1):.2f}")
     html += prop("T_eff (in K)", safe_m_get("teff", -1))
     html += "</table>\n"
 
@@ -408,7 +439,9 @@ def get_tic_meta_in_html(
     # Note: tess_dv_fast cannot support
     #   include_transit_model_stellar_density=include_transit_model_stellar_density,
     df_tces = tess_dv_fast.get_tce_infos_of_tic(tic_id)
-    html += tess_dv_fast.display_tce_infos(df_tces, return_as="html", no_tce_html="<p>No TCE.</p>")
+    html += tess_dv_fast.display_tce_infos(
+        df_tces, return_as="html", no_tce_html="<p>No TCE.</p>"
+    )
 
     # TOIs/CTOIs
     html += "<p>TOIs / CTOIs:</p>"
@@ -436,7 +469,9 @@ def get_momentum_dump_times(lcf):
     # To access times marked as such, I need to access the raw LightCurveFile directly.
     filename = lcf.meta.get("FILENAME", None)
     if filename is None:
-        warnings.warn("get_momentum_dump_times(): No-Op, because there is the LightCurve object has no backing FITS file.")
+        warnings.warn(
+            "get_momentum_dump_times(): No-Op, because there is the LightCurve object has no backing FITS file."
+        )
         return np.array([])
     with fits.open(filename) as hdu:
         if "TIME" not in hdu[1].columns.names:
@@ -446,7 +481,9 @@ def get_momentum_dump_times(lcf):
 
         # normal flow
         time = hdu[1].data["TIME"]
-        mom_dumps_mask = np.bitwise_and(hdu[1].data["QUALITY"], lk.utils.TessQualityFlags.Desat) >= 1
+        mom_dumps_mask = (
+            np.bitwise_and(hdu[1].data["QUALITY"], lk.utils.TessQualityFlags.Desat) >= 1
+        )
         time_mom_dumps = time[mom_dumps_mask]
         return time_mom_dumps
 
@@ -455,7 +492,9 @@ class MomentumDumpsAccessor:
     _mom_dumps_tab = None
 
     @classmethod
-    def _load_mom_dumps_from_file(cls, cache_policy=download_utils.CachePolicy.ALWAYS_USE):
+    def _load_mom_dumps_from_file(
+        cls, cache_policy=download_utils.CachePolicy.ALWAYS_USE
+    ):
         local_filename = download_utils.download_file(
             "https://tess.mit.edu/public/files/Table_of_momentum_dumps.csv",
             filename="tess_mom_dumps.csv",
@@ -470,7 +509,9 @@ class MomentumDumpsAccessor:
 
     @classmethod
     def refresh(cls):
-        cls._load_mom_dumps_from_file(cache_policy=download_utils.CachePolicy.ALWAYS_REJECT)
+        cls._load_mom_dumps_from_file(
+            cache_policy=download_utils.CachePolicy.ALWAYS_REJECT
+        )
 
     @classmethod
     def get_all(cls, refresh=False):
@@ -495,7 +536,9 @@ class MomentumDumpsAccessor:
         return times
 
     @classmethod
-    def exclude_around(cls, lc_or_tpf=None, window_before=15 / 60 / 24, window_after=15 / 60 / 24):
+    def exclude_around(
+        cls, lc_or_tpf=None, window_before=15 / 60 / 24, window_after=15 / 60 / 24
+    ):
         """Exclude cadences of the given LC / TPF around momentum dumps.
         Useful to exclude data points that are often skewed.
         """
@@ -521,7 +564,9 @@ class MomentumDumpsAccessor:
             return res
 
         mom_dumps = cls.get_in_range(lc_or_tpf)
-        exclude_ranges = compress_as_exclude_ranges(mom_dumps, window_before, window_after)
+        exclude_ranges = compress_as_exclude_ranges(
+            mom_dumps, window_before, window_after
+        )
 
         res = lc_or_tpf
         for an_exclude in exclude_ranges:
@@ -533,7 +578,13 @@ class MomentumDumpsAccessor:
 
 class WTVResultAccessor:
     @classmethod
-    def get_all(cls, wtv_csv_path, add_sectors_summary=True, start_sector=1, end_sector_inclusive=69):
+    def get_all(
+        cls,
+        wtv_csv_path,
+        add_sectors_summary=True,
+        start_sector=1,
+        end_sector_inclusive=69,
+    ):
         res = Table.read(wtv_csv_path)
         if not add_sectors_summary:
             return res
@@ -567,9 +618,17 @@ def search_tess_point(tic):
 
     # note: the search below does not use tic,
     # it's just there for convenience to keep track of targets
-    outID, outEclipLong, outEclipLat, outSec, outCam, outCcd, outColPix, outRowPix, scinfo = tess_stars2px_function_entry(
-        tic, ra, dec
-    )
+    (
+        outID,
+        outEclipLong,
+        outEclipLat,
+        outSec,
+        outCam,
+        outCcd,
+        outColPix,
+        outRowPix,
+        scinfo,
+    ) = tess_stars2px_function_entry(tic, ra, dec)
 
     return Table(
         data=dict(
@@ -612,7 +671,9 @@ def _search_tglc_lightcurve_csv(tic, csv_dir=".", grep_cmd="grep -H"):
         return []
 
     # case unexpected error
-    raise Exception(f"Error in search TGLC lcs: {res.stderr} . Returncode: {res.returncode}", res)
+    raise Exception(
+        f"Error in search TGLC lcs: {res.stderr} . Returncode: {res.returncode}", res
+    )
 
 
 async def search_tglc_lightcurve(tic, csv_dir=".", grep_cmd="grep -H"):
@@ -691,12 +752,17 @@ def mag_to_tess_flux(mag):
 
     flux_raw = (10 ** ((10 - mag_raw) / 2.5)) * 15000
     if isinstance(mag, u.Quantity):
-        return flux_raw * ((u.electron / u.second))
+        return flux_raw * (u.electron / u.second)
     else:
         return flux_raw
 
 
-def calc_flux_range(lcf_coll, flux_column="flux", accepted_authors=["SPOC", "TESS-SPOC"], stitched_lc_corrector=lambda lc: lc):
+def calc_flux_range(
+    lcf_coll,
+    flux_column="flux",
+    accepted_authors=["SPOC", "TESS-SPOC"],
+    stitched_lc_corrector=lambda lc: lc,
+):
     """Derive flux range (in % and magnitude) from normalized lightcurve with mean TESS mag from TIC as the base"""
 
     # the default SPOC, TESS-SPOC is to avoid inconsistency between SPOC and QLP
@@ -704,7 +770,8 @@ def calc_flux_range(lcf_coll, flux_column="flux", accepted_authors=["SPOC", "TES
     lc = lke.stitch(
         lcf_coll_filtered,
         corrector_func=lambda lc: (
-            lc.select_flux(flux_column).remove_nans()
+            lc.select_flux(flux_column)
+            .remove_nans()
             # normalize on per-sector basis, it seems TESS calibration across sectors is not necessarily consistent
             .normalize(unit="percent")
         ),
@@ -745,8 +812,8 @@ def display_crowdsap(lc):
         display(
             HTML(
                 f"""Fraction of flux in aperture attributed to the target, <span style="font-family: monospace;">CROWDSAP</span>:
-        <span style="background-color: {'red' if lc.meta.get("CROWDSAP") < 0.8 else 'transparent'}; padding: 2px;">{lc.meta.get("CROWDSAP")}</span>
-        &emsp;<span style="font-family: monospace;">FLFRCSAP</span>: {lc.meta.get('FLFRCSAP')}
+        <span style="background-color: {"red" if lc.meta.get("CROWDSAP") < 0.8 else "transparent"}; padding: 2px;">{lc.meta.get("CROWDSAP")}</span>
+        &emsp;<span style="font-family: monospace;">FLFRCSAP</span>: {lc.meta.get("FLFRCSAP")}
         &emsp;<a href="https://heasarc.gsfc.nasa.gov/docs/tess/UnderstandingCrowdingv2.html" target="_crowdsap_tutorial">(Help)</a>
         """
             )
@@ -766,7 +833,9 @@ def btjd_to_hjd_utc(time_val, position):
         ra, dec = position["ra"], position["dec"]
         sky_coord = coord.SkyCoord(ra, dec, unit=(u.deg, u.deg), frame="icrs")
     else:
-        raise TypeError(f"position, of type {type(position)} is not in supported types.")
+        raise TypeError(
+            f"position, of type {type(position)} is not in supported types."
+        )
 
     return lke.to_hjd_utc(t_bjd, sky_coord).value
 
@@ -890,7 +959,12 @@ def get_exofop_planet_parameters(tic, also_return_codes=True):
         if get("Table") == "Planet":
             label += f"_user_{get('User', '')}"
 
-        epoch = round(Time(get("Epoch (BJD)", default=0.0), format="jd", scale="tdb").to_value("btjd"), 2)
+        epoch = round(
+            Time(get("Epoch (BJD)", default=0.0), format="jd", scale="tdb").to_value(
+                "btjd"
+            ),
+            2,
+        )
         duration_hr = round(get("Duration (hrs)", default=0.0), 2)
         period = get("Period (days)", default=9999.0)
         transit_depth_percent = round(get("Depth (ppm)", default=0.0) / 10000, 4)
@@ -1103,7 +1177,9 @@ def search_gaiadr3_of_tics(
         elif "__Fe_H_" in rs.colnames:
             return "__Fe_H_"
         else:
-            raise ValueError(f"Expected column Fe/H is absent. All columns: {rs.colnames}")
+            raise ValueError(
+                f"Expected column Fe/H is absent. All columns: {rs.colnames}"
+            )
 
     if isinstance(targets, (Sequence, np.ndarray, lk.collections.Collection)):
         add_target_as_col = True
@@ -1120,7 +1196,10 @@ def search_gaiadr3_of_tics(
     for t in targets:
         gaiadr2_id = getattr(t, "gaiadr2_id", np.nan)
         if magnitude_range is not None:
-            lower_limit, upper_limit = t.tess_mag - magnitude_range, t.tess_mag + magnitude_range
+            lower_limit, upper_limit = (
+                t.tess_mag - magnitude_range,
+                t.tess_mag + magnitude_range,
+            )
         else:
             lower_limit, upper_limit = None, None
 
@@ -1166,7 +1245,9 @@ def search_gaiadr3_of_tics(
 
         if a_result is not None:
             a_result["target"] = [t.label for i in range(0, len(a_result))]
-            a_result["target_gaia_dr2_source"] = [gaiadr2_id for i in range(0, len(a_result))]
+            a_result["target_gaia_dr2_source"] = [
+                gaiadr2_id for i in range(0, len(a_result))
+            ]
 
             result_list.append(a_result)
             result_paramp_list.append(a_result_paramp)
@@ -1175,7 +1256,11 @@ def search_gaiadr3_of_tics(
         # Avoid spurious "MergeConflictWarning: Cannot merge meta key 'null' types <class 'float'>
         #  and <class 'float'>, choosing null=nan [astropy.utils.metadata]"
         result = astropy.table.vstack(result_list) if len(result_list) > 0 else Table()
-        result_paramp = astropy.table.vstack(result_paramp_list) if len(result_paramp_list) > 0 else Table()
+        result_paramp = (
+            astropy.table.vstack(result_paramp_list)
+            if len(result_paramp_list) > 0
+            else Table()
+        )
 
     if len(result) < 1:
         if also_return_html:
@@ -1202,7 +1287,9 @@ def search_gaiadr3_of_tics(
         # e_RV > 1.5 heuristics suggested by mhuten that seems to be reliable
         if row["e_RV"] > 1.5:
             flag += "!"
-        if str(row["Source"]) == str(row["target_gaia_dr2_source"]):  # use str to avoid str / int type complication
+        if str(row["Source"]) == str(
+            row["target_gaia_dr2_source"]
+        ):  # use str to avoid str / int type complication
             flag += " ✓"  # signify Gaia DR3 ID match with TIC's Gaia DR2 ID
         flag_column_values.append(flag)
     result.add_column(flag_column_values, name="flag")
@@ -1271,7 +1358,8 @@ def search_gaiadr3_of_tics(
         if verbose_html:
             for t in targets:
                 stellar_summary = (
-                    f"TIC {t.label} - TESS mag: {t.tess_mag} ; coordinate: {t.ra}, {t.dec} ; " f"PM: {t.pmra}, {t.pmdec} ."
+                    f"TIC {t.label} - TESS mag: {t.tess_mag} ; coordinate: {t.ra}, {t.dec} ; "
+                    f"PM: {t.pmra}, {t.pmdec} ."
                 )
                 gaiadr2_id = getattr(t, "gaiadr2_id", None)
                 if gaiadr2_id is not None:
@@ -1295,7 +1383,9 @@ def search_gaiadr3_of_tics(
                 # ignore the warning
                 # "Format strings passed to MaskedConstant are ignored, but in future may error or produce different behavior"
                 warnings.filterwarnings(
-                    "ignore", category=FutureWarning, message=".*Format strings passed to MaskedConstant are ignored,.*"
+                    "ignore",
+                    category=FutureWarning,
+                    message=".*Format strings passed to MaskedConstant are ignored,.*",
                 )
                 for i in range(0, len(result_all_columns)):
                     html_inner = (
@@ -1306,7 +1396,9 @@ def search_gaiadr3_of_tics(
                     )
                     nss_flag = result_all_columns[i]["NSS"]
                     if nss_flag > 0:
-                        html_inner += f"; NSS: {nss_flag} ({decode_gaiadr3_nss_flag(nss_flag)})"
+                        html_inner += (
+                            f"; NSS: {nss_flag} ({decode_gaiadr3_nss_flag(nss_flag)})"
+                        )
                     html += f"<pre>{html_inner}</pre>"
 
         if verbose_html:
@@ -1372,26 +1464,36 @@ def search_tesseb_of_tics(
     targets = _to_tic_str_list(targets)
 
     columns = ["*", "Sectors", "UpDate"]  # UpDate: the "date_modified" column
-    result_list = Vizier(catalog="J/ApJS/258/16/tess-ebs", columns=columns).query_constraints(TIC=targets)
+    result_list = Vizier(
+        catalog="J/ApJS/258/16/tess-ebs", columns=columns
+    ).query_constraints(TIC=targets)
 
     if len(result_list) < 1:
         return None, None, "None found"
     result = result_list[0]  # there is only 1 table in the catalog
 
-    result.rename_column("_tab1_10", "BJD0")  # somehow the column name for BJD0 is incorrect
+    result.rename_column(
+        "_tab1_10", "BJD0"
+    )  # somehow the column name for BJD0 is incorrect
 
     # add convenience columns
 
     result["Epochp"] = result["BJD0"]
 
     for m in ["pf", "2g"]:
-        result[f"Durationp-{m}"] = result["Per"] * result[f"Wp-{m}"] * 24  # assuming "Per" is in unit day
+        result[f"Durationp-{m}"] = (
+            result["Per"] * result[f"Wp-{m}"] * 24
+        )  # assuming "Per" is in unit day
         result[f"Durationp-{m}"].unit = u.hour
 
-        result[f"Epochs-{m}"] = result["BJD0"] + result["Per"] * (result[f"Phis-{m}"] - result[f"Phip-{m}"])
+        result[f"Epochs-{m}"] = result["BJD0"] + result["Per"] * (
+            result[f"Phis-{m}"] - result[f"Phip-{m}"]
+        )
         result[f"Epochs-{m}"].unit = result["BJD0"].unit
 
-        result[f"Durations-{m}"] = result["Per"] * result[f"Ws-{m}"] * 24  # assuming "Per" is in unit day
+        result[f"Durations-{m}"] = (
+            result["Per"] * result[f"Ws-{m}"] * 24
+        )  # assuming "Per" is in unit day
         result[f"Durations-{m}"].unit = u.hour
 
     result_all_columns = result
@@ -1413,15 +1515,23 @@ def search_tesseb_of_tics(
         ]
 
     if also_return_html:
-        rs = result.copy()  # create a copy so that I can add / change columns optimized for display
+        rs = (
+            result.copy()
+        )  # create a copy so that I can add / change columns optimized for display
         # add link to live TESS EB
-        rs["TESSebs"] = ["!TESSEB-" + tic for tic in rs["TIC"]]  # to be converted to link in html
+        rs["TESSebs"] = [
+            "!TESSEB-" + tic for tic in rs["TIC"]
+        ]  # to be converted to link in html
 
         _cpm = compact_preferred_model  # shortern it for convenience
         rs["Code"] = [
             f"""epoch={epoch_p}, duration_hr={dur_p}, period={per}, label="primary",   epoch={epoch_s}, duration_hr={dur_s}, period={per}, label="secondary","""
             for per, epoch_p, dur_p, epoch_s, dur_s in zip(
-                rs["Per"], rs["Epochp"], rs[f"Durationp-{_cpm}"], rs[f"Epochs-{_cpm}"], rs[f"Durations-{_cpm}"]
+                rs["Per"],
+                rs["Epochp"],
+                rs[f"Durationp-{_cpm}"],
+                rs[f"Epochs-{_cpm}"],
+                rs[f"Durations-{_cpm}"],
             )
         ]
 
@@ -1541,16 +1651,26 @@ Search <a href="https://academic.oup.com/view-large/225349534" target="_blank">t
 
     res = {}
 
-    result_list = Vizier(catalog=["J/A+A/664/A96/table1", "J/A+A/664/A96/tablea1"], columns=["*"]).query_constraints(
-        TIC=[prepend_to_fixed_len(t, "TIC", 14) for t in targets]  # TICs formatted as TIC nnnnn
+    result_list = Vizier(
+        catalog=["J/A+A/664/A96/table1", "J/A+A/664/A96/tablea1"], columns=["*"]
+    ).query_constraints(
+        TIC=[
+            prepend_to_fixed_len(t, "TIC", 14) for t in targets
+        ]  # TICs formatted as TIC nnnnn
     )
     res["Zasche+, 2022 (Multiply eclipsing candidates from TESS)"] = result_list
 
-    result_list = Vizier(catalog="J/ApJS/259/66/table1", columns=["*"]).query_constraints(TIC=targets)
+    result_list = Vizier(
+        catalog="J/ApJS/259/66/table1", columns=["*"]
+    ).query_constraints(TIC=targets)
     res["Kostov+, 2022 (97 eclipsing quadruple stars in TESS FFI)"] = result_list
 
-    result_list = Vizier(catalog="J/A+A/683/A158/table1", columns=["*"]).query_constraints(TIC=targets)
-    res["Zasche+, 2024 (6  new eccentric eclipsing systems with a third body.)"] = result_list
+    result_list = Vizier(
+        catalog="J/A+A/683/A158/table1", columns=["*"]
+    ).query_constraints(TIC=targets)
+    res["Zasche+, 2024 (6  new eccentric eclipsing systems with a third body.)"] = (
+        result_list
+    )
 
     # coordinate search:
     tic_rs = catalog_info_of_tics(targets)
@@ -1560,7 +1680,9 @@ Search <a href="https://academic.oup.com/view-large/225349534" target="_blank">t
     tic_rs["_DEJ2000"] = tic_rs["dec"]
     tic_rs["_DEJ2000"].unit = u.deg
 
-    result_list = Vizier(catalog="J/A+A/682/A164/table1", columns=["*", "+_r"]).query_region(tic_rs, radius=30 * u.arcsec)
+    result_list = Vizier(
+        catalog="J/A+A/682/A164/table1", columns=["*", "+_r"]
+    ).query_region(tic_rs, radius=30 * u.arcsec)
     res["Vaessen+, 2024 (Double eclipsing binaries from ZTF)"] = result_list
 
     do_display(res)

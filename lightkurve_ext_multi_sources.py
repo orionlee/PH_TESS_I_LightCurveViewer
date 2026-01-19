@@ -46,7 +46,9 @@ def combine_multi_bands_and_shift(lc_dict, split_lc_to_multi_bands=True, shift_t
     res = {}
     lc_ref = lc_dict[shift_to] if shift_to is not None else None
     for band, lc in lc_dict.items():
-        lc = lc.copy()  # ensure users who further modify the result won't affect the source
+        lc = (
+            lc.copy()
+        )  # ensure users who further modify the result won't affect the source
         if lc_ref is not None and band != shift_to:
             shift_flux(lc, lc_ref=lc_ref, inplace=True)
         lc.meta["BAND"] = band
@@ -55,7 +57,9 @@ def combine_multi_bands_and_shift(lc_dict, split_lc_to_multi_bands=True, shift_t
 
 
 def combine_tess_n_k2(lc_tess, lc_k2, shift_to_tess=True):
-    lc_tess = lc_tess.copy()  # ensure users who further modify the result won't affect the source
+    lc_tess = (
+        lc_tess.copy()
+    )  # ensure users who further modify the result won't affect the source
     lc_k2 = lc_k2.copy()
 
     # OPEN: shift the data to a common band?!
@@ -66,7 +70,6 @@ def combine_tess_n_k2(lc_tess, lc_k2, shift_to_tess=True):
 
 
 def get_label_of_source(lc_dict, source, mag_shift_precision=3):
-
     def get_rounded_str(val, precision):
         # Can't use the naive version: `f"{np.round(val, precision)}"`
         #
@@ -200,13 +203,17 @@ def plot_multi_bands(
             if show_colorbar_if_applicable:
                 show_colorbar = True
         if include_labels:
-            plot_label = get_label_of_source(lc_combined_dict, band, mag_shift_precision)
+            plot_label = get_label_of_source(
+                lc_combined_dict, band, mag_shift_precision
+            )
         else:
             plot_label = None
         x_vals = lc.time.value
         if time_shift_func is not None:
             x_vals = time_shift_func(x_vals)
-        path_collection = plot_func(x_vals, lc.flux.value, label=plot_label, **plot_kwargs)
+        path_collection = plot_func(
+            x_vals, lc.flux.value, label=plot_label, **plot_kwargs
+        )
         if show_colorbar:
             cbar = plt.colorbar(path_collection, ax=ax)
             cbar.set_label("Time")
@@ -225,7 +232,9 @@ def plot_multi_bands(
     ax.set_title(f"""{target_name}""")
 
     if lc.time.min().value > 10000:  # probably JD / MJD
-        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: format(int(x), ",")))  # thousands separator
+        ax.xaxis.set_major_formatter(
+            FuncFormatter(lambda x, p: format(int(x), ","))
+        )  # thousands separator
 
     return ax
 
@@ -264,7 +273,9 @@ def plot_tess_n_ztf(lc_combined_dict, figsize, target_name, mag_shift_precision=
     ax.set_xlabel("Time [HJD]")
     ax.set_ylabel("Magnitude")
     ax.set_title(f"""{target_name}""")
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: format(int(x), ",")))  # thousands separator
+    ax.xaxis.set_major_formatter(
+        FuncFormatter(lambda x, p: format(int(x), ","))
+    )  # thousands separator
     return ax
 
 
@@ -329,8 +340,12 @@ def fold_n_plot_multi_bands(
 
     if duration_hr is not None:
         duration_phase = duration_hr / 24 / period
-        ax.axvline(duration_midpoint_phase - duration_phase / 2, linestyle="--", c="blue")
-        ax.axvline(duration_midpoint_phase + duration_phase / 2, linestyle="--", c="blue")
+        ax.axvline(
+            duration_midpoint_phase - duration_phase / 2, linestyle="--", c="blue"
+        )
+        ax.axvline(
+            duration_midpoint_phase + duration_phase / 2, linestyle="--", c="blue"
+        )
 
     # Set phase plot specific title
     time_all = np.array([])
@@ -374,11 +389,29 @@ def fold_n_plot_tess_n_ztf(
         # if already in HJD UTC, avoid unnecessary conversion which would also have undesirable effect on precision
         epoch_hjd = epoch
     else:
-        epoch_hjd = lke.to_hjd_utc(epoch, SkyCoord(target_coord["ra"], target_coord["dec"], unit=(u.deg, u.deg), frame="icrs"))
+        epoch_hjd = lke.to_hjd_utc(
+            epoch,
+            SkyCoord(
+                target_coord["ra"],
+                target_coord["dec"],
+                unit=(u.deg, u.deg),
+                frame="icrs",
+            ),
+        )
 
-    lc_tess_f = fold_at_scale(lc_combined_dict.get("TESS"), epoch_time=epoch_hjd, period=period, normalize_phase=True)
+    lc_tess_f = fold_at_scale(
+        lc_combined_dict.get("TESS"),
+        epoch_time=epoch_hjd,
+        period=period,
+        normalize_phase=True,
+    )
     # TODO: do not assume ZTF data must be in ZTF g
-    lc_ztf_f = fold_at_scale(lc_combined_dict.get("ZTF g"), epoch_time=epoch_hjd, period=period, normalize_phase=True)
+    lc_ztf_f = fold_at_scale(
+        lc_combined_dict.get("ZTF g"),
+        epoch_time=epoch_hjd,
+        period=period,
+        normalize_phase=True,
+    )
 
     if ax is None:
         ax = tplt.lk_ax(figsize=figsize)
@@ -431,22 +464,45 @@ def plot_tess_n_k2(lc_combined_dict, figsize, target_name):
 
     # scatter plot for the dense TESS data, error is relatively small
     lc = lc_combined_dict["TESS"]
-    ax.scatter(lc.time.value, lc.flux.value, c="#3AF", s=0.1, alpha=1.0, label=get_label_of_source(lc_combined_dict, "TESS"))
+    ax.scatter(
+        lc.time.value,
+        lc.flux.value,
+        c="#3AF",
+        s=0.1,
+        alpha=1.0,
+        label=get_label_of_source(lc_combined_dict, "TESS"),
+    )
 
     # scatter plot for K2 data
     lc = lc_combined_dict["K2"]
-    ax.scatter(lc.time.value, lc.flux.value, c="green", s=0.5, alpha=1.0, label=get_label_of_source(lc_combined_dict, "K2"))
+    ax.scatter(
+        lc.time.value,
+        lc.flux.value,
+        c="green",
+        s=0.5,
+        alpha=1.0,
+        label=get_label_of_source(lc_combined_dict, "K2"),
+    )
 
     ax.legend()
     ax.set_xlabel("Time [HJD]")
     ax.set_ylabel("Magnitude")
     ax.set_title(f"""{target_name}""")
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: format(int(x), ",")))  # thousands separator
+    ax.xaxis.set_major_formatter(
+        FuncFormatter(lambda x, p: format(int(x), ","))
+    )  # thousands separator
     return ax
 
 
 def fold_n_plot_tess_n_k2(
-    lc_combined_dict, period, epoch: Time, phase_scale, target_coord=None, figsize=(8, 4), target_name=None, ax=None
+    lc_combined_dict,
+    period,
+    epoch: Time,
+    phase_scale,
+    target_coord=None,
+    figsize=(8, 4),
+    target_name=None,
+    ax=None,
 ):
     def fold_at_scale(lc, **kwargs):
         if lc is None:
@@ -462,10 +518,28 @@ def fold_n_plot_tess_n_k2(
         # if already in HJD UTC, avoid unnecessary conversion which would also have undesirable effect on precision
         epoch_hjd = epoch
     else:
-        epoch_hjd = lke.to_hjd_utc(epoch, SkyCoord(target_coord["ra"], target_coord["dec"], unit=(u.deg, u.deg), frame="icrs"))
+        epoch_hjd = lke.to_hjd_utc(
+            epoch,
+            SkyCoord(
+                target_coord["ra"],
+                target_coord["dec"],
+                unit=(u.deg, u.deg),
+                frame="icrs",
+            ),
+        )
 
-    lc_tess_f = fold_at_scale(lc_combined_dict.get("TESS"), epoch_time=epoch_hjd, period=period, normalize_phase=True)
-    lc_k2_f = fold_at_scale(lc_combined_dict.get("K2"), epoch_time=epoch_hjd, period=period, normalize_phase=True)
+    lc_tess_f = fold_at_scale(
+        lc_combined_dict.get("TESS"),
+        epoch_time=epoch_hjd,
+        period=period,
+        normalize_phase=True,
+    )
+    lc_k2_f = fold_at_scale(
+        lc_combined_dict.get("K2"),
+        epoch_time=epoch_hjd,
+        period=period,
+        normalize_phase=True,
+    )
 
     if ax is None:
         ax = tplt.lk_ax(figsize=figsize)

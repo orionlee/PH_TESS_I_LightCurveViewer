@@ -12,7 +12,11 @@ import numpy as np
 
 import lightkurve as lk
 from lightkurve.periodogram import BoxLeastSquaresPeriodogram
-from tic_plot import scatter as tplt_scatter, plot as tplt_plot, errorbar as tplt_errorbar
+from tic_plot import (
+    scatter as tplt_scatter,
+    plot as tplt_plot,
+    errorbar as tplt_errorbar,
+)
 
 from IPython.display import display, HTML
 
@@ -34,15 +38,27 @@ def plot_pg_n_mark_max(pg, ax=None, max_period_factor=None):
     if hasattr(pg, "depth_at_max_power"):  # to accommodate LombScarglePeriodogram
         max_text += f", Depth: {pg.depth_at_max_power:.6f}"
 
-    if max_period_factor is not None and ax.get_xlim()[1] > pg.period_at_max_power.value * max_period_factor:
-        ax.set_xlim(0 if ax.get_xlim()[0] < 0 else None, pg.period_at_max_power.value * max_period_factor)
-        display(HTML("""<span style="background-color: yellow;">Note:</span>Long potential periods truncated from the plot"""))
+    if (
+        max_period_factor is not None
+        and ax.get_xlim()[1] > pg.period_at_max_power.value * max_period_factor
+    ):
+        ax.set_xlim(
+            0 if ax.get_xlim()[0] < 0 else None,
+            pg.period_at_max_power.value * max_period_factor,
+        )
+        display(
+            HTML(
+                """<span style="background-color: yellow;">Note:</span>Long potential periods truncated from the plot"""
+            )
+        )
 
     x, y = pg.period_at_max_power.value, pg.max_power.value * 0.9
     x_min, x_max = ax.get_xlim()
     x_mid = (x_max - x_min) / 2 + x_min
     horizontalalignment = "left" if x < x_mid else "right"
-    ax.text(x, y, " " + max_text + " ", c="blue", horizontalalignment=horizontalalignment)
+    ax.text(
+        x, y, " " + max_text + " ", c="blue", horizontalalignment=horizontalalignment
+    )
     return ax
 
 
@@ -102,7 +118,14 @@ def plot_lc_with_model(
     if plot_lc:
         ax1 = tplt_scatter(lc)
         if hasattr(pg, "get_transit_mask"):
-            tplt_scatter(lc[pg.get_transit_mask()], ax=ax1, c="orange", marker="x", s=9, label="in transits")
+            tplt_scatter(
+                lc[pg.get_transit_mask()],
+                ax=ax1,
+                c="orange",
+                marker="x",
+                s=9,
+                label="in transits",
+            )
 
     ax2 = None
     if plot_model:
@@ -127,12 +150,16 @@ def plot_lc_with_model(
         tplt_plot(lc_model_f, ax=ax_f, c="red", linewidth=4)
         if hasattr(pg, "duration_at_max_power"):
             # zoom in for BLS model:
-            ax_f.set_xlim(-pg.duration_at_max_power.value, pg.duration_at_max_power.value)
+            ax_f.set_xlim(
+                -pg.duration_at_max_power.value, pg.duration_at_max_power.value
+            )
 
     if not also_return_lcs:
         return ax1, ax2, ax_f
     else:
-        lcs = SimpleNamespace(lc=lc, lc_f=lc_f, lc_model=lc_model, lc_model_f=lc_model_f)
+        lcs = SimpleNamespace(
+            lc=lc, lc_f=lc_f, lc_model=lc_model, lc_model_f=lc_model_f
+        )
         return [ax1, ax2, ax_f], lcs
 
 
@@ -142,7 +169,12 @@ def errorbar_transit_depth(pg):
 
     time = [lc_model.time.min().value, lc_model.time.max().value]
     ax.plot(
-        time, [1 - pg.depth_at_max_power, 1 - pg.depth_at_max_power], linestyle="-.", c="red", alpha=0.5, label="Model depth"
+        time,
+        [1 - pg.depth_at_max_power, 1 - pg.depth_at_max_power],
+        linestyle="-.",
+        c="red",
+        alpha=0.5,
+        label="Model depth",
     )
 
     transit_depth_mean = np.nanmean(
@@ -210,22 +242,35 @@ def find_peaks(pg, powerlimit=None):
         y = None
     if powerlimit is None:
         powerlimit = pg.max_power / 20
-        if hasattr(powerlimit, "value"):  # powerlimit must be unit-less for scipy.find_peaks()
+        if hasattr(
+            powerlimit, "value"
+        ):  # powerlimit must be unit-less for scipy.find_peaks()
             powerlimit = powerlimit.value
     peaks, stats = scipy_find_peaks(pg.power, height=powerlimit, width=1)
     lhwhm_int_down = view[np.floor(stats["left_ips"]).astype(int)]
     lhwhm_int_up = view[np.ceil(stats["left_ips"]).astype(int)]
     lhwhm_int_remainder = stats["left_ips"] - np.floor(stats["left_ips"])
-    lhwhm_period = lhwhm_int_down + lhwhm_int_remainder * (lhwhm_int_up - lhwhm_int_down)
+    lhwhm_period = lhwhm_int_down + lhwhm_int_remainder * (
+        lhwhm_int_up - lhwhm_int_down
+    )
     lhwhm = lhwhm_period - view[peaks]
     uhwhm_int_down = view[np.floor(stats["right_ips"]).astype(int)]
     uhwhm_int_up = view[np.ceil(stats["right_ips"]).astype(int)]
     uhwhm_int_remainder = stats["right_ips"] - np.floor(stats["right_ips"])
-    uhwhm_period = uhwhm_int_down + uhwhm_int_remainder * (uhwhm_int_up - uhwhm_int_down)
+    uhwhm_period = uhwhm_int_down + uhwhm_int_remainder * (
+        uhwhm_int_up - uhwhm_int_down
+    )
     uhwhm = uhwhm_period - view[peaks]
     fwhm = np.abs(uhwhm) + np.abs(lhwhm)  # make it immune to the sign of lhwhm, uhwhm
     result = Table(
-        data=[stats["peak_heights"], view[peaks], stats["prominences"], lhwhm, uhwhm, fwhm],
+        data=[
+            stats["peak_heights"],
+            view[peaks],
+            stats["prominences"],
+            lhwhm,
+            uhwhm,
+            fwhm,
+        ],
         names=("power", x, "prominence", "lower_hwhm", "upper_hwhm", "fwhm"),
     )
     result.sort("prominence", reverse=True)
@@ -310,9 +355,18 @@ def plot_pg_n_top_frequencies(pg, num_top, freq_filter_func=lambda f: True):
 
     # plot top pulsating frequency (set a cutoff point to be 450 upon the periodogram)
     idx_sorted = np.flip(np.argsort(power_b))
-    top_frequencies = [f.value for f in frequency_b[idx_sorted] if freq_filter_func(f)][:num_top]
+    top_frequencies = [f.value for f in frequency_b[idx_sorted] if freq_filter_func(f)][
+        :num_top
+    ]
     ymin, ymax = ax.get_ylim()
-    ax.vlines(top_frequencies, ymin=ymin, ymax=ymax, linestyle="dashed", alpha=0.5, linewidth=0.5)
+    ax.vlines(
+        top_frequencies,
+        ymin=ymin,
+        ymax=ymax,
+        linestyle="dashed",
+        alpha=0.5,
+        linewidth=0.5,
+    )
 
     return ax, top_frequencies
 
@@ -334,7 +388,9 @@ def validate_bls_n_report(pg, to_display=True):
         def html(m):
             flag_style = "color: red; font-weight: bold" if m.flag else ""
             name = m.name.replace("\n", "<br>")
-            return f"""<tr><td>{name}</td><td style="{flag_style}">{m.value}</td></tr>"""
+            return (
+                f"""<tr><td>{name}</td><td style="{flag_style}">{m.value}</td></tr>"""
+            )
 
         html_body = "\n".join([html(m) for m in metrics_list])
         return f"""
@@ -426,7 +482,9 @@ def validate_bls_n_report(pg, to_display=True):
 
     def flag_fap(false_alarm_probability):
         # None means it is not available because the dependent package is not in the environment
-        return false_alarm_probability is not None and (np.isnan(false_alarm_probability) or false_alarm_probability > 0.001)
+        return false_alarm_probability is not None and (
+            np.isnan(false_alarm_probability) or false_alarm_probability > 0.001
+        )
 
     def flag_sde(sde):
         return sde < 8.3
@@ -446,7 +504,10 @@ def validate_bls_n_report(pg, to_display=True):
     metrics_list = [
         metrics("Period", pg.period_at_max_power),
         metrics("- Period error\n(half width at half max)", period_at_max_power_err),
-        metrics(f"Epoch ({pg.transit_time_at_max_power.format.upper()})", pg.transit_time_at_max_power),
+        metrics(
+            f"Epoch ({pg.transit_time_at_max_power.format.upper()})",
+            pg.transit_time_at_max_power,
+        ),
         metrics("Duration", pg.duration_at_max_power),
         metrics("Duration (h)", pg.duration_at_max_power.to(u.h)),
         metrics("Depth (Model)", pg.depth_at_max_power),
@@ -461,7 +522,11 @@ def validate_bls_n_report(pg, to_display=True):
         metrics("SNR", np.max(pg.snr), flag_snr),
         metrics("SNR per transit", "N/A"),
         metrics("SNR (pink)\nconerns if greatly different from SNR", "N/A"),
-        metrics("Empty Transits\nactual period might be double", empty_transit_count, flag_empty_transit_count),  # todo
+        metrics(
+            "Empty Transits\nactual period might be double",
+            empty_transit_count,
+            flag_empty_transit_count,
+        ),  # todo
         metrics("Odd-even mismatch (sigma)", odd_even_mismatch, flag_odd_even),
         metrics(
             "Sine-like\n+ve => sine model better fit",
@@ -490,7 +555,9 @@ def validate_tls_n_report(pg, to_display=True):
         def html(m):
             flag_style = "color: red; font-weight: bold" if m.flag else ""
             name = m.name.replace("\n", "<br>")
-            return f"""<tr><td>{name}</td><td style="{flag_style}">{m.value}</td></tr>"""
+            return (
+                f"""<tr><td>{name}</td><td style="{flag_style}">{m.value}</td></tr>"""
+            )
 
         html_body = "\n".join([html(m) for m in metrics_list])
         return f"""
@@ -525,23 +592,39 @@ def validate_tls_n_report(pg, to_display=True):
     metrics_list = [
         metrics("Period", pg.period_at_max_power),
         metrics("- Period error\n(half width at half max)", pg.period_at_max_power_err),
-        metrics(f"Epoch ({pg.transit_time_at_max_power.format.upper()})", pg.transit_time_at_max_power),
+        metrics(
+            f"Epoch ({pg.transit_time_at_max_power.format.upper()})",
+            pg.transit_time_at_max_power,
+        ),
         metrics("Duration", pg.duration_at_max_power),
         metrics("Duration (h)", pg.duration_at_max_power.to(u.h)),
         metrics("Depth (Model)", pg.depth_at_max_power),
-        metrics("Depth (Mean)", 1 - pg._TLS_result.depth_mean[0]),  # mean of all in-transit flux, need 1 - TLS_result
+        metrics(
+            "Depth (Mean)", 1 - pg._TLS_result.depth_mean[0]
+        ),  # mean of all in-transit flux, need 1 - TLS_result
         metrics("- Depth (Mean) error", pg._TLS_result.depth_mean[1]),
         metrics(
             "Period grid size", len(pg.period)
         ),  # larger period grid enerally results in more accurate period and better SDE
         metrics("FAP (white noises)", pg.false_alarm_probability, flag_fap),
         metrics("SDE (Power)", pg.max_power, flag_sde),
-        metrics("SR (Log likelihood)", np.max(pg.sr)),  # TODO not too useful in normaized form, it's practically always 1
+        metrics(
+            "SR (Log likelihood)", np.max(pg.sr)
+        ),  # TODO not too useful in normaized form, it's practically always 1
         metrics("SNR", pg.snr_at_max_power, flag_snr),
         metrics("SNR per transit", pg._TLS_result.snr_per_transit),
-        metrics("SNR (pink)\nconerns if greatly different from SNR", pg._TLS_result.snr_pink_per_transit),
-        metrics("Empty Transits\nactual period might be double", pg._TLS_result.empty_transit_count, flag_empty_transit_count),
-        metrics("Odd-even mismatch (sigma)", pg._TLS_result.odd_even_mismatch, flag_odd_even),
+        metrics(
+            "SNR (pink)\nconerns if greatly different from SNR",
+            pg._TLS_result.snr_pink_per_transit,
+        ),
+        metrics(
+            "Empty Transits\nactual period might be double",
+            pg._TLS_result.empty_transit_count,
+            flag_empty_transit_count,
+        ),
+        metrics(
+            "Odd-even mismatch (sigma)", pg._TLS_result.odd_even_mismatch, flag_odd_even
+        ),
         metrics("Elapsed time (ms)", getattr(pg, "elapsed_time", "N/A")),
     ]
 
@@ -571,7 +654,9 @@ def iterative_bls(
         lc_in.meta["LABEL"] = f"{lc.meta.get('LABEL')}, #{i}"
 
         display(HTML(f"<h3>Iteration {i}<h3>"))
-        result = lke_pg_runner.run_bls(lc_in, pg_kwargs, plot_pg=plot_pg, plot_lc_model=plot_lc_model)
+        result = lke_pg_runner.run_bls(
+            lc_in, pg_kwargs, plot_pg=plot_pg, plot_lc_model=plot_lc_model
+        )
 
         result_list.append(result)
 
@@ -582,7 +667,9 @@ def iterative_bls(
         # useful when the model's duration it too short, which would leave residual dips that could
         # confuse subsequent BLS runs.
         duration = result.pg.duration_at_max_power * duration_factor_for_mask
-        tmask = lc_in.create_transit_mask(period=period, transit_time=t0, duration=duration)
+        tmask = lc_in.create_transit_mask(
+            period=period, transit_time=t0, duration=duration
+        )
         lc_in = lc_in[~tmask]
 
     return result_list
@@ -614,7 +701,9 @@ def iterative_sine_fit(
     lc_in = lc
     for i in range(1, num_iterations + 1):
         lc_4_pg = lc_in
-        if mask_for_model is not None:  # the optional mask is to exclude cadence that could skew the periodogram calculation
+        if (
+            mask_for_model is not None
+        ):  # the optional mask is to exclude cadence that could skew the periodogram calculation
             lc_4_pg = lc_in[~mask_for_model]
         pg = lc_4_pg.to_periodogram(method="lombscargle", **pg_kwargs)
 
@@ -625,8 +714,12 @@ def iterative_sine_fit(
         lc_residual.meta["LS_RESIDUAL_ITERATION"] = i
 
         if plot_diagnostics:
-            axs = tplt.plot_skip_data_gap(lc_residual, label=f"lc_residual{i}", **plot_kwargs)
-            axs[0].set_title(f"Iteration {i}; signals removed: period={pg.period_at_max_power}, power={pg.max_power}")
+            axs = tplt.plot_skip_data_gap(
+                lc_residual, label=f"lc_residual{i}", **plot_kwargs
+            )
+            axs[0].set_title(
+                f"Iteration {i}; signals removed: period={pg.period_at_max_power}, power={pg.max_power}"
+            )
         #             axs = tplt.plot_skip_data_gap(lc_model, label=f"lc_model{i}", **plot_kwargs);
 
         # accumulate output
@@ -642,6 +735,7 @@ def iterative_sine_fit(
 
 # OPEN: conceptually, remove_harmonics() is equivalent to lc / create_model_lc_of_frequencies()
 # but for now they are implemented differently.
+
 
 def remove_harmonics(lc, pg, base_frequency, num_harmonics):
     """Remove the first `num_harmonics` harmonics of the specified frequency."""
@@ -665,7 +759,9 @@ def create_model_lc_of_frequencies(t_or_lc, pg, frequencies):
     elif isinstance(t_or_lc, Time):
         t = t_or_lc
     else:
-        raise TypeError(f"Parameter lc_or_t must be a LightCurve or Time object. Actual: {type(t_or_lc)}")
+        raise TypeError(
+            f"Parameter lc_or_t must be a LightCurve or Time object. Actual: {type(t_or_lc)}"
+        )
 
     lc_model = lk.LightCurve(time=t.copy(), flux=np.ones_like(t))
     for f in frequencies:

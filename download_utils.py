@@ -77,7 +77,13 @@ def _do_download_file(url, filename=None, download_dir=None):
     return local_filename
 
 
-def download_file(url, filename=None, download_dir=None, cache_policy_func=None, return_is_cache_used=False):
+def download_file(
+    url,
+    filename=None,
+    download_dir=None,
+    cache_policy_func=None,
+    return_is_cache_used=False,
+):
     if download_dir is None:
         download_dir = ""
 

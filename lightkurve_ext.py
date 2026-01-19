@@ -71,8 +71,15 @@ def of_sectors(*args):
 
     if hasattr(lk_coll_or_sr, "sector"):
         return lk_coll_or_sr[np.in1d(lk_coll_or_sr.sector, sector_nums)]
-    elif hasattr(lk_coll_or_sr, "table") and lk_coll_or_sr.table["sequence_number"] is not None:
-        res = lk.SearchResult(lk_coll_or_sr.table[np.in1d(lk_coll_or_sr.table["sequence_number"], sector_nums)])
+    elif (
+        hasattr(lk_coll_or_sr, "table")
+        and lk_coll_or_sr.table["sequence_number"] is not None
+    ):
+        res = lk.SearchResult(
+            lk_coll_or_sr.table[
+                np.in1d(lk_coll_or_sr.table["sequence_number"], sector_nums)
+            ]
+        )
         res = _sort_chronologically(res)
         return res
     else:
@@ -89,7 +96,10 @@ def of_sector_n_around(lk_coll_or_sr, sector_num, num_additions=8):
     sector_accessor_func = None
     if hasattr(lk_coll_or_sr, "sector"):
         sector_accessor_func = get_sector_for_lk_coll
-    elif hasattr(lk_coll_or_sr, "table") and lk_coll_or_sr.table["sequence_number"] is not None:
+    elif (
+        hasattr(lk_coll_or_sr, "table")
+        and lk_coll_or_sr.table["sequence_number"] is not None
+    ):
         sector_accessor_func = get_sector_for_sr
     else:
         raise TypeError(f"Unsupported type of collection: {type(lk_coll_or_sr)}")
@@ -106,7 +116,9 @@ def of_sector_n_around(lk_coll_or_sr, sector_num, num_additions=8):
         return type(lk_coll_or_sr)([])
 
 
-def _get_slice_for_of_sector_n_around(coll, sector_accessor_func, sector_num, num_additions):
+def _get_slice_for_of_sector_n_around(
+    coll, sector_accessor_func, sector_num, num_additions
+):
     if sector_num not in sector_accessor_func(coll):
         return None
 
@@ -197,13 +209,17 @@ def get_obs_date_range(lcf_coll):
         lcf_coll = lk.LightCurveCollection([lcf_coll])
 
     # to support folded lightcurve
-    time_colname = "time_original" if "time_original" in lcf_coll[0].colnames else "time"
+    time_colname = (
+        "time_original" if "time_original" in lcf_coll[0].colnames else "time"
+    )
 
     t_start = lcf_coll[0][time_colname].min().value
     t_end = lcf_coll[-1][time_colname].max().value
 
     obs_span = t_end - t_start
-    obs_actual = len(set(np.concatenate([lc[time_colname].value.astype("int") for lc in lcf_coll])))
+    obs_actual = len(
+        set(np.concatenate([lc[time_colname].value.astype("int") for lc in lcf_coll]))
+    )
 
     return obs_span, obs_actual
 
@@ -240,6 +256,7 @@ def _sort_chronologically(sr: lk.SearchResult):
 LK_SEARCH_NUM_RETRIES = 4
 LK_DOWNLOAD_NUM_RETRIES = 2
 
+
 @retry(IOError, tries=LK_SEARCH_NUM_RETRIES, delay=0.5, backoff=2, jitter=(0, 0.5))
 def search_lightcurve(*args, **kwargs):
     return lk.search_lightcurve(*args, **kwargs)
@@ -264,7 +281,10 @@ def download_all(search_result, *args, **kwargs):
 
 
 def download_lightcurves_of_tic_with_priority(
-    tic, author_priority=["SPOC", "QLP", "TESS-SPOC"], download_filter_func=None, download_dir=None
+    tic,
+    author_priority=["SPOC", "QLP", "TESS-SPOC"],
+    download_filter_func=None,
+    download_dir=None,
 ):
     """For a given TIC, download lightcurves across all sectors.
     For each sector, download one based on pre-set priority.
@@ -275,13 +295,17 @@ def download_lightcurves_of_tic_with_priority(
         print(f"WARNING: no result found for TIC {tic}")
         return None, None, None
 
-    sr_unfiltered = sr_unfiltered[sr_unfiltered.target_name == str(tic)]  # in case we get some other nearby TICs
+    sr_unfiltered = sr_unfiltered[
+        sr_unfiltered.target_name == str(tic)
+    ]  # in case we get some other nearby TICs
     sr_unfiltered = _sort_chronologically(sr_unfiltered)
 
     # filter out HLSPs not supported by lightkurve yet
     sr = sr_unfiltered[sr_unfiltered.author != "DIAMANTE"]
     if len(sr) < len(sr_unfiltered):
-        print("Note: there are products not supported by Lightkurve, which are excluded from download.")
+        print(
+            "Note: there are products not supported by Lightkurve, which are excluded from download."
+        )
 
     # for each sector, filter based on the given priority.
     # - note: prefer QLP over TESS-SPOC because QLP is detrended, with multiple apertures within 1 file
@@ -364,14 +388,22 @@ def download_lightcurve(
     """
 
     if use_cache == "no":
-        return _search_and_cache(target, mission, exptime, author, download_dir, display_search_result)
+        return _search_and_cache(
+            target, mission, exptime, author, download_dir, display_search_result
+        )
     if use_cache == "yes":
         result_file_ids = _load_from_cache_if_any(target, mission, download_dir)
         if result_file_ids is not None:
-            result_files = list(map(lambda e: f"{download_dir}/mastDownload/{e}", result_file_ids))
-            return lk.collections.LightCurveCollection(list(map(lambda f: lk.read(f), result_files)))
+            result_files = list(
+                map(lambda e: f"{download_dir}/mastDownload/{e}", result_file_ids)
+            )
+            return lk.collections.LightCurveCollection(
+                list(map(lambda f: lk.read(f), result_files))
+            )
         # else
-        return _search_and_cache(target, mission, exptime, author, download_dir, display_search_result)
+        return _search_and_cache(
+            target, mission, exptime, author, download_dir, display_search_result
+        )
     # else
     raise ValueError("invalid value for argument use_cache")
 
@@ -379,8 +411,12 @@ def download_lightcurve(
 # Private helpers for `download_lightcurvefiles`
 
 
-def _search_and_cache(target, mission, exptime, author, download_dir, display_search_result):
-    search_res = lk.search_lightcurve(target=target, mission=mission, exptime=exptime, author=author)
+def _search_and_cache(
+    target, mission, exptime, author, download_dir, display_search_result
+):
+    search_res = lk.search_lightcurve(
+        target=target, mission=mission, exptime=exptime, author=author
+    )
     if len(search_res) < 1:
         return None
     if display_search_result:
@@ -395,7 +431,9 @@ def _display_search_result(search_res):
     tab = search_res.table
     # move useful columns to the front
     preferred_cols = ["proposal_id", "target_name", "sequence_number", "t_exptime"]
-    colnames_reordered = preferred_cols + [c for c in tab.colnames if c not in preferred_cols]
+    colnames_reordered = preferred_cols + [
+        c for c in tab.colnames if c not in preferred_cols
+    ]
     display(tab[colnames_reordered])
 
 
@@ -446,7 +484,11 @@ def _to_product_identifiers(search_res):
     """
     return list(
         map(
-            lambda e: e["obs_collection"] + "/" + e["obs_id"] + "/" + e["productFilename"],
+            lambda e: e["obs_collection"]
+            + "/"
+            + e["obs_id"]
+            + "/"
+            + e["productFilename"],
             search_res.table,
         )
     )
@@ -470,7 +512,9 @@ def _load_search_result_product_identifiers(download_dir, key):
         # errno == 2: file not found, typical case of cache miss
         # errno != 2: unexpected error, log a warning
         if err.errno != 2:
-            log.warning("Unexpected OSError in retrieving cached search result: {}".format(err))
+            log.warning(
+                "Unexpected OSError in retrieving cached search result: {}".format(err)
+            )
         return None
 
 
@@ -499,7 +543,9 @@ def filter_by_priority(
 
         # secondary priority
         exptime_default = max(dict(exptime_sort_keys).values()) + 1
-        exptime_key = exptime_sort_keys.get(map_cadence_type(row["exptime"] / 60 / 60 / 24), exptime_default)
+        exptime_key = exptime_sort_keys.get(
+            map_cadence_type(row["exptime"] / 60 / 60 / 24), exptime_default
+        )
         return author_key + exptime_key
 
     sr.table["_filter_priority"] = [calc_filter_priority(r) for r in sr.table]
@@ -540,14 +586,20 @@ def search_and_download_tpf(*args, **kwargs):
     # extract download_all() parameters
     download_dir = kwargs.pop("download_dir", None)
     quality_bitmask = kwargs.pop("quality_bitmask", None)
-    sr = search_targetpixelfile(*args, **kwargs)  # pass the rest of the argument to search_targetpixelfile
+    sr = search_targetpixelfile(
+        *args, **kwargs
+    )  # pass the rest of the argument to search_targetpixelfile
     sr = _sort_chronologically(sr)
-    tpf_coll = download_all(sr, download_dir=download_dir, quality_bitmask=quality_bitmask)
+    tpf_coll = download_all(
+        sr, download_dir=download_dir, quality_bitmask=quality_bitmask
+    )
     return tpf_coll, sr
 
 
 def create_download_tpf_task(*args, **kwargs):
-    return asyncio_compat.create_background_task(search_and_download_tpf, *args, **kwargs)
+    return asyncio_compat.create_background_task(
+        search_and_download_tpf, *args, **kwargs
+    )
 
 
 #
@@ -620,12 +672,19 @@ def list_times_w_quality_issues(lc, include_excluded_cadences=False):
 
         # data is truncated if the given lc is truncated
         # TODO: cadences excluded before lc.time.min() or after lc.time.max() will still be missing.
-        data = _get_n_truncate_fits_data(lc, lc.time.min().value, lc.time.max().value, ["time", "quality", flux_colname])
+        data = _get_n_truncate_fits_data(
+            lc,
+            lc.time.min().value,
+            lc.time.max().value,
+            ["time", "quality", flux_colname],
+        )
         mask = _do_create_quality_issues_mask(data["quality"], data[flux_colname])
         return data["time"][mask], data["quality"][mask]
 
 
-def list_transit_times(t0, period, steps_or_num_transits=range(0, 10), return_string=False):
+def list_transit_times(
+    t0, period, steps_or_num_transits=range(0, 10), return_string=False
+):
     """List the transit times based on the supplied transit parameters"""
     if isinstance(steps_or_num_transits, int):
         steps = range(0, steps_or_num_transits)
@@ -677,7 +736,9 @@ def get_transit_times_in_range(t0, period, start, end):
     return [t_start + period * i for i in range(num_t)]
 
 
-def get_transit_times_in_lc(lc, t0, period, in_cycles=False, return_string=False, **kwargs):
+def get_transit_times_in_lc(
+    lc, t0, period, in_cycles=False, return_string=False, **kwargs
+):
     """Get the transit times with observations of the given lightcurve, based on the supplied transit parameters.
 
     The method will exclude the times where there is no observation due to data gaps.
@@ -708,7 +769,12 @@ def _concatenate_list_of_lists(lists):
 
 
 def get_compatible_periods_of_2dips(
-    epoch1, epoch2, lcc: lk.LightCurveCollection, flux_column="flux", min_period=10, verbose=False
+    epoch1,
+    epoch2,
+    lcc: lk.LightCurveCollection,
+    flux_column="flux",
+    min_period=10,
+    verbose=False,
 ):
     """For the case where 2 dips are observed. Return the compatible periods that fit the observations.
 
@@ -729,21 +795,34 @@ def get_compatible_periods_of_2dips(
         if trial_p <= min_period:
             break
         trial_ttimes = _concatenate_list_of_lists(
-            [get_transit_times_in_lc(lc.select_flux(flux_column), epoch1, trial_p) for lc in lcc]
+            [
+                get_transit_times_in_lc(lc.select_flux(flux_column), epoch1, trial_p)
+                for lc in lcc
+            ]
         )
-        if len(trial_ttimes) <= 2:  # assuming epoch1, epoch2 is always in the trial_ttimes.
+        if (
+            len(trial_ttimes) <= 2
+        ):  # assuming epoch1, epoch2 is always in the trial_ttimes.
             compat_p_list.append(trial_p)
             if verbose:
                 print(f"  Period {trial_p} compatible. {trial_ttimes}")
         else:
             if verbose:
-                print(f"  Period {trial_p} is incompatible. Has unexpected transits at times {trial_ttimes}")
+                print(
+                    f"  Period {trial_p} is incompatible. Has unexpected transits at times {trial_ttimes}"
+                )
         num_cycles += 1
     return compat_p_list
 
 
 def get_compatible_periods_of_3dips(
-    epoch1, epoch2, epoch3, lcc: lk.LightCurveCollection, flux_column="flux", min_period=10, verbose=False
+    epoch1,
+    epoch2,
+    epoch3,
+    lcc: lk.LightCurveCollection,
+    flux_column="flux",
+    min_period=10,
+    verbose=False,
 ):
     """For the case where 2 dips are observed. Return the compatible periods that fit the observations.
 
@@ -770,25 +849,33 @@ def get_compatible_periods_of_3dips(
         tolerance = 0.05  # observed epoch2 needs to be within tolerance (in days) with predicted epoch 2 time
         if epoch2_diff > tolerance:
             if verbose:
-                print(f"  Period {trial_p} is incompatible. Does not fit epoch2 (off by {epoch2_diff:.2f} days).")
+                print(
+                    f"  Period {trial_p} is incompatible. Does not fit epoch2 (off by {epoch2_diff:.2f} days)."
+                )
             num_cycles += 1
             continue
         trial_ttimes = _concatenate_list_of_lists(
-            [get_transit_times_in_lc(lc.select_flux(flux_column), epoch1, trial_p) for lc in lcc]
+            [
+                get_transit_times_in_lc(lc.select_flux(flux_column), epoch1, trial_p)
+                for lc in lcc
+            ]
         )
-        if len(trial_ttimes) <= 3:  # assuming epoch1, epoch2, epoch3 is always in the trial_ttimes.
+        if (
+            len(trial_ttimes) <= 3
+        ):  # assuming epoch1, epoch2, epoch3 is always in the trial_ttimes.
             compat_p_list.append(trial_p)
             if verbose:
                 print(f"  Period {trial_p} compatible. {trial_ttimes}")
         else:
             if verbose:
-                print(f"  Period {trial_p} is incompatible. Has unexpected transits at times {trial_ttimes}")
+                print(
+                    f"  Period {trial_p} is incompatible. Has unexpected transits at times {trial_ttimes}"
+                )
         num_cycles += 1
     return compat_p_list
 
 
 class TransitTimeSpec(dict):
-
     def __init__(
         self,
         epoch: float = None,
@@ -899,7 +986,12 @@ def add_sector_like_as_column(lcf_coll, warn_if_failed=False):
     return lk.LightCurveCollection([add_sector_like_to_lc(lc) for lc in lcf_coll])
 
 
-def stitch(lcf_coll, ignore_incompatible_column_warning=False, to_add_sector_like_as_column=False, **kwargs):
+def stitch(
+    lcf_coll,
+    ignore_incompatible_column_warning=False,
+    to_add_sector_like_as_column=False,
+    **kwargs,
+):
     """Wrapper over native stitch(), and tweak the metadata so that it behaves like a typical single-sector lightcurve."""
 
     def update_meta_if_exists_in(lc_src, keys):
@@ -940,7 +1032,9 @@ def stitch(lcf_coll, ignore_incompatible_column_warning=False, to_add_sector_lik
     safe_del_meta("FILENAME")  # don't associate it with a file anymore
 
     # record the sectors stitched and the associated metadata
-    sector_list = [lc.meta.get("SECTOR") for lc in lcf_coll if lc.meta.get("SECTOR") is not None]
+    sector_list = [
+        lc.meta.get("SECTOR") for lc in lcf_coll if lc.meta.get("SECTOR") is not None
+    ]
     meta_list = [lc.meta for lc in lcf_coll if lc.meta.get("SECTOR") is not None]
     if len(sector_list) > 0:
         lc_stitched.meta["SECTORS"] = sector_list
@@ -952,7 +1046,9 @@ def stitch(lcf_coll, ignore_incompatible_column_warning=False, to_add_sector_lik
     return lc_stitched
 
 
-def stitch_lc_dict(lc_dict: dict, source_colname="source", normalize=True) -> lk.LightCurve:
+def stitch_lc_dict(
+    lc_dict: dict, source_colname="source", normalize=True
+) -> lk.LightCurve:
     lcc = []
     for k in lc_dict:
         lc = lc_dict[k].copy()
@@ -963,7 +1059,11 @@ def stitch_lc_dict(lc_dict: dict, source_colname="source", normalize=True) -> lk
             else:
                 lc = lc.normalize()
         lcc.append(lc)
-    return stitch(lk.LightCurveCollection(lcc), ignore_incompatible_column_warning=True, corrector_func=lambda lc: lc)
+    return stitch(
+        lk.LightCurveCollection(lcc),
+        ignore_incompatible_column_warning=True,
+        corrector_func=lambda lc: lc,
+    )
 
 
 def to_window_length_for_2min_cadence(length_day):
@@ -1020,10 +1120,14 @@ def _lksl_statistics(ts):
         vector_length_sq_sum += np.square(ts[-1] - ts[0])
 
     diff_from_mean_sq_sum = np.square(ts - np.mean(ts)).sum()
-    if diff_from_mean_sq_sum == 0:  # to avoid boundary case that'd cause division by zero
+    if (
+        diff_from_mean_sq_sum == 0
+    ):  # to avoid boundary case that'd cause division by zero
         diff_from_mean_sq_sum = 1e-10
 
-    return (vector_length_sq_sum / diff_from_mean_sq_sum) * (len(ts) - 1) / (2 * len(ts))
+    return (
+        (vector_length_sq_sum / diff_from_mean_sq_sum) * (len(ts) - 1) / (2 * len(ts))
+    )
 
 
 def lksl_statistics(lc, column="flux"):
@@ -1096,7 +1200,9 @@ def estimate_b(depth, t_full, t_total):
     # which quotes  Seager & Mallén-Ornelas (2003)
     # limitations include: limb darkening is not taken into account. Circular orbit is assumed
     d, tF, tT = depth, t_full, t_total
-    return (((1 - d**0.5) ** 2 - (tF / tT) ** 2 * (1 + d**0.5) ** 2) / (1 - (tF / tT) ** 2)) ** 0.5
+    return (
+        ((1 - d**0.5) ** 2 - (tF / tT) ** 2 * (1 + d**0.5) ** 2) / (1 - (tF / tT) ** 2)
+    ) ** 0.5
 
 
 def estimate_transit_duration_for_circular_orbit(period, rho, b):
@@ -1133,7 +1239,9 @@ def estimate_transit_duration_for_circular_orbit(period, rho, b):
             b_lower = b[0] - b[1]
             b_upper = b[0] + b[2]
         else:
-            raise ValueError("b must be a scalar, (mean, error), or (mean, lower_error, upper_error)")
+            raise ValueError(
+                "b must be a scalar, (mean, error), or (mean, lower_error, upper_error)"
+            )
         d_mean = estimate_transit_duration_for_circular_orbit(period, rho, b_mean)
         # lower b would lead to higher duration
         d_upper = estimate_transit_duration_for_circular_orbit(period, rho, b_lower)
@@ -1179,7 +1287,9 @@ def estimate_period_for_circular_orbit(duration, rho, b):
             b_lower = b[0] - b[1]
             b_upper = b[0] + b[2]
         else:
-            raise ValueError("b must be a scalar, (mean, error), or (mean, lower_error, upper_error)")
+            raise ValueError(
+                "b must be a scalar, (mean, error), or (mean, lower_error, upper_error)"
+            )
         p_mean = estimate_period_for_circular_orbit(duration, rho, b_mean)
         # lower b would lead to shorter duration
         p_lower = estimate_period_for_circular_orbit(duration, rho, b_lower)
@@ -1225,9 +1335,13 @@ def estimate_period_for_circular_orbit(duration, rho, b):
     ).to(u.day)
 
 
-def _calc_median_flux_around(lc_f: lk.FoldedLightCurve, epoch_phase, flux_window_in_min):
+def _calc_median_flux_around(
+    lc_f: lk.FoldedLightCurve, epoch_phase, flux_window_in_min
+):
     flux_window = flux_window_in_min / 60 / 24  # in days
-    lc_trunc = lc_f.truncate(epoch_phase - flux_window / 2, epoch_phase + flux_window / 2).remove_nans()
+    lc_trunc = lc_f.truncate(
+        epoch_phase - flux_window / 2, epoch_phase + flux_window / 2
+    ).remove_nans()
     flux_median = np.median(lc_trunc.flux)
     flux_median_sample_size = len(lc_trunc)
 
@@ -1248,10 +1362,14 @@ def calc_peak_to_peak(lc_f: lk.FoldedLightCurve, flux_window_in_min=10):
         argmax_func, argmin_func = "argmin", "argmax"
 
     time_max = lc_f.time[getattr(lc_f.flux, argmax_func)()]
-    flux_max, flux_max_sample_size = _calc_median_flux_around(lc_f, time_max.value, flux_window_in_min=flux_window_in_min)
+    flux_max, flux_max_sample_size = _calc_median_flux_around(
+        lc_f, time_max.value, flux_window_in_min=flux_window_in_min
+    )
 
     time_min = lc_f.time[getattr(lc_f.flux, argmin_func)()]
-    flux_min, flux_min_sample_size = _calc_median_flux_around(lc_f, time_min.value, flux_window_in_min=flux_window_in_min)
+    flux_min, flux_min_sample_size = _calc_median_flux_around(
+        lc_f, time_min.value, flux_window_in_min=flux_window_in_min
+    )
 
     peak_to_peak = np.abs(flux_max - flux_min)
 
@@ -1338,10 +1456,14 @@ def deblend_mag(lc, contaminant_mag):
     """
 
     if lc.flux.unit != u.mag:
-        raise ValueError(f"Given lightcurve's flux must be in mag. Actual {lc.flux.unit}")
+        raise ValueError(
+            f"Given lightcurve's flux must be in mag. Actual {lc.flux.unit}"
+        )
 
     blended_mag = lc.flux.value
-    target_mag = contaminant_mag - 2.5 * np.log10(10 ** ((contaminant_mag - blended_mag) * 0.4) - 1)
+    target_mag = contaminant_mag - 2.5 * np.log10(
+        10 ** ((contaminant_mag - blended_mag) * 0.4) - 1
+    )
 
     target_lc = lk.LightCurve(time=lc.time, flux=target_mag * u.mag)
     target_lc.meta.update(lc.meta)
@@ -1370,9 +1492,13 @@ def to_flux_in_mag_by_normalization(lc, base_mag_header_name=None, base_mag=None
     elif base_mag_header_name is not None:
         base_mag = lc.meta.get(base_mag_header_name)
     else:
-        base_mag = lc.meta.get("TESSMAG", lc.meta.get("KEPMAG"))  # Try TESS or Kepler as base
+        base_mag = lc.meta.get(
+            "TESSMAG", lc.meta.get("KEPMAG")
+        )  # Try TESS or Kepler as base
     if base_mag is None:
-        raise ValueError(f"The given lightcurve does not have base magnitude in {base_mag_header_name} header ")
+        raise ValueError(
+            f"The given lightcurve does not have base magnitude in {base_mag_header_name} header "
+        )
 
     lc_norm = lc.normalize()
     flux_mag = (base_mag + 2.5 * np.log10(1 / lc_norm.flux)) * u.mag
@@ -1426,7 +1552,11 @@ def normalized_amplitude_to_delta_mag(normalized_amplitude):
     return 2.5 * np.log10(1 / (1 - normalized_amplitude))
 
 
-@deprecated("2026-01-08", alternative="normalized_amplitude_to_delta_mag", warning_type=DeprecationWarning)
+@deprecated(
+    "2026-01-08",
+    alternative="normalized_amplitude_to_delta_mag",
+    warning_type=DeprecationWarning,
+)
 def ratio_to_mag(val_in_ratio):
     """Convert normalized transit depth to magnitude."""
     return normalized_amplitude_to_delta_mag(val_in_ratio)
@@ -1440,17 +1570,23 @@ def to_hjd_utc(t_obj: Time, sky_coord: SkyCoord) -> Time:
 
     # 1. convert the given time in JD TDB to local time UTC
     greenwich = coord.EarthLocation.of_site("greenwich")
-    ltt_bary = t_jd_tdb.light_travel_time(sky_coord, location=greenwich, kind="barycentric")
+    ltt_bary = t_jd_tdb.light_travel_time(
+        sky_coord, location=greenwich, kind="barycentric"
+    )
     t_local_jd_utc = (t_jd_tdb - ltt_bary).utc
 
     # 2. convert local time UTC to HJD UTC
-    ltt_helio = t_local_jd_utc.light_travel_time(sky_coord, location=greenwich, kind="heliocentric")
+    ltt_helio = t_local_jd_utc.light_travel_time(
+        sky_coord, location=greenwich, kind="heliocentric"
+    )
     t_hjd_utc = t_local_jd_utc + ltt_helio
 
     return t_hjd_utc
 
 
-def convert_lc_time_to_hjd_utc(lc, target_coord, cache_dir=".", cache_key=None, cache_key_suffix=None):
+def convert_lc_time_to_hjd_utc(
+    lc, target_coord, cache_dir=".", cache_key=None, cache_key_suffix=None
+):
     """Convert the lightcurve's time to HJD UTC, with the HJD time cached in disk.
 
     `cache_key_suffix`: optional, applicable only when `cache_key` is `None`. It lets user to
@@ -1487,12 +1623,19 @@ def convert_lc_time_to_hjd_utc(lc, target_coord, cache_dir=".", cache_key=None, 
             if len(lc) == len(hjd_time_val):
                 return hjd_time_val
             else:
-                print(f"The cached HJD time in {cache_file} has different length. discard it.")
+                print(
+                    f"The cached HJD time in {cache_file} has different length. discard it."
+                )
                 hjd_time_val = None
 
         # else cache miss
         if not isinstance(target_coord, SkyCoord):
-            target_coord = SkyCoord(target_coord["ra"], target_coord["dec"], unit=(u.deg, u.deg), frame="icrs")
+            target_coord = SkyCoord(
+                target_coord["ra"],
+                target_coord["dec"],
+                unit=(u.deg, u.deg),
+                frame="icrs",
+            )
         hjd_time_val = to_hjd_utc(lc.time, target_coord).value
 
         # write to cache
@@ -1518,17 +1661,23 @@ def hjd_to_bjd(t_obj: Time, sky_coord: SkyCoord) -> Time:
 
     # 1. convert the given time in HJD UTC to local time UTC
     greenwich = coord.EarthLocation.of_site("greenwich")
-    ltt_helio = t_jd_utc.light_travel_time(sky_coord, location=greenwich, kind="heliocentric")
+    ltt_helio = t_jd_utc.light_travel_time(
+        sky_coord, location=greenwich, kind="heliocentric"
+    )
     t_local_jd_utc = (t_jd_utc - ltt_helio).utc
 
     # 2. convert local time UTC to BJD TDB
-    ltt_bary = t_local_jd_utc.light_travel_time(sky_coord, location=greenwich, kind="barycentric")
+    ltt_bary = t_local_jd_utc.light_travel_time(
+        sky_coord, location=greenwich, kind="barycentric"
+    )
     t_bjd_tdb = t_local_jd_utc.tdb + ltt_bary
 
     return t_bjd_tdb
 
 
-def convert_lc_time_to_bjd_tdb(lc, target_coord, cache_dir=".", cache_key=None, cache_key_suffix=None):
+def convert_lc_time_to_bjd_tdb(
+    lc, target_coord, cache_dir=".", cache_key=None, cache_key_suffix=None
+):
     """Convert the lightcurve's HJD time to BJD TDB, with the BJD time cached in disk.
 
     `cache_key_suffix`: optional, applicable only when `cache_key` is `None`. It lets user to
@@ -1565,12 +1714,19 @@ def convert_lc_time_to_bjd_tdb(lc, target_coord, cache_dir=".", cache_key=None, 
             if len(lc) == len(bjd_time_val):
                 return bjd_time_val
             else:
-                print(f"The cached BJD time in {cache_file} has different length. discard it.")
+                print(
+                    f"The cached BJD time in {cache_file} has different length. discard it."
+                )
                 bjd_time_val = None
 
         # else cache miss
         if not isinstance(target_coord, SkyCoord):
-            target_coord = SkyCoord(target_coord["ra"], target_coord["dec"], unit=(u.deg, u.deg), frame="icrs")
+            target_coord = SkyCoord(
+                target_coord["ra"],
+                target_coord["dec"],
+                unit=(u.deg, u.deg),
+                frame="icrs",
+            )
         bjd_time_val = hjd_to_bjd(lc.time, target_coord).value
 
         # write to cache
@@ -1694,11 +1850,15 @@ def bin_flux(lc, columns=["flux", "flux_err"], **kwargs):
                 # OPEN: consider to always convert to Column / Quantity
                 # even without using the fast_nanmean, binning with regular Column / Quantity
                 # is several times faster than with Masked (in astropy 6.0.1)
-                if aggregate_func is fast_nanmean and isinstance(col, astropy.utils.masked.Masked):
+                if aggregate_func is fast_nanmean and isinstance(
+                    col, astropy.utils.masked.Masked
+                ):
                     col = col.filled(np.nan)
                 lc_subset[c] = col
             else:
-                warnings.warn(f"bin_flux(): column {c} cannot be found in lightcurve. It is ignored.")
+                warnings.warn(
+                    f"bin_flux(): column {c} cannot be found in lightcurve. It is ignored."
+                )
 
     return lc_subset.bin(**kwargs)
 
@@ -1726,7 +1886,9 @@ def abbrev_sector_list(lcc_or_sectors_or_lc_or_sr):
     elif isinstance(sectors, lk.collections.Collection):  # LC / TPF collection
         sectors = [lc.meta.get("SECTOR") for lc in lcc_or_sectors_or_lc_or_sr]
     elif isinstance(sectors, lk.LightCurve):
-        sectors = sectors.meta.get("SECTORS", [sectors.meta.get("SECTOR")])  # case my custom stitched lc that has SECTORS meta
+        sectors = sectors.meta.get(
+            "SECTORS", [sectors.meta.get("SECTOR")]
+        )  # case my custom stitched lc that has SECTORS meta
     elif isinstance(sectors, lk.SearchResult):
         sectors = [s for s in sectors.table["sequence_number"]]
     # else it's assumed to be a list of sector number
@@ -1786,17 +1948,23 @@ def estimate_rho(mass, radius, return_unit=None):
 #
 
 
-def truncate(tpf: lk.targetpixelfile.TargetPixelFile, before: float, after: float) -> lk.targetpixelfile.TargetPixelFile:
+def truncate(
+    tpf: lk.targetpixelfile.TargetPixelFile, before: float, after: float
+) -> lk.targetpixelfile.TargetPixelFile:
     return tpf[(tpf.time.value >= before) & (tpf.time.value <= after)]
 
 
 def to_lightcurve_with_custom_aperture(tpf, aperture_mask, background_mask):
     """Create a lightcurve from the given TargetPixelFile, with suppplied aperture and background"""
     n_aperture_pixels = aperture_mask.sum()
-    aperture_lc = tpf.to_lightcurve(aperture_mask=aperture_mask)  # aperture + background
+    aperture_lc = tpf.to_lightcurve(
+        aperture_mask=aperture_mask
+    )  # aperture + background
 
     n_background_pixels = background_mask.sum()
-    background_lc_per_pixel = tpf.to_lightcurve(aperture_mask=background_mask) / n_background_pixels
+    background_lc_per_pixel = (
+        tpf.to_lightcurve(aperture_mask=background_mask) / n_background_pixels
+    )
     background_lc = background_lc_per_pixel * n_aperture_pixels
 
     corrected_lc = aperture_lc - background_lc
@@ -1820,7 +1988,10 @@ def to_mask_in_pixel_coordinate(lc_or_tpf, mask=None):
     def get_mask_coord_ref_lc(lc, mask):
         # TODO: the logic probably only works for TESS SPOC LC fits, maybe Kepler or QLP too.
         with fits.open(lc.filename) as hdul:
-            row_base, col_base = hdul[2].header.get("CRVAL2P "), hdul[2].header.get("CRVAL1P ")
+            row_base, col_base = (
+                hdul[2].header.get("CRVAL2P "),
+                hdul[2].header.get("CRVAL1P "),
+            )
             if mask is None:
                 # the data encodes the aperture pixel, background pixels, etc.
                 # convert it into aperture mask
@@ -1875,11 +2046,16 @@ def coordinate_like_id_to_coordinate(id, style="decimal"):
     # e.g.,
     # PTF1 J2219+3135 (the shortened form often found in papers)
     # PTF1 J221910.09+313523.1  (the actual id, with higher precision)
-    result = re.findall(r"^.{2,}\s*J(\d{2})(\d{2})([0-9.]*)([+-])(\d{2})(\d{2})([0-9.]*)\s*$", id)
+    result = re.findall(
+        r"^.{2,}\s*J(\d{2})(\d{2})([0-9.]*)([+-])(\d{2})(\d{2})([0-9.]*)\s*$", id
+    )
     if len(result) < 1:
         return None
     [ra_hh, ra_mm, ra_ss, dec_sign, dec_deg, dec_min, dec_ss] = result[0]
-    coord = SkyCoord(f"{ra_hh} {ra_mm} {ra_ss} {dec_sign} {dec_deg} {dec_min} {dec_ss}", unit=(u.hourangle, u.deg))
+    coord = SkyCoord(
+        f"{ra_hh} {ra_mm} {ra_ss} {dec_sign} {dec_deg} {dec_min} {dec_ss}",
+        unit=(u.hourangle, u.deg),
+    )
     if style is None:
         return coord
     else:
@@ -1891,7 +2067,12 @@ from astroquery.vizier import Vizier
 
 
 def calc_separation(
-    target_coord, result, ra_colname="RAJ2000", dec_colname="DEJ2000", sep_colname="_r", pos_angle_colname="_p"
+    target_coord,
+    result,
+    ra_colname="RAJ2000",
+    dec_colname="DEJ2000",
+    sep_colname="_r",
+    pos_angle_colname="_p",
 ):
     """Calculate angular separation from the target coordinate.
     If `target_coord` == `"first_row"`, use the first row as the target coordinate.
@@ -1901,7 +2082,9 @@ def calc_separation(
 
     coord_unit = result[ra_colname].unit or u.deg
     if target_coord == "first_row":
-        target_coord = SkyCoord(result[0][ra_colname], result[0][dec_colname], unit=coord_unit)
+        target_coord = SkyCoord(
+            result[0][ra_colname], result[0][dec_colname], unit=coord_unit
+        )
     result_coord = SkyCoord(result[ra_colname], result[dec_colname], unit=coord_unit)
     separation = target_coord.separation(result_coord)
     result[sep_colname] = separation.arcsec
@@ -1944,9 +2127,19 @@ def search_nearby(
     # "_p": Position angle (E of N), also a generic Vizier-calculated column.
     columns = ["*", "+_r", "_p"]
     if catalog_name == "I/350/gaiaedr3":
-        columns += ["epsi", "sepsi"]  # add astrometric excess noise to the output (see if a star wobbles)
+        columns += [
+            "epsi",
+            "sepsi",
+        ]  # add astrometric excess noise to the output (see if a star wobbles)
     if catalog_name == "I/355/gaiadr3":
-        columns += ["epsi", "sepsi", "VarFlag", "IPDfmp", "Dup", "GRVSmag"]  # also add variability and Duplicate flag
+        columns += [
+            "epsi",
+            "sepsi",
+            "VarFlag",
+            "IPDfmp",
+            "Dup",
+            "GRVSmag",
+        ]  # also add variability and Duplicate flag
 
     if catalog_name == "I/355/gaiadr3" and include_gaiadr3_astrophysical:
         catalog_names_in_query = ["I/355/gaiadr3", "I/355/paramp"]
@@ -1971,7 +2164,9 @@ def search_nearby(
     with warnings.catch_warnings():
         # suppress useless warning.  https://github.com/astropy/astroquery/issues/2352
         warnings.filterwarnings(
-            "ignore", category=astropy.units.UnitsWarning, message="Unit 'e' not supported by the VOUnit standard"
+            "ignore",
+            category=astropy.units.UnitsWarning,
+            message="Unit 'e' not supported by the VOUnit standard",
         )
         result_all = Vizier(columns=columns).query_region(
             c1,
@@ -1983,25 +2178,45 @@ def search_nearby(
     result = result_all[catalog_name]
 
     # Convert Gaia DR3 mag to Vmag
-    if catalog_name in ["I/355/gaiadr3", "I/350/gaiaedr3"] and all([c in result.columns for c in ["Gmag", "BP-RP"]]):
+    if catalog_name in ["I/355/gaiadr3", "I/350/gaiaedr3"] and all(
+        [c in result.columns for c in ["Gmag", "BP-RP"]]
+    ):
         result["Vmag"] = gaia_dr3_mag_to_vmag(result["Gmag"], result["BP-RP"])
         result["Vmag"].info.unit = result["Gmag"].info.unit
-        result["Vmag"].info.description = "V-band mean magnitude, derived from Gmag and BP-RP."
+        result[
+            "Vmag"
+        ].info.description = "V-band mean magnitude, derived from Gmag and BP-RP."
 
     result_pre_filter = result
 
     if magnitude_lower_limit is not None:
-        result = result[(magnitude_lower_limit <= result[magnitude_limit_column]) | result[magnitude_limit_column].mask]
+        result = result[
+            (magnitude_lower_limit <= result[magnitude_limit_column])
+            | result[magnitude_limit_column].mask
+        ]
 
     if magnitude_upper_limit is not None:
-        result = result[(result[magnitude_limit_column] <= magnitude_upper_limit) | result[magnitude_limit_column].mask]
+        result = result[
+            (result[magnitude_limit_column] <= magnitude_upper_limit)
+            | result[magnitude_limit_column].mask
+        ]
 
     if pmra is not None and pmra_upper is not None and pmra_lower is not None:
-        result = result[(pmra_lower <= result[pmra_limit_column]) | result[pmra_limit_column].mask]
-        result = result[(result[pmra_limit_column] <= pmra_upper) | result[pmra_limit_column].mask]
+        result = result[
+            (pmra_lower <= result[pmra_limit_column]) | result[pmra_limit_column].mask
+        ]
+        result = result[
+            (result[pmra_limit_column] <= pmra_upper) | result[pmra_limit_column].mask
+        ]
     if pmdec is not None and pmdec_upper is not None and pmdec_lower is not None:
-        result = result[(pmdec_lower <= result[pmdec_limit_column]) | result[pmdec_limit_column].mask]
-        result = result[(result[pmdec_limit_column] <= pmdec_upper) | result[pmdec_limit_column].mask]
+        result = result[
+            (pmdec_lower <= result[pmdec_limit_column])
+            | result[pmdec_limit_column].mask
+        ]
+        result = result[
+            (result[pmdec_limit_column] <= pmdec_upper)
+            | result[pmdec_limit_column].mask
+        ]
 
     # tweak default format to make magnitudes and separation more succinct
     for col in ["separation", "RPmag", "Gmag", "BPmag", "BP-RP", "GRVSmag", "Vmag"]:
@@ -2011,16 +2226,22 @@ def search_nearby(
     result["_r"].unit = u.arcsec
     result["_p"].unit = u.deg
     if calc_separation_from_first_row:
-        result = calc_separation("first_row", result, ra_colname="RA_ICRS", dec_colname="DE_ICRS")
+        result = calc_separation(
+            "first_row", result, ra_colname="RA_ICRS", dec_colname="DE_ICRS"
+        )
 
     if warn_if_all_filtered and len(result) == 0 and len(result_pre_filter) > 0:
-        warnings.warn(f"All query results filtered due to mag/PM filter. Num. of entries pre-filter: {len(result_pre_filter)}")
+        warnings.warn(
+            f"All query results filtered due to mag/PM filter. Num. of entries pre-filter: {len(result_pre_filter)}"
+        )
 
     if catalog_name == "I/355/gaiadr3" and include_gaiadr3_astrophysical:
         result_paramp = result_all["I/355/paramp"]
 
         # only Sources in the filtered main result
-        result_paramp = result_paramp[np.isin(result_paramp["Source"], result["Source"])]
+        result_paramp = result_paramp[
+            np.isin(result_paramp["Source"], result["Source"])
+        ]
 
         for col in ["Pstar", "Pbin", "PWD"]:  # tweak default format
             if col in result_paramp.colnames:
@@ -2055,7 +2276,9 @@ def gaia_dr3_mag_to_vmag(gmag, b_minus_r):
     """
     if isinstance(gmag, list):
         gmag = np.asarray(gmag)
-    g_minus_v = -0.02704 + 0.01424 * b_minus_r - 0.2156 * b_minus_r**2 + 0.01426 * b_minus_r**3
+    g_minus_v = (
+        -0.02704 + 0.01424 * b_minus_r - 0.2156 * b_minus_r**2 + 0.01426 * b_minus_r**3
+    )
 
     # check BP-RP is in appiicale range,
     # we check them one by one so that teh warning could be specific.
@@ -2125,7 +2348,9 @@ def are_stars_bound_by_plx_pm(
         pmde_c = rs[pmde_col_name][1] + rs[pmde_col_name][0]
         pm_c = np.sqrt(pmra_c**2 + pmde_c**2)
 
-        pm_diff, pm_diff_err = calc_pm_diff(rs, pmra_col_name=pmra_col_name, pmde_col_name=pmde_col_name)
+        pm_diff, pm_diff_err = calc_pm_diff(
+            rs, pmra_col_name=pmra_col_name, pmde_col_name=pmde_col_name
+        )
         pm_diff_sig = pm_diff / pm_diff_err
 
         cpm_index = pm_c / pm_diff

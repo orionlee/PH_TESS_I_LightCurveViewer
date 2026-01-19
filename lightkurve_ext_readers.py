@@ -6,14 +6,12 @@ import re
 import urllib
 import warnings
 
+import lightkurve as lk
+import numpy as np
+from astropy import units as u
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
-from astropy import units as u
-
-import numpy as np
-
-import lightkurve as lk
 
 
 def read_asas_sn_csv(url=None, asas_sn_uuid=None):
@@ -41,7 +39,11 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
     for c in tab.colnames:
         tab.rename_column(c, c.lower())
     # SkyPatrol v2 tweak: rename columns to be v1 like
-    for colname, colname_new in [("jd", "hjd"), ("flux error", "flux_err"), ("mag error", "mag_err")]:
+    for colname, colname_new in [
+        ("jd", "hjd"),
+        ("flux error", "flux_err"),
+        ("mag error", "mag_err"),
+    ]:
         if colname in tab.colnames:
             tab.rename_column(colname, colname_new)
 
@@ -68,7 +70,9 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
         # convert it back to str
         # the offending rows should have been filtered out by mag_err filter above
         tab["mag"] = tab["mag"].astype(float)
-    tab = tab[tab["mag"] < 99.99]  # for SkyPatrol v1 (possibly no longer needed for new data, but it's kept to be safe)
+    tab = tab[
+        tab["mag"] < 99.99
+    ]  # for SkyPatrol v1 (possibly no longer needed for new data, but it's kept to be safe)
 
     tab["mag"].unit = u.mag
     tab["mag_err"].unit = u.mag
@@ -90,7 +94,10 @@ def read_asas_sn_csv(url=None, asas_sn_uuid=None):
     lc.meta["FILEURL"] = url
 
     if asas_sn_uuid is None:  # deduce ASAS-SN uuid from url
-        uuid_match = re.search(r"[a-zA-Z0-9]{8}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{8}", url)
+        uuid_match = re.search(
+            r"[a-zA-Z0-9]{8}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{8}",
+            url,
+        )
         if uuid_match is not None:
             asas_sn_uuid = uuid_match[0].lower()
 
@@ -258,7 +265,10 @@ def read_ztf_csv(
         filtered = tab[np.isfinite(tab[colname])]
         num_rows_filtered = len(tab) - len(filtered)
         if num_rows_filtered > 0:
-            warnings.warn(f"{num_rows_filtered} skipped because they do not have valid time values.", lk.LightkurveWarning)
+            warnings.warn(
+                f"{num_rows_filtered} skipped because they do not have valid time values.",
+                lk.LightkurveWarning,
+            )
         return filtered
 
     tab = Table.read(
@@ -298,7 +308,9 @@ def read_ztf_csv(
         }
     )
 
-    oid_match = re.search(r"https://irsa.ipac.caltech.edu/cgi-bin/ZTF/nph_light_curves.+ID=(\d+)", url)
+    oid_match = re.search(
+        r"https://irsa.ipac.caltech.edu/cgi-bin/ZTF/nph_light_curves.+ID=(\d+)", url
+    )
     if oid_match is not None:
         id = f"ZTF OID {oid_match[1]}"  # include data release number too?
         lc.meta["OBJECT"] = id
@@ -476,7 +488,9 @@ def read_asas3(url, flux_column="mag_3", grade_mask=["A", "B", "C"]):
         "GRADE",
         "FRAME",
     ]
-    headers = [h.lower() for h in headers]  # Lightkurve convention is to use lower case for column names
+    headers = [
+        h.lower() for h in headers
+    ]  # Lightkurve convention is to use lower case for column names
     tab = Table.read(url, format="ascii", comment="#", names=headers)
 
     for n in range(0, 5):
@@ -496,7 +510,12 @@ def read_asas3(url, flux_column="mag_3", grade_mask=["A", "B", "C"]):
 
     time = Time(tab["hjd"] + 2450000, format="jd", scale="utc")
     tab.remove_column("hjd")
-    lc = lk.LightCurve(time=time, flux=tab[flux_column.lower()], flux_err=tab[f"{flux_column.lower()}_err"], data=tab)
+    lc = lk.LightCurve(
+        time=time,
+        flux=tab[flux_column.lower()],
+        flux_err=tab[f"{flux_column.lower()}_err"],
+        data=tab,
+    )
 
     lc = lc[np.isin(lc["grade"], grade_mask)]
 
@@ -504,7 +523,9 @@ def read_asas3(url, flux_column="mag_3", grade_mask=["A", "B", "C"]):
     lc.meta["FILEURL"] = url
 
     # deduce ASAS id, if the URL is the standard form from ASAS3 web site
-    asas_id_match = re.search(r"https://www.astrouw.edu.pl/cgi-asas/asas_cgi_get_data[?]([0-9.+-]+)", url)
+    asas_id_match = re.search(
+        r"https://www.astrouw.edu.pl/cgi-asas/asas_cgi_get_data[?]([0-9.+-]+)", url
+    )
     if asas_id_match is not None:
         asas_id = asas_id_match[1]
     else:

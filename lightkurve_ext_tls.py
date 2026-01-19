@@ -35,7 +35,9 @@ def _set_if_not_exists(dict_obj, key_value_pairs, value_converter_func=None):
                 dict_obj[key] = value
             else:
                 warnings.warn(
-                    f"The argument {key} is specified twice. Use value {dict_obj.get(key)}", LightkurveWarning, stacklevel=2
+                    f"The argument {key} is specified twice. Use value {dict_obj.get(key)}",
+                    LightkurveWarning,
+                    stacklevel=2,
                 )
 
 
@@ -81,7 +83,15 @@ def _catalog_info(lc: LightCurve):
             "You can install it using `pip install transitleastsquares`."
         )
 
-    ab, mass, mass_min, mass_max, radius, radius_min, radius_max = None, None, None, None, None, None, None
+    ab, mass, mass_min, mass_max, radius, radius_min, radius_max = (
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
 
     mission_to_ci_arg_name = {"TESS": "TIC_ID", "Kepler": "KIC_ID", "K2": "EPIC_ID"}
     target_id = lc.meta.get("TARGETID")
@@ -90,7 +100,9 @@ def _catalog_info(lc: LightCurve):
         ci_kwargs = {}
         ci_kwargs[id_key_name] = target_id
         time_b = _current_time_millis()
-        ab, mass, mass_min, mass_max, radius, radius_min, radius_max = catalog_info(**ci_kwargs)
+        ab, mass, mass_min, mass_max, radius, radius_min, radius_max = catalog_info(
+            **ci_kwargs
+        )
         time_e = _current_time_millis()
         log.debug(f"catalog_info() elapsed time: {time_e - time_b}ms")
         # return value is weird ndarray with no dimension (shape ())
@@ -166,7 +178,11 @@ class TransitLeastSquaresPeriodogram(Periodogram):
     def from_lightcurve(lc: LightCurve, **kwargs) -> TransitLeastSquaresPeriodogram:
         """Creates a Periodogram from a LightCurve using the TLS method."""
         try:
-            from transitleastsquares import transitleastsquares, catalog_info, tls_constants
+            from transitleastsquares import (
+                transitleastsquares,
+                catalog_info,
+                tls_constants,
+            )
         except ImportError:
             raise Exception(
                 "This feature requires the `transitleastsquares` package. "
@@ -201,7 +217,9 @@ class TransitLeastSquaresPeriodogram(Periodogram):
         try:
             derive_stellar_priors = kwargs.pop("derive_stellar_priors", True)
             if derive_stellar_priors:
-                ab, mass, mass_min, mass_max, radius, radius_min, radius_max = _catalog_info(lc)
+                ab, mass, mass_min, mass_max, radius, radius_min, radius_max = (
+                    _catalog_info(lc)
+                )
                 _set_if_not_exists(
                     kwargs,
                     [
@@ -214,12 +232,19 @@ class TransitLeastSquaresPeriodogram(Periodogram):
                         ("M_star_max", mass_max),
                     ],
                 )
-                _set_min_max_if_needed(kwargs, "R_star", tls_constants.R_STAR_MIN, tls_constants.R_STAR_MAX)
-                _set_min_max_if_needed(kwargs, "M_star", tls_constants.M_STAR_MIN, tls_constants.M_STAR_MAX)
+                _set_min_max_if_needed(
+                    kwargs, "R_star", tls_constants.R_STAR_MIN, tls_constants.R_STAR_MAX
+                )
+                _set_min_max_if_needed(
+                    kwargs, "M_star", tls_constants.M_STAR_MIN, tls_constants.M_STAR_MAX
+                )
 
             log.debug(f"TLS.from_lightcurve() - tls.power() args: {kwargs}")
         except Exception as e:
-            warnings.warn(f"TLS.from_lightcurve(): cannot derive stellar priors. Use defaults. Reason: {e}", LightkurveWarning)
+            warnings.warn(
+                f"TLS.from_lightcurve(): cannot derive stellar priors. Use defaults. Reason: {e}",
+                LightkurveWarning,
+            )
 
         result = tls.power(**kwargs)
         if not isinstance(result.period, u.quantity.Quantity):
@@ -244,7 +269,8 @@ class TransitLeastSquaresPeriodogram(Periodogram):
             chi2red=result.chi2red,
             # TLS-specific summary info
             duration_at_max_power=result.duration * u.day,
-            depth_at_max_power=1 - result.depth,  # lk convention: depth is the dip's depth.
+            depth_at_max_power=1
+            - result.depth,  # lk convention: depth is the dip's depth.
             transit_time_at_max_power=_time_like(lc.time, result.T0),
             snr_at_max_power=result.snr,
             period_at_max_power_err=result.period_uncertainty * u.day,
@@ -264,7 +290,12 @@ class TransitLeastSquaresPeriodogram(Periodogram):
             meta=dict(LABEL=f"{self.label} Transit Model Flux"),
         )
 
-    def get_transit_mask(self, period: QuantityLike = None, duration: QuantityLike = None, transit_time: QuantityLike = None):
+    def get_transit_mask(
+        self,
+        period: QuantityLike = None,
+        duration: QuantityLike = None,
+        transit_time: QuantityLike = None,
+    ):
         from transitleastsquares import transit_mask
 
         if period is None:
@@ -284,7 +315,11 @@ class TransitLeastSquaresPeriodogram(Periodogram):
         return ax
 
     def fold(
-        self, lc: LightCurve, period: QuantityLike = None, transit_time: QuantityLike = None, **kwargs
+        self,
+        lc: LightCurve,
+        period: QuantityLike = None,
+        transit_time: QuantityLike = None,
+        **kwargs,
     ) -> Tuple[FoldedLightCurve, FoldedLightCurve]:
         if period is None:
             period = self.period_at_max_power
@@ -293,11 +328,15 @@ class TransitLeastSquaresPeriodogram(Periodogram):
 
         return (
             lc.fold(period=period, epoch_time=transit_time, **kwargs),
-            self.get_transit_model().fold(period=period, epoch_time=transit_time, **kwargs),
+            self.get_transit_model().fold(
+                period=period, epoch_time=transit_time, **kwargs
+            ),
         )
 
 
-def create_bls_pg_with_stellar_specific_search_grid(lc: LightCurve, **kwargs) -> BoxLeastSquaresPeriodogram:
+def create_bls_pg_with_stellar_specific_search_grid(
+    lc: LightCurve, **kwargs
+) -> BoxLeastSquaresPeriodogram:
     """Run BLS using the stellar-specific grid from TLS implementation."""
     # See: https://github.com/hippke/tls/blob/master/tutorials/09%20Optimal%20period%20grid%20and%20optimal%20duration%20grid.ipynb
     # for background
@@ -309,8 +348,13 @@ def create_bls_pg_with_stellar_specific_search_grid(lc: LightCurve, **kwargs) ->
             "You can install it using `pip install transitleastsquares`."
         )
 
-    def _to_absolute(duration_in_fraction, period, log_step=tls_constants.DURATION_GRID_STEP):
-        duration_min, duration_max = duration_in_fraction[0] * period[0], duration_in_fraction[-1] * period[-1]
+    def _to_absolute(
+        duration_in_fraction, period, log_step=tls_constants.DURATION_GRID_STEP
+    ):
+        duration_min, duration_max = (
+            duration_in_fraction[0] * period[0],
+            duration_in_fraction[-1] * period[-1],
+        )
         # redoing what TLS duration_grid() does to create the grid given min, max
         # - essentially creating a geometric space, with the log_step as the multiple
         durations = [duration_min]
@@ -325,7 +369,9 @@ def create_bls_pg_with_stellar_specific_search_grid(lc: LightCurve, **kwargs) ->
     if mass is not None:
         # TODO: handle optional parameters, in particular, minimum_period and maximum_period
         period = period_grid(radius, mass, (lc.time.max() - lc.time.min()).value)
-        duration_in_fraction = duration_grid(period, shortest=None)  # shortest not used by implementation
+        duration_in_fraction = duration_grid(
+            period, shortest=None
+        )  # shortest not used by implementation
         # convert the duration grid, in fraction of period, to one with absolute value.
         # It is less accurate, because for a given triad period, the duration grid is the same
         # (rather than specific to the period).

@@ -74,15 +74,24 @@ tic_sector_list_str = """\
 """
 
 
-async def prefetch_products(tic_sector_list, max_num_sectors_to_download, download_dir=None):
+async def prefetch_products(
+    tic_sector_list, max_num_sectors_to_download, download_dir=None
+):
     def info(msg):
         ts_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"{ts_str} \t{msg}", flush=True)
 
     def parse_tic_sector_list(text):
         lines = text.split("\n")
-        lines_tokens = [a_line.split(",") for a_line in lines if a_line.strip() != "" and not a_line.startswith("#")]
-        return [(int(row_tokens[0].strip()), int(row_tokens[1].strip())) for row_tokens in lines_tokens]
+        lines_tokens = [
+            a_line.split(",")
+            for a_line in lines
+            if a_line.strip() != "" and not a_line.startswith("#")
+        ]
+        return [
+            (int(row_tokens[0].strip()), int(row_tokens[1].strip()))
+            for row_tokens in lines_tokens
+        ]
 
     if isinstance(tic_sector_list, str):
         tic_sector_list = parse_tic_sector_list(tic_sector_list)
@@ -99,7 +108,9 @@ async def prefetch_products(tic_sector_list, max_num_sectors_to_download, downlo
             sr = lk.SearchResult(sr.table[sr.table["sequence_number"] <= 26])
             if max_num_sectors_to_download is None:
                 return sr
-            return lke.of_sector_n_around(sr, sector, num_additions=max_num_sectors_to_download - 1)
+            return lke.of_sector_n_around(
+                sr, sector, num_additions=max_num_sectors_to_download - 1
+            )
 
         # OPEN: redirect stdout and IPython.display.display to null
         # Problems:
@@ -117,7 +128,12 @@ async def prefetch_products(tic_sector_list, max_num_sectors_to_download, downlo
         )
 
         tpf_task = lke.create_download_tpf_task(
-            f"TIC{tic}", sector=sector, exptime="short", author="SPOC", mission="TESS", download_dir=download_dir
+            f"TIC{tic}",
+            sector=sector,
+            exptime="short",
+            author="SPOC",
+            mission="TESS",
+            download_dir=download_dir,
         )
 
         tce_res = tplt.get_tce_infos_of_tic(tic, download_dir=download_dir)
@@ -144,5 +160,9 @@ if hasattr(lk.search, "sr_cache"):
 # END copied from "Enter TIC" cell
 
 asyncio.run(
-    prefetch_products(tic_sector_list_str, max_num_sectors_to_download=max_num_sectors_to_download, download_dir="data")
+    prefetch_products(
+        tic_sector_list_str,
+        max_num_sectors_to_download=max_num_sectors_to_download,
+        download_dir="data",
+    )
 )

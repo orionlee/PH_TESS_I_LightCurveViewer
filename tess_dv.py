@@ -75,7 +75,12 @@ def parse_dvr_filename(filename):
     tic_id = int(tic_id_padded)  # it's a 0-padded string
     pipeline_run = int(pipeline_run_padded)  # it's a 0-padded string
 
-    return dict(sector_range=sector_range, tic_id=tic_id, file_type=file_type, pipeline_run=pipeline_run)
+    return dict(
+        sector_range=sector_range,
+        tic_id=tic_id,
+        file_type=file_type,
+        pipeline_run=pipeline_run,
+    )
 
 
 def get_dv_products_of_tic(tic_id, productSubGroupDescription):
@@ -88,14 +93,18 @@ def get_dv_products_of_tic(tic_id, productSubGroupDescription):
     exact_target_name = tic_id
     with warnings.catch_warnings():
         # to filter WARNING: NoResultsWarning: Query returned no results. [astroquery.mast.discovery_portal]
-        warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*Query returned no results.*")
+        warnings.filterwarnings(
+            "ignore", category=NoResultsWarning, message=".*Query returned no results.*"
+        )
         obs_wanted = Observations.query_criteria(
             target_name=exact_target_name,
             dataproduct_type="timeseries",
             obs_collection="TESS",
         )
         data_products = Observations.get_product_list(obs_wanted)
-        res = Observations.filter_products(data_products, productSubGroupDescription=productSubGroupDescription)
+        res = Observations.filter_products(
+            data_products, productSubGroupDescription=productSubGroupDescription
+        )
         # somehow astype() does not work, it raised "ValueError: invalid literal for int() with base 10: 'N/A'"
         # from numpy, even though there is no missing value in obsID column
         # res["obsID"] = res["obsID"].astype(int)
@@ -150,21 +159,31 @@ def parse_dvr_xml(file_path):
             minImpactParameter=param_value(params_dict, "minImpactParameter"),
             # stellar density from transit model
             starDensitySolarDensity=param_value(params_dict, "starDensitySolarDensity"),
-            starDensitySolarDensityErr=param_value(params_dict, "starDensitySolarDensity", "uncertainty"),
+            starDensitySolarDensityErr=param_value(
+                params_dict, "starDensitySolarDensity", "uncertainty"
+            ),
         )
 
         # centroid offsets, under <dv:centroidResults><dv:differenceImageMotionResults> element
         #
         # the TicOffset-rm in pdf
-        e_centroid_tic = e_pr["dv:centroidResults"]["dv:differenceImageMotionResults"]["dv:msTicCentroidOffsets"]
+        e_centroid_tic = e_pr["dv:centroidResults"]["dv:differenceImageMotionResults"][
+            "dv:msTicCentroidOffsets"
+        ]
         meanSkyOffsetTic = param_value(e_centroid_tic, "dv:meanSkyOffset")
-        meanSkyOffsetErrTic = param_value(e_centroid_tic, "dv:meanSkyOffset", attr="uncertainty")
+        meanSkyOffsetErrTic = param_value(
+            e_centroid_tic, "dv:meanSkyOffset", attr="uncertainty"
+        )
         meanSkyOffsetSigTic = meanSkyOffsetTic / meanSkyOffsetErrTic  # in sigma
 
         # the OotOffset-rm in pdf
-        e_centroid_oot = e_pr["dv:centroidResults"]["dv:differenceImageMotionResults"]["dv:msControlCentroidOffsets"]
+        e_centroid_oot = e_pr["dv:centroidResults"]["dv:differenceImageMotionResults"][
+            "dv:msControlCentroidOffsets"
+        ]
         meanSkyOffsetOot = param_value(e_centroid_oot, "dv:meanSkyOffset")
-        meanSkyOffsetErrOot = param_value(e_centroid_oot, "dv:meanSkyOffset", attr="uncertainty")
+        meanSkyOffsetErrOot = param_value(
+            e_centroid_oot, "dv:meanSkyOffset", attr="uncertainty"
+        )
         meanSkyOffsetSigOot = meanSkyOffsetOot / meanSkyOffsetErrOot  # in sigma
 
         a_planet_dict.update(
@@ -175,16 +194,24 @@ def parse_dvr_xml(file_path):
                 meanSkyOffsetErrTic=meanSkyOffsetErrTic,
                 meanSkyOffsetSigTic=meanSkyOffsetSigTic,
                 meanRaOffsetTic=param_value(e_centroid_tic, "dv:meanRaOffset"),
-                meanRaOffsetErrTic=param_value(e_centroid_tic, "dv:meanRaOffset", attr="uncertainty"),
+                meanRaOffsetErrTic=param_value(
+                    e_centroid_tic, "dv:meanRaOffset", attr="uncertainty"
+                ),
                 meanDecOffsetTic=param_value(e_centroid_tic, "dv:meanDecOffset"),
-                meanDecOffsetErrTic=param_value(e_centroid_tic, "dv:meanDecOffset", attr="uncertainty"),
+                meanDecOffsetErrTic=param_value(
+                    e_centroid_tic, "dv:meanDecOffset", attr="uncertainty"
+                ),
                 meanSkyOffsetOot=meanSkyOffsetOot,
                 meanSkyOffsetErrOot=meanSkyOffsetErrOot,
                 meanSkyOffsetSigOot=meanSkyOffsetSigOot,
                 meanRaOffsetOot=param_value(e_centroid_oot, "dv:meanRaOffset"),
-                meanRaOffsetErrOot=param_value(e_centroid_oot, "dv:meanRaOffset", attr="uncertainty"),
+                meanRaOffsetErrOot=param_value(
+                    e_centroid_oot, "dv:meanRaOffset", attr="uncertainty"
+                ),
                 meanDecOffsetOot=param_value(e_centroid_oot, "dv:meanDecOffset"),
-                meanDecOffsetErrOot=param_value(e_centroid_oot, "dv:meanDecOffset", attr="uncertainty"),
+                meanDecOffsetErrOot=param_value(
+                    e_centroid_oot, "dv:meanDecOffset", attr="uncertainty"
+                ),
             )
         )
 
@@ -247,7 +274,9 @@ def get_tce_minimal_infos_of_tic(tic_id, also_return_dvr_xml_table=True):
     # basic info
     for p in filter_by_dataURI_suffix(products_wanted, "_dvs.pdf"):
         tce_info = parse_dvs_filename(p["productFilename"])
-        existing_entry = get_existing_entry_of_obsID(res, p["obsID"], tce_num=tce_info.get("tce_num"))
+        existing_entry = get_existing_entry_of_obsID(
+            res, p["obsID"], tce_num=tce_info.get("tce_num")
+        )
         if existing_entry is None:
             entry = dict(
                 obsID=p["obsID"],
@@ -319,19 +348,30 @@ def add_info_from_tce_xml(tce_infos, products_dvr_xml, download_dir=None):
     # remove product rows that are not needed (not specified in tce_infos)
     # to avoid unnecessary download/ parsing
     tce_info_obsIDs = [r["obsID"] for r in tce_infos]
-    products_dvr_xml = products_dvr_xml[np.isin(products_dvr_xml["obsID"], tce_info_obsIDs)]
+    products_dvr_xml = products_dvr_xml[
+        np.isin(products_dvr_xml["obsID"], tce_info_obsIDs)
+    ]
 
     with warnings.catch_warnings():
         # filter WARNING: NoResultsWarning: No products to download. [astroquery.mast.observations]
-        warnings.filterwarnings("ignore", category=NoResultsWarning, message=".*No products to download.*")
-        manifest = Observations.download_products(products_dvr_xml, download_dir=download_dir)
+        warnings.filterwarnings(
+            "ignore", category=NoResultsWarning, message=".*No products to download.*"
+        )
+        manifest = Observations.download_products(
+            products_dvr_xml, download_dir=download_dir
+        )
     if manifest is None:
         return res
     for m in manifest:
         dvr_xml_local_path = m["Local Path"]
 
         dvr_info = parse_dvr_filename(Path(dvr_xml_local_path).name)
-        for entry in [e for e in res if e["tic_id"] == dvr_info["tic_id"] and e["sector_range"] == dvr_info["sector_range"]]:
+        for entry in [
+            e
+            for e in res
+            if e["tic_id"] == dvr_info["tic_id"]
+            and e["sector_range"] == dvr_info["sector_range"]
+        ]:
             entry["dvr_xml_local_path"] = dvr_xml_local_path
 
         planets_dict = parse_dvr_xml(dvr_xml_local_path)
@@ -351,7 +391,9 @@ def add_info_from_tce_xml(tce_infos, products_dvr_xml, download_dir=None):
 @cached
 def get_tce_infos_of_tic(tic_id, tce_filter_func=None, download_dir=None):
     """Get the list of TCES of a given TIC, including downloading and extract some parameters from the correspond DVR XMLs."""
-    res, products_dvr_xml = get_tce_minimal_infos_of_tic(tic_id, also_return_dvr_xml_table=True)
+    res, products_dvr_xml = get_tce_minimal_infos_of_tic(
+        tic_id, also_return_dvr_xml_table=True
+    )
     if tce_filter_func is not None:
         res = tce_filter_func(res)
     return add_info_from_tce_xml(res, products_dvr_xml, download_dir=download_dir)
@@ -366,9 +408,15 @@ def filter_top_2_tces_for_eb(tce_infos):
     df = pd.DataFrame(tce_infos)
     num_tics = df["tic_id"].nunique()
     if num_tics > 1:
-        raise ValueError(f"The tce_infos list should be for a TIC. There are {num_tics}.")
+        raise ValueError(
+            f"The tce_infos list should be for a TIC. There are {num_tics}."
+        )
 
-    df.sort_values(["sector_range_span", "obsID", "tce_num"], ascending=[False, True, True], inplace=True)
+    df.sort_values(
+        ["sector_range_span", "obsID", "tce_num"],
+        ascending=[False, True, True],
+        inplace=True,
+    )
     if len(df) > 1 and df["obsID"].iloc[1] == df["obsID"].iloc[0]:
         # we always return the top one, we return the second one only if it is from the same TIC/sector (i.e., obsID)
         # it might capture shallow eclipses, if the top TCE capture the deep eclipses; or vice versa
@@ -376,7 +424,9 @@ def filter_top_2_tces_for_eb(tce_infos):
     else:
         df = df[:1]
 
-    return df.to_dict(orient="records")  # convert the filtered result back to a list of dict
+    return df.to_dict(
+        orient="records"
+    )  # convert the filtered result back to a list of dict
 
 
 #
@@ -443,10 +493,10 @@ def _tce_info_to_html(tce_info_list, include_transit_model_stellar_density=False
     R_EARTH_TO_R_JUPITER = 6378.1 / 71492
     SOLAR_DENSITY_IN_G_CM3 = 1.408
     for idx, info in enumerate(tce_info_list):
-        exomast_url = f'https://exo.mast.stsci.edu/exomast_planet.html?planet={info.get("tce_id")}'
-        dvs_url = f'https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvs_dataURI")}'
-        dvm_url = f'https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvm_dataURI")}'
-        dvr_url = f'https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get("dvr_dataURI")}'
+        exomast_url = f"https://exo.mast.stsci.edu/exomast_planet.html?planet={info.get('tce_id')}"
+        dvs_url = f"https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get('dvs_dataURI')}"
+        dvm_url = f"https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get('dvm_dataURI')}"
+        dvr_url = f"https://mast.stsci.edu/api/v0.1/Download/file?uri={info.get('dvr_dataURI')}"
         p_i = info.get("planet", {})
         tce_id_html = link(info.get("tce_id_short"), exomast_url)
         if idx == idx_longest_sector_range_span:
@@ -456,18 +506,22 @@ def _tce_info_to_html(tce_info_list, include_transit_model_stellar_density=False
         row_args = [
             tce_id_html,
             f"""{link("dvs", dvs_url)},&emsp;{link("mini", dvm_url)},&emsp;{link("full", dvr_url)}""",
-            f'{p_i.get("planetRadiusEarthRadii", 0) * R_EARTH_TO_R_JUPITER:.3f}',
-            f'{p_i.get("transitEpochBtjd", 0):.4f}',
-            f'{p_i.get("transitDurationHours", 0):.4f}',
-            f'{p_i.get("orbitalPeriodDays", 0):.6f}',
-            f'{p_i.get("transitDepthPpm", 0) / 10000:.4f}',
-            f'{p_i.get("minImpactParameter", 0):.2f}',
-            f'{p_i.get("meanSkyOffsetSigTic", -1):.2f}',
-            f'{p_i.get("meanSkyOffsetSigOot", -1):.2f}',
+            f"{p_i.get('planetRadiusEarthRadii', 0) * R_EARTH_TO_R_JUPITER:.3f}",
+            f"{p_i.get('transitEpochBtjd', 0):.4f}",
+            f"{p_i.get('transitDurationHours', 0):.4f}",
+            f"{p_i.get('orbitalPeriodDays', 0):.6f}",
+            f"{p_i.get('transitDepthPpm', 0) / 10000:.4f}",
+            f"{p_i.get('minImpactParameter', 0):.2f}",
+            f"{p_i.get('meanSkyOffsetSigTic', -1):.2f}",
+            f"{p_i.get('meanSkyOffsetSigOot', -1):.2f}",
         ]
         if include_transit_model_stellar_density:
-            row_args.append(f'{p_i.get("starDensitySolarDensity", 0) * SOLAR_DENSITY_IN_G_CM3:.2f}')
-            row_args.append(f'{p_i.get("starDensitySolarDensityErr", 0) * SOLAR_DENSITY_IN_G_CM3:.2f}')
+            row_args.append(
+                f"{p_i.get('starDensitySolarDensity', 0) * SOLAR_DENSITY_IN_G_CM3:.2f}"
+            )
+            row_args.append(
+                f"{p_i.get('starDensitySolarDensityErr', 0) * SOLAR_DENSITY_IN_G_CM3:.2f}"
+            )
         row_args.append(  # code fragments to so that users can easily use a TCE as an entry in transit_specs
             f"""\
 <input type="text" style="margin-left: 3ch; font-size: 90%; color: #666; width: 10ch;"
@@ -490,10 +544,20 @@ period={p_i.get("orbitalPeriodDays", 0):.6f}, label="{info.get("tce_id_short")}"
     return html
 
 
-def _get_tces_in_html(tic, download_dir=None, include_transit_model_stellar_density=False, tce_filter_func=None):
+def _get_tces_in_html(
+    tic,
+    download_dir=None,
+    include_transit_model_stellar_density=False,
+    tce_filter_func=None,
+):
     # For TCEs, query MAST download / parse results (the _dvr.xml), then show:
     # - basic planet parameters and orbital info
     # - TODO: red flags in vetting report
     # see: https://archive.stsci.edu/missions-and-data/tess/data-products
-    tce_info_list = get_tce_infos_of_tic(tic, download_dir=download_dir, tce_filter_func=tce_filter_func)
-    return _tce_info_to_html(tce_info_list, include_transit_model_stellar_density=include_transit_model_stellar_density)
+    tce_info_list = get_tce_infos_of_tic(
+        tic, download_dir=download_dir, tce_filter_func=tce_filter_func
+    )
+    return _tce_info_to_html(
+        tce_info_list,
+        include_transit_model_stellar_density=include_transit_model_stellar_density,
+    )

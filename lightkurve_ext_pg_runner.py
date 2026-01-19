@@ -41,7 +41,13 @@ def _remove_fig_title(*ax_args):
 
 
 def run_tls(
-    lc, pg_kwargs={}, flatten_kwargs=None, plot_pg=True, plot_lc_model=True, plot_transit_depth=True, display_context=None
+    lc,
+    pg_kwargs={},
+    flatten_kwargs=None,
+    plot_pg=True,
+    plot_lc_model=True,
+    plot_transit_depth=True,
+    display_context=None,
 ):
     if display_context is None:
         # note : nullcontext() requires Python 3.7
@@ -67,7 +73,9 @@ def run_tls(
 
         ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = None, None, None
         if plot_lc_model:
-            ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = lke_pg.plot_lc_with_model(lc, pg)
+            ax_lc_model_1, ax_lc_model_2, ax_lc_model_f = lke_pg.plot_lc_with_model(
+                lc, pg
+            )
             _remove_fig_title(ax_lc_model_1, ax_lc_model_2, ax_lc_model_f)
 
         ax_tt_depth = None
@@ -105,7 +113,9 @@ def run_bls(
         lc = _flatten(lc, flatten_kwargs)
         time_b = _current_time_millis()
         if use_stellar_specific_search_grid:
-            pg = lke_tls.create_bls_pg_with_stellar_specific_search_grid(lc, **pg_kwargs)
+            pg = lke_tls.create_bls_pg_with_stellar_specific_search_grid(
+                lc, **pg_kwargs
+            )
         else:
             pg = lc.to_periodogram(method="bls", **pg_kwargs)
         time_e = _current_time_millis()
@@ -123,19 +133,25 @@ def run_bls(
         if plot_lc_model is not False:
             # convert plot_lc_model to kwargs
             if plot_lc_model is True:
-                plot_lc_model_kwargs = dict(plot_lc=True, plot_model=True, plot_folded_model=True)
+                plot_lc_model_kwargs = dict(
+                    plot_lc=True, plot_model=True, plot_folded_model=True
+                )
             elif isinstance(plot_lc_model, dict):
                 plot_lc_model_kwargs = plot_lc_model
             else:
-                raise TypeError("Argument plot_lc_model is not of supported Type (boolean or dict)")
+                raise TypeError(
+                    "Argument plot_lc_model is not of supported Type (boolean or dict)"
+                )
 
             with warnings.catch_warnings():
                 # avoid warnings about using max power values
                 warnings.filterwarnings("ignore", message=".*Using.*")
                 logger = logging.getLogger("lightkurve.periodogram")
                 logger.setLevel(logging.ERROR)
-                [ax_lc_model_1, ax_lc_model_2, ax_lc_model_f], lcs = lke_pg.plot_lc_with_model(
-                    lc, pg, also_return_lcs=True, **plot_lc_model_kwargs
+                [ax_lc_model_1, ax_lc_model_2, ax_lc_model_f], lcs = (
+                    lke_pg.plot_lc_with_model(
+                        lc, pg, also_return_lcs=True, **plot_lc_model_kwargs
+                    )
                 )
                 _remove_fig_title(ax_lc_model_1, ax_lc_model_2, ax_lc_model_f)
         else:
@@ -182,7 +198,12 @@ def run_bls_n_tls(
     out_tls_plot = widgets.Output(layout={"border": "0px solid lightgray"})
     ctr = widgets.GridBox(
         children=[out_bls_validate, out_tls_validate, out_bls_plot, out_tls_plot],
-        layout=widgets.Layout(width="auto", grid_template_rows="auto", grid_template_columns="50% 50%", grid_gap="5px 10px"),
+        layout=widgets.Layout(
+            width="auto",
+            grid_template_rows="auto",
+            grid_template_columns="50% 50%",
+            grid_gap="5px 10px",
+        ),
     )
 
     run_bls(

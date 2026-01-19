@@ -48,7 +48,9 @@ class EleanorTargetPixelFile(TessTargetPixelFile):
     @property
     def flux_err(self) -> Quantity:
         """Returns the flux uncertainty for all good-quality cadences."""
-        return Quantity(self.hdu[1].data["TPF_ERR"][self.quality_mask], unit="electron/s")
+        return Quantity(
+            self.hdu[1].data["TPF_ERR"][self.quality_mask], unit="electron/s"
+        )
 
     @property
     def flux_bkg(self) -> Quantity:
@@ -144,13 +146,23 @@ class EleanorTargetPixelFile(TessTargetPixelFile):
 
     def get_bkg_lightcurve(self, aperture_mask=None):
         if not (aperture_mask is None or aperture_mask == "pipeline"):
-            return NotImplementedError("Eleanor TargetPixelFile supports background lightcurve from pipeline only.")
+            return NotImplementedError(
+                "Eleanor TargetPixelFile supports background lightcurve from pipeline only."
+            )
         # user read_eleanor_lightcurve() so that
         # I can pass self.hdu instead of self.path
         # (self.path might not be valid if the tpf is inited with a HDUList object)
         lc = read_eleanor_lightcurve(self.hdu).select_flux("flux_bkg")
         lc.flux_err = lc.flux_err.value * lc.flux.unit  # workaround lightkurve bug
-        return lc["time", "flux", "flux_err", "centroid_col", "centroid_row", "cadenceno", "quality"]
+        return lc[
+            "time",
+            "flux",
+            "flux_err",
+            "centroid_col",
+            "centroid_row",
+            "cadenceno",
+            "quality",
+        ]
 
     #
     # new methods specific to Eleanor
