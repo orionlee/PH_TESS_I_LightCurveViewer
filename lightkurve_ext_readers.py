@@ -570,6 +570,10 @@ def read_mascara_vars_fits(url, reference_mag):
         if reference_mag is not None:
             if not isinstance(reference_mag, u.Quantity):
                 reference_mag = reference_mag * u.mag
+            # the reported delta mag is not zero-point corrected.
+            # so we first zero-point shifted it before adding reference_mag
+            median_flux_delta = np.nanmedian(lc.flux)
+            lc.flux -= median_flux_delta
             lc.flux += reference_mag
 
         ascc_id = get_ascc_id(url)
