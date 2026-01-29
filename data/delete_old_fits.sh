@@ -70,6 +70,11 @@ find . -type f -name "*-tr*_lightcurve.txt"  -mtime +120 -delete
 find . -type f -name "*_correlations.png"  -mtime +120 -delete
 cd -
 
+# Delete astropy / astroquery cache (primarily Vizier, and misc. downloads)
+cd ~/.astropy/cache
+find . -type f  -mtime +120 -delete
+cd - 
+
 # OPEN: consider removing (at least the large files)
 # /l/home/orionlee/dev/triceratops/{vetting,misc_targets}/
 
