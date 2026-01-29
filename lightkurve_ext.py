@@ -6,34 +6,29 @@ Convenience helpers for `lightkurve` package.
 # see: https://stackoverflow.com/a/49872353
 from __future__ import annotations
 
-
 import itertools
-import os
+import json
 import logging
 import math
-import json
+import os
 import re
 import warnings
 from collections import OrderedDict
 from types import SimpleNamespace
 
-from retry import retry
-
 import astropy
-from astropy.io import fits
+import astropy.units as u
+import lightkurve as lk
+import numpy as np
 from astropy import coordinates as coord
 from astropy.coordinates import SkyCoord
+from astropy.io import fits
 from astropy.table import QTable, Table
 from astropy.time import Time
 from astropy.utils.decorators import deprecated
-import astropy.units as u
-
-import numpy as np
+from IPython.display import HTML, display
+from retry import retry
 from scipy.interpolate import UnivariateSpline
-
-from IPython.display import display, HTML
-
-import lightkurve as lk
 
 import asyncio_compat
 
@@ -1530,14 +1525,14 @@ def to_normalized_flux_from_mag(lc):
 
 
 def to_normalized_flux_from_mag_vals(vals, errs):
-    """Convert values from magnitude to normalized values."""
+    """Convert values (with errors) from magnitude to normalized values."""
     if vals.unit is not u.mag:
         raise ValueError("The values must be in magnitude")
 
     median_flux_mag = np.nanmedian(vals.value)
 
     flux_delta_mag = vals.value - median_flux_mag
-    vals_norm = 1 / np.power(10, flux_delta_mag / 2.5)
+    vals_norm = delta_mag_to_normalized_flux(flux_delta_mag)
 
     if errs is not None:
         errs_norm = np.abs(1 - 1 / np.power(10, errs.value / 2.5))
@@ -1547,8 +1542,13 @@ def to_normalized_flux_from_mag_vals(vals, errs):
     return vals_norm, errs_norm
 
 
+def delta_mag_to_normalized_flux(delta_mag):
+    """Convert delta magnitude (no unit) to normalized flux."""
+    return 1 / np.power(10, delta_mag / 2.5)
+
+
 def normalized_amplitude_to_delta_mag(normalized_amplitude):
-    """Convert normalized transit depth to magnitude."""
+    """Convert normalized transit depth to magnitude (no unit)."""
     return 2.5 * np.log10(1 / (1 - normalized_amplitude))
 
 
@@ -2062,7 +2062,7 @@ def coordinate_like_id_to_coordinate(id, style="decimal"):
         return coord.to_string(style=style)
 
 
-from astropy.coordinates import SkyCoord, Angle
+from astropy.coordinates import Angle, SkyCoord
 from astroquery.vizier import Vizier
 
 
@@ -2174,7 +2174,10 @@ def search_nearby(
             radius=Angle(radius_arcsec, "arcsec"),
         )
     if len(result_all) < 1:  # handle no search result case
-        return None
+        if catalog_name == "I/355/gaiadr3" and include_gaiadr3_astrophysical:
+            return None, None
+        else:
+            return None
     result = result_all[catalog_name]
 
     # Convert Gaia DR3 mag to Vmag
