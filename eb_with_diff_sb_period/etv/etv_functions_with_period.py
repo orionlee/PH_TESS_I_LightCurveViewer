@@ -9,7 +9,11 @@ import warnings
 
 import numpy as np
 
-from etv_functions import run_mcmc_initial_fit_of_model, phase_data, do_plot_autocorrelation
+from etv_functions import (
+    run_mcmc_initial_fit_of_model,
+    phase_data,
+    do_plot_autocorrelation,
+)
 
 # the period-aware coshgauss model and log likelihood functions
 
@@ -24,7 +28,6 @@ def log_prior_p(theta):
 
 
 def log_likelihood_p(theta, x, y, yerr):
-
     alpha0, alpha1, t0, d, Tau, p = theta
 
     x_phase = phase_data(x, t0, p)
@@ -41,7 +44,6 @@ def log_likelihood_p(theta, x, y, yerr):
 
 
 def log_probability_p(theta, x, y, yerr):
-
     # check that the priors are satisfied
     lp = log_prior_p(theta)
     if not np.isfinite(lp):
@@ -66,7 +68,12 @@ def run_mcmc_initial_fit_p(
 ):
     import matplotlib.pyplot as plt
     import emcee
-    from etv_functions import phase_data, get_starting_positions, EmceePoolContext, _parse_pool_param
+    from etv_functions import (
+        phase_data,
+        get_starting_positions,
+        EmceePoolContext,
+        _parse_pool_param,
+    )
 
     figsize = kwargs.get("figsize", (8, 4))
     figsize_chains = kwargs.get("figsize_chains", (8, 12))
@@ -79,26 +86,35 @@ def run_mcmc_initial_fit_p(
         nwalkers = 128
         ndim = len(start_vals)
 
-        sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability_func, args=(data.time, data.flux, data.err), pool=pool)
+        sampler = emcee.EnsembleSampler(
+            nwalkers,
+            ndim,
+            log_probability_func,
+            args=(data.time, data.flux, data.err),
+            pool=pool,
+        )
 
         sampler.run_mcmc(pos, nruns, progress=True, store=True)
 
         # integrated autocorrelation time estimate
         # (used for convergence check, and number of independent samples estimate)
-        autocorr_time = sampler.get_autocorr_time(tol=0)  # tol=0 to provide estimate without rasing errors
+        autocorr_time = sampler.get_autocorr_time(
+            tol=0
+        )  # tol=0 to provide estimate without rasing errors
 
         # issue a warning if the chain is possibly too short for the above estimate,
         # the threshold is primarily tuned with `tol` parameter
         if autocorr_time_kwargs is None:
             autocorr_time_kwargs = dict(tol=50)
-        autocorr_time_kwargs["quiet"] = True  # to issue a warning instead of raising an error
+        autocorr_time_kwargs["quiet"] = (
+            True  # to issue a warning instead of raising an error
+        )
         sampler.get_autocorr_time(**autocorr_time_kwargs)
 
         samples = sampler.get_chain()
         labels = ["alpha0", "alpha1", "t0", "d", "Tau", "p"]
 
         if plot_chains == True:
-
             fig, axes = plt.subplots(ndim, figsize=figsize_chains, sharex=True)
 
             for i in range(ndim):
@@ -120,7 +136,9 @@ def run_mcmc_initial_fit_p(
                 else:  # handle nan, etc.
                     return t
 
-            ax.set_title(f"Integrated autocorrelation time estimate:\n{[to_int(t) for t in autocorr_time]}")
+            ax.set_title(
+                f"Integrated autocorrelation time estimate:\n{[to_int(t) for t in autocorr_time]}"
+            )
 
         flat_samples = sampler.get_chain(discard=discard, thin=thin, flat=True)
 
@@ -140,7 +158,15 @@ def run_mcmc_initial_fit_p(
                 sample = flat_samples[ind]
                 plt.plot(
                     data.phase,
-                    coshgauss_model_fit_p(data.time, sample[0], sample[1], sample[2], sample[3], sample[4], sample[5]),
+                    coshgauss_model_fit_p(
+                        data.time,
+                        sample[0],
+                        sample[1],
+                        sample[2],
+                        sample[3],
+                        sample[4],
+                        sample[5],
+                    ),
                     "C1",
                     lw=0,
                     marker=".",
@@ -149,11 +175,21 @@ def run_mcmc_initial_fit_p(
                     zorder=1,
                 )
 
-            plt.errorbar(data.phase, data.flux, yerr=data.err, fmt=".k", capsize=0, zorder=-2)
+            plt.errorbar(
+                data.phase, data.flux, yerr=data.err, fmt=".k", capsize=0, zorder=-2
+            )
 
             plt.plot(
                 data.phase,
-                coshgauss_model_fit_p(data.time, mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau, mean_p),
+                coshgauss_model_fit_p(
+                    data.time,
+                    mean_alpha0,
+                    mean_alpha1,
+                    mean_t0,
+                    mean_d,
+                    mean_Tau,
+                    mean_p,
+                ),
                 lw=0,
                 marker=".",
                 markersize=0.5,

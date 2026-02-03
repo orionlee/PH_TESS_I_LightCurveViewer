@@ -4,7 +4,11 @@ import numpy as np
 
 from astropy.modeling.functional_models import Trapezoid1D
 
-from etv_functions import plot_initial_guess_of_model, fit_each_eclipse_of_model, run_mcmc_initial_fit_of_model
+from etv_functions import (
+    plot_initial_guess_of_model,
+    fit_each_eclipse_of_model,
+    run_mcmc_initial_fit_of_model,
+)
 
 
 def trapezoid_model_fit(x, val_constant, amplitude, t0, bottom_width, slope):
@@ -12,9 +16,18 @@ def trapezoid_model_fit(x, val_constant, amplitude, t0, bottom_width, slope):
     return val_constant - Trapezoid1D.evaluate(x, amplitude, t0, bottom_width, slope)
 
 
-def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs):
+def plot_initial_guess(
+    data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs
+):
     return plot_initial_guess_of_model(
-        trapezoid_model_fit, data, ph_binned, flux_binned, err_binned, *start_vals, ax=ax, **kwargs
+        trapezoid_model_fit,
+        data,
+        ph_binned,
+        flux_binned,
+        err_binned,
+        *start_vals,
+        ax=ax,
+        **kwargs,
     )
 
 
@@ -92,7 +105,9 @@ def log_likelihood_fitting(theta, x, y, yerr, mean_bottom_width, mean_slope):
     # TODO: consider to replace Trapezoid1D.evaluate() with some more optimized codes,
     # as it appears to be slower than the cosh gaussian model
     # (especially for fitting individual eclipses here)
-    model = val_constant - Trapezoid1D.evaluate(x, amplitude, t0, mean_bottom_width, mean_slope)
+    model = val_constant - Trapezoid1D.evaluate(
+        x, amplitude, t0, mean_bottom_width, mean_slope
+    )
 
     return -0.5 * np.sum((y - model) ** 2 / (yerr**2))
 

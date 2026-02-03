@@ -107,7 +107,6 @@ def time_to_ph(time, period=1.0, t0=0.0, pshift=0.0):
 
 
 def interpolate_signal(x_indep, x_model, y_model, nbins):
-
     bin_width, bin_edges, bin_means, _ = run_binning(x_model, y_model, nbins=nbins)
 
     mask = np.isfinite(bin_means)
@@ -124,7 +123,6 @@ def interpolate_signal(x_indep, x_model, y_model, nbins):
 
 
 def model_signal(period, t0, x, y, x1=None, y1=None, nbins=100):
-
     ph_x = time_to_ph(x, period, t0)
     ph_x_sorted, y_sorted = sort_on_x(ph_x, y)
     y_interpolated, model = interpolate_signal(ph_x, ph_x_sorted, y_sorted, nbins)
@@ -135,7 +133,6 @@ def model_signal(period, t0, x, y, x1=None, y1=None, nbins=100):
 
 
 def trend_removal_interact(period_a, t0_a, data, **kwargs):
-
     figsize = kwargs.get("figsize", (7, 8))
 
     times_original = data["time"]
@@ -143,8 +140,8 @@ def trend_removal_interact(period_a, t0_a, data, **kwargs):
     time_cut = data["time"]
     flux_cut = data["flux"]
 
-    flux_cut_sub_period_a, flux_cut_period_a_model, flux_cut_period_a_function = model_signal(
-        period_a, t0_a, time_cut, flux_cut
+    flux_cut_sub_period_a, flux_cut_period_a_model, flux_cut_period_a_function = (
+        model_signal(period_a, t0_a, time_cut, flux_cut)
     )
 
     ph_original = time_to_ph(times_original, period_a, t0_a)
@@ -159,23 +156,45 @@ def trend_removal_interact(period_a, t0_a, data, **kwargs):
     axes[0].plot(ph_original, flux_original, marker=".", lw=0, color="grey")
     axes[0].plot(ph_cut, flux_cut, marker=".", lw=0, color="k", label="flux")
 
-    axes[0].plot(ph_original, flux_original_period_a_model, marker=".", lw=0, color="darkorange", ms=2, label="binary_model")
+    axes[0].plot(
+        ph_original,
+        flux_original_period_a_model,
+        marker=".",
+        lw=0,
+        color="darkorange",
+        ms=2,
+        label="binary_model",
+    )
 
-    axes[1].plot(ph_original, flux_original_sub_period_a, "k.", alpha=0.5, label="flux_sub_binary")
+    axes[1].plot(
+        ph_original,
+        flux_original_sub_period_a,
+        "k.",
+        alpha=0.5,
+        label="flux_sub_binary",
+    )
 
     axes[0].set_ylabel(r"$Flux$", fontsize=18)
     axes[1].set_ylabel(r"$Flux$", fontsize=18)
     axes[1].set_xlabel(r"$\Phi$", fontsize=18)
 
-    axes[0].tick_params(direction="in", length=3, which="minor", colors="grey", labelsize=13)
+    axes[0].tick_params(
+        direction="in", length=3, which="minor", colors="grey", labelsize=13
+    )
     axes[0].tick_params(axis="y", direction="inout")  # , pad= -20)
     axes[0].tick_params(axis="x", direction="inout")  # , pad= -17)
-    axes[0].tick_params(axis="both", length=5, left="on", top="on", right="on", bottom="on")
+    axes[0].tick_params(
+        axis="both", length=5, left="on", top="on", right="on", bottom="on"
+    )
 
-    axes[1].tick_params(direction="in", length=3, which="minor", colors="grey", labelsize=13)
+    axes[1].tick_params(
+        direction="in", length=3, which="minor", colors="grey", labelsize=13
+    )
     axes[1].tick_params(axis="y", direction="inout")  # , pad= -20)
     axes[1].tick_params(axis="x", direction="inout")  # , pad= -17)
-    axes[1].tick_params(axis="both", length=5, left="on", top="on", right="on", bottom="on")
+    axes[1].tick_params(
+        axis="both", length=5, left="on", top="on", right="on", bottom="on"
+    )
 
     axes[0].legend()
     axes[1].legend()
@@ -192,13 +211,18 @@ def trend_removal_interact(period_a, t0_a, data, **kwargs):
 def log_prior(theta):
     alpha0, alpha1, t0, d, Tau = theta
 
-    if (0 < alpha0 < 10) and (-10 < alpha1 < 0) and (-0.5 < t0 < 0.5) and (0 < d < 10) and (0.5 < Tau < 50):
+    if (
+        (0 < alpha0 < 10)
+        and (-10 < alpha1 < 0)
+        and (-0.5 < t0 < 0.5)
+        and (0 < d < 10)
+        and (0.5 < Tau < 50)
+    ):
         return 0.0
     return -np.inf
 
 
 def log_likelihood(theta, x, y, yerr):
-
     alpha0, alpha1, t0, d, Tau = theta
 
     cosh_term = np.cosh((x - t0) / d)
@@ -213,7 +237,6 @@ def log_likelihood(theta, x, y, yerr):
 
 
 def log_probability(theta, x, y, yerr):
-
     # check that the priors are satisfied
     lp = log_prior(theta)
     if not np.isfinite(lp):
@@ -222,14 +245,17 @@ def log_probability(theta, x, y, yerr):
 
 
 def get_starting_positions(start_vals, nwalkers=128):
-
-    p0 = np.array([[val + 1e-5 * np.random.randn() for jj, val in enumerate(start_vals)] for i in range(nwalkers)])
+    p0 = np.array(
+        [
+            [val + 1e-5 * np.random.randn() for jj, val in enumerate(start_vals)]
+            for i in range(nwalkers)
+        ]
+    )
 
     yield p0
 
 
 def detrend_suz(data, T_dur=10, plot=True, **kwargs):
-
     # remove the overall trend and then re do the fitting to remoe the signal to see whether we can improve on the trend removal
 
     # define the eclipse duration
@@ -257,7 +283,13 @@ def detrend_suz(data, T_dur=10, plot=True, **kwargs):
         plt.plot(data.time, data.flux_sub_binary + 1, ".", label="flux_sub_binary + 1")
 
         # plot the model that was fit to the binary model
-        plt.plot(data.time, ((ff * 1.2) + 1), ".", color="orange", label="~interp1d(flux_sub_binary) + 1")
+        plt.plot(
+            data.time,
+            ((ff * 1.2) + 1),
+            ".",
+            color="orange",
+            label="~interp1d(flux_sub_binary) + 1",
+        )
 
         plt.legend()
 
@@ -265,7 +297,9 @@ def detrend_suz(data, T_dur=10, plot=True, **kwargs):
         fig, ax = plt.subplots(figsize=figsize)
 
         # plt.plot(alltime, allflux,'.k', ms = 1)
-        plt.plot(data.time, data.flux_detrended, ".r", alpha=1, ms=1, label="flux_detrended")
+        plt.plot(
+            data.time, data.flux_detrended, ".r", alpha=1, ms=1, label="flux_detrended"
+        )
 
         plt.legend()
 
@@ -298,7 +332,9 @@ def coshgauss_model_fit(x, alpha0, alpha1, t0, d, Tau):
     return model
 
 
-def plot_initial_guess_of_model(model_func, data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs):
+def plot_initial_guess_of_model(
+    model_func, data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs
+):
     """
     Plots the initial guess for the data using the given parameters.
 
@@ -319,7 +355,9 @@ def plot_initial_guess_of_model(model_func, data, ph_binned, flux_binned, err_bi
         ax = plt.figure(figsize=figsize).gca()
 
     if ph_binned is not None and flux_binned is not None and err_binned is not None:
-        ax.errorbar(ph_binned, flux_binned, yerr=err_binned, fmt=".k", capsize=0, zorder=2)
+        ax.errorbar(
+            ph_binned, flux_binned, yerr=err_binned, fmt=".k", capsize=0, zorder=2
+        )
     ax.scatter(data.phase, data.flux, zorder=-2)
     ax.plot(
         data.phase,
@@ -334,9 +372,18 @@ def plot_initial_guess_of_model(model_func, data, ph_binned, flux_binned, err_bi
     return ax
 
 
-def plot_initial_guess(data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs):
+def plot_initial_guess(
+    data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs
+):
     return plot_initial_guess_of_model(
-        coshgauss_model_fit, data, ph_binned, flux_binned, err_binned, *start_vals, ax=None, **kwargs
+        coshgauss_model_fit,
+        data,
+        ph_binned,
+        flux_binned,
+        err_binned,
+        *start_vals,
+        ax=None,
+        **kwargs,
     )
 
 
@@ -351,7 +398,14 @@ def _show_plot_in_interactive():
 
 
 def plot_initial_guess_interactive(
-    data, ph_binned, flux_binned, err_binned, t0_varname, *start_vals, figsize=(8, 4), use_fixed_t0=True
+    data,
+    ph_binned,
+    flux_binned,
+    err_binned,
+    t0_varname,
+    *start_vals,
+    figsize=(8, 4),
+    use_fixed_t0=True,
 ):
     # use_fixed_t0 : if set to True, t0 given is fixed.
     # usually it's not productive to change t0, given the t0 users enter  is often in BTJD
@@ -366,7 +420,9 @@ def plot_initial_guess_interactive(
     # ax = plt.figure(figsize=figsize).gca()
 
     def _do_plot(alpha0, alpha1, t0, d, Tau):
-        plot_initial_guess(data, ph_binned, flux_binned, err_binned, alpha0, alpha1, t0, d, Tau)
+        plot_initial_guess(
+            data, ph_binned, flux_binned, err_binned, alpha0, alpha1, t0, d, Tau
+        )
         _show_plot_in_interactive()
         if use_fixed_t0:
             params_text = f"""\
@@ -385,15 +441,30 @@ def plot_initial_guess_interactive(
 
     desc_style = {"description_width": "10ch"}
     w_layout = Layout(width="25ch")
-    w_alpha0 = widgets.FloatText(value=alpha0, step=0.01, description="alpha0", style=desc_style, layout=w_layout)
-    w_alpha1 = widgets.FloatText(value=alpha1, step=0.01, description="alpha1", style=desc_style, layout=w_layout)
-    w_t0 = widgets.FloatText(
-        value=t0, step=0.0000001, description="t0", style=desc_style, layout=w_layout, disabled=use_fixed_t0
+    w_alpha0 = widgets.FloatText(
+        value=alpha0, step=0.01, description="alpha0", style=desc_style, layout=w_layout
     )
-    w_d = widgets.FloatText(value=d, step=0.001, description="d", style=desc_style, layout=w_layout)
-    w_Tau = widgets.FloatText(value=Tau, step=0.01, description="Tau", style=desc_style, layout=w_layout)
+    w_alpha1 = widgets.FloatText(
+        value=alpha1, step=0.01, description="alpha1", style=desc_style, layout=w_layout
+    )
+    w_t0 = widgets.FloatText(
+        value=t0,
+        step=0.0000001,
+        description="t0",
+        style=desc_style,
+        layout=w_layout,
+        disabled=use_fixed_t0,
+    )
+    w_d = widgets.FloatText(
+        value=d, step=0.001, description="d", style=desc_style, layout=w_layout
+    )
+    w_Tau = widgets.FloatText(
+        value=Tau, step=0.01, description="Tau", style=desc_style, layout=w_layout
+    )
 
-    w = interactive_output(_do_plot, dict(alpha0=w_alpha0, alpha1=w_alpha1, t0=w_t0, d=w_d, Tau=w_Tau))
+    w = interactive_output(
+        _do_plot, dict(alpha0=w_alpha0, alpha1=w_alpha1, t0=w_t0, d=w_d, Tau=w_Tau)
+    )
     w.layout.padding = "1em 0px"
 
     # Layout the UI
@@ -447,6 +518,7 @@ def _parse_pool_param(pool):
     Parse the `pool` parameter shared by various mcmc functions.
     It allows caller to pass a `Pool` instance or various shorthands
     """
+
     def cpu_count():
         # Return number of actual physical CPUs,
         # discounting logical ones due to, e.g., hyper-threading.
@@ -550,27 +622,34 @@ def run_mcmc_initial_fit_of_model(
         ndim = len(start_vals)
 
         sampler = emcee.EnsembleSampler(
-            nwalkers, ndim, log_probability_func, args=(data.phase, data.flux, data.err), pool=pool
+            nwalkers,
+            ndim,
+            log_probability_func,
+            args=(data.phase, data.flux, data.err),
+            pool=pool,
         )
 
         sampler.run_mcmc(pos, nruns, progress=True, store=True)
 
         # integrated autocorrelation time estimate
         # (used for convergence check, and number of independent samples estimate)
-        autocorr_time = sampler.get_autocorr_time(tol=0)  # tol=0 to provide estimate without rasing errors
+        autocorr_time = sampler.get_autocorr_time(
+            tol=0
+        )  # tol=0 to provide estimate without rasing errors
 
         # issue a warning if the chain is possibly too short for the above estimate,
         # the threshold is primarily tuned with `tol` parameter
         if autocorr_time_kwargs is None:
             autocorr_time_kwargs = dict(tol=50)
-        autocorr_time_kwargs["quiet"] = True  # to issue a warning instead of raising an error
+        autocorr_time_kwargs["quiet"] = (
+            True  # to issue a warning instead of raising an error
+        )
         sampler.get_autocorr_time(**autocorr_time_kwargs)
 
         samples = sampler.get_chain()
         labels = list(start_vals_dict.keys())
 
         if plot_chains == True:
-
             fig, axes = plt.subplots(ndim, figsize=figsize_chains, sharex=True)
 
             for i in range(ndim):
@@ -592,11 +671,15 @@ def run_mcmc_initial_fit_of_model(
                 else:  # handle nan, etc.
                     return t
 
-            ax.set_title(f"Integrated autocorrelation time estimate:\n{[to_int(t) for t in autocorr_time]}")
+            ax.set_title(
+                f"Integrated autocorrelation time estimate:\n{[to_int(t) for t in autocorr_time]}"
+            )
 
         flat_samples = sampler.get_chain(discard=discard, thin=thin, flat=True)
 
-        mean_fitted_vals = [np.median(flat_samples[:, i]) for i in range(len(start_vals_dict))]
+        mean_fitted_vals = [
+            np.median(flat_samples[:, i]) for i in range(len(start_vals_dict))
+        ]
 
         if plot == True:
             fig, axes = plt.subplots(figsize=figsize, sharex=True)
@@ -615,7 +698,9 @@ def run_mcmc_initial_fit_of_model(
                     zorder=1,
                 )
 
-            plt.errorbar(data.phase, data.flux, yerr=data.err, fmt=".k", capsize=0, zorder=-2)
+            plt.errorbar(
+                data.phase, data.flux, yerr=data.err, fmt=".k", capsize=0, zorder=-2
+            )
 
             plt.plot(
                 data.phase,
@@ -635,7 +720,10 @@ def run_mcmc_initial_fit_of_model(
         if not also_return_stats:
             return mean_fitted_vals
         else:
-            stats = {f"std_{param_name}": np.std(flat_samples[:, i]) for i, param_name in enumerate(start_vals_dict.keys())}
+            stats = {
+                f"std_{param_name}": np.std(flat_samples[:, i])
+                for i, param_name in enumerate(start_vals_dict.keys())
+            }
             stats["autocorr_time"] = autocorr_time
             stats["sampler"] = sampler  # the underlying sampler
             return *mean_fitted_vals, stats
@@ -644,7 +732,9 @@ def run_mcmc_initial_fit_of_model(
 def do_plot_autocorrelation(samples, labels):
     def get_mean_samples(samples):
         nruns, nwalker, nparams = samples.shape
-        return np.array([[np.mean(samples[i, :, j]) for j in range(nparams)] for i in range(nruns)])
+        return np.array(
+            [[np.mean(samples[i, :, j]) for j in range(nparams)] for i in range(nruns)]
+        )
 
     # get the mean of ensemble for each step.
     mean_samples = get_mean_samples(samples)
@@ -664,6 +754,7 @@ def do_plot_autocorrelation(samples, labels):
 # the free parameters are t0, alpha0 and alpha1, the rest are fixed by phase folded model
 #
 
+
 # May have to change the priors!
 def log_prior_fitting(theta):
     alpha0, alpha1, t0 = theta
@@ -677,7 +768,6 @@ def log_prior_fitting(theta):
 
 
 def log_likelihood_fitting(theta, x, y, yerr, mean_d, mean_Tau):
-
     alpha0, alpha1, t0 = theta
 
     cosh_term = np.cosh((x - t0) / mean_d)
@@ -692,7 +782,6 @@ def log_likelihood_fitting(theta, x, y, yerr, mean_d, mean_Tau):
 
 
 def log_probability_fitting(theta, x, y, yerr, mean_d, mean_Tau):
-
     # check that the priors are satisfied
     lp = log_prior_fitting(theta)
     if not np.isfinite(lp):
@@ -703,8 +792,12 @@ def log_probability_fitting(theta, x, y, yerr, mean_d, mean_Tau):
 
 
 def get_starting_positions_fitting(start_vals, nwalkers=128):
-
-    p0 = np.array([[val + 1e-5 * np.random.randn() for jj, val in enumerate(start_vals)] for i in range(nwalkers)])
+    p0 = np.array(
+        [
+            [val + 1e-5 * np.random.randn() for jj, val in enumerate(start_vals)]
+            for i in range(nwalkers)
+        ]
+    )
 
     yield p0
 
@@ -766,13 +859,19 @@ def fit_each_eclipse_of_model(
     `(<start_vals with t0 appended>, x, y, yerr, *<fixed-vals>)`
     """
     if "t0" in start_vals_dict.keys():
-        raise ValueError("Parameter `t0` is not allowed in `start_vals_dict`, as it is controlled by the implementation.")
+        raise ValueError(
+            "Parameter `t0` is not allowed in `start_vals_dict`, as it is controlled by the implementation."
+        )
     if "t0" in fixed_vals_dict.keys():
-        raise ValueError("Parameter `t0` is not allowed in `fixed_vals_dict`, as it is controlled by the implementation.")
+        raise ValueError(
+            "Parameter `t0` is not allowed in `fixed_vals_dict`, as it is controlled by the implementation."
+        )
 
     # hard code "t0"'s start_vals
     start_vals_dict = start_vals_dict.copy()
-    start_vals_dict["t0"] = 0  # the subsequent codes shift each eclipse to be centered around 0
+    start_vals_dict["t0"] = (
+        0  # the subsequent codes shift each eclipse to be centered around 0
+    )
     start_vals = list(start_vals_dict.values())
     t0_idx = len(start_vals) - 1
 
@@ -789,7 +888,9 @@ def fit_each_eclipse_of_model(
         )
 
     if exists("{}".format(outfile_path)):
-        print("Existing manifest file found, will skip previously processed LCs and append to end of manifest file")
+        print(
+            "Existing manifest file found, will skip previously processed LCs and append to end of manifest file"
+        )
         sys.stdout.flush()
     else:
         print("Creating new manifest file")
@@ -818,24 +919,26 @@ def fit_each_eclipse_of_model(
 
     for i in tr_index:
         if not np.isin(i, number_done):
-
             transit_time = t0 + (period * i)
 
             x = np.array(data.time)
             y = np.array(data.flux)
             yerr = np.array(data.err)
 
-            mask = (x > (transit_time - (0.2 * period))) & (x < (transit_time + (0.2 * period)))
+            mask = (x > (transit_time - (0.2 * period))) & (
+                x < (transit_time + (0.2 * period))
+            )
 
             x = np.array(x[mask])
             y = np.array(y[mask])
             yerr = np.array(yerr[mask])
 
             # convert x from time (JD-like) time to normalized phase, with t0 as midpoint (0)
-            x = np.array([-0.5 + ((t - t0 - 0.5 * period) % period) / period for t in x])
+            x = np.array(
+                [-0.5 + ((t - t0 - 0.5 * period) % period) / period for t in x]
+            )
 
             if len(x) > min_number_data:
-
                 print(transit_time, *start_vals)
 
                 pos = list(get_starting_positions(start_vals, nwalkers=64))[0]
@@ -847,16 +950,24 @@ def fit_each_eclipse_of_model(
                 # Note: parallel option (pool is not None) seems to be significantly slower
                 # for some reason.
                 pool_instance, is_pool_from_caller = _parse_pool_param(pool)
-                with EmceePoolContext(pool_instance, auto_close=not is_pool_from_caller):
+                with EmceePoolContext(
+                    pool_instance, auto_close=not is_pool_from_caller
+                ):
                     sampler2 = emcee.EnsembleSampler(
-                        nwalkers, ndim, log_probability_fitting_func, args=(x, y, yerr, *fixed_vals), pool=pool_instance
+                        nwalkers,
+                        ndim,
+                        log_probability_fitting_func,
+                        args=(x, y, yerr, *fixed_vals),
+                        pool=pool_instance,
                     )
 
                     sampler2.run_mcmc(pos, 10000, progress=True)
 
                     flat_samples2 = sampler2.get_chain(discard=400, thin=15, flat=True)
 
-                mean_vals_fits = [np.median(flat_samples2[:, i]) for i in range(len(start_vals_dict))]
+                mean_vals_fits = [
+                    np.median(flat_samples2[:, i]) for i in range(len(start_vals_dict))
+                ]
                 stdv_t0_fit = np.nanstd(flat_samples2[:, t0_idx])
 
                 fig = plt.subplots(figsize=(10, 3), sharex=True)
@@ -875,12 +986,18 @@ def fit_each_eclipse_of_model(
 
                 plt.show()
 
-                with open("{}".format(outfile_path), "a") as f:  # save in the photometry folder
+                with open(
+                    "{}".format(outfile_path), "a"
+                ) as f:  # save in the photometry folder
                     writer = csv.writer(f, delimiter=",")
-                    writer.writerow([i, transit_time, *mean_vals_fits, stdv_t0_fit, *fixed_vals])
+                    writer.writerow(
+                        [i, transit_time, *mean_vals_fits, stdv_t0_fit, *fixed_vals]
+                    )
             else:
                 if len(x) > 0:
-                    print(f"Time {transit_time} does not have enough data points: {len(x)}")
+                    print(
+                        f"Time {transit_time} does not have enough data points: {len(x)}"
+                    )
                 continue
         else:
             print("Number {} has already been completed -- skip".format(i))
@@ -970,14 +1087,20 @@ def run_mcmc_individual_fit_of_model(
     pool_instance, is_pool_from_caller = _parse_pool_param(pool)
     with EmceePoolContext(pool_instance, auto_close=not is_pool_from_caller):
         sampler2 = emcee.EnsembleSampler(
-            nwalkers, ndim, log_probability_fitting_func, args=(x, y, yerr, *fixed_vals), pool=pool_instance
+            nwalkers,
+            ndim,
+            log_probability_fitting_func,
+            args=(x, y, yerr, *fixed_vals),
+            pool=pool_instance,
         )
 
         sampler2.run_mcmc(pos, nruns, progress=True)
 
         flat_samples2 = sampler2.get_chain(discard=discard, thin=15, flat=True)
 
-    mean_vals_fits = [np.median(flat_samples2[:, i]) for i in range(len(start_vals_dict))]
+    mean_vals_fits = [
+        np.median(flat_samples2[:, i]) for i in range(len(start_vals_dict))
+    ]
     stdv_t0_fit = np.nanstd(flat_samples2[:, t0_idx])
 
     if plot_chains:
@@ -1017,7 +1140,9 @@ def run_mcmc_individual_fit_of_model(
     return [*mean_vals_fits, stdv_t0_fit]
 
 
-def run_mcmc_individual_fit(data, start_vals, nruns=10000, discard=1000, pool=None, plot_chains=False, plot=True):
+def run_mcmc_individual_fit(
+    data, start_vals, nruns=10000, discard=1000, pool=None, plot_chains=False, plot=True
+):
     mean_alpha0, mean_alpha1, mean_t0, mean_d, mean_Tau = start_vals
 
     start_vals_dict = dict(
