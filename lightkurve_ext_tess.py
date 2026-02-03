@@ -2,32 +2,29 @@
 # Helpers to download TESS-specific non-lightcurve data: TOIs, TCEs, etc.
 #
 
-from collections.abc import Sequence
-from functools import lru_cache
 import pathlib
 import re
-from types import SimpleNamespace
 import warnings
-
-from memoization import cached
-from retry import retry
-
-import numpy as np
-import pandas as pd
-from pandas.io.formats.style import Styler
+from collections.abc import Sequence
+from functools import lru_cache
+from types import SimpleNamespace
 
 import astropy
+import astropy.units as u
+import lightkurve as lk
+import numpy as np
+import pandas as pd
 from astropy import coordinates as coord
 from astropy.io import fits
 from astropy.table import Table
 from astropy.time import Time
-import astropy.units as u
 from astroquery.utils import TableList
+from memoization import cached
+from pandas.io.formats.style import Styler
+from retry import retry
 
 import asyncio_compat
-
 import download_utils
-import lightkurve as lk
 import lightkurve_ext as lke
 
 # Ues to resolve data files relative the the module (used by MomentumDumpsAccessor)
@@ -806,7 +803,7 @@ def display_crowdsap(lc):
     From section 4.1.2 of the paper TOI catalog from TESS primary mission
     https://arxiv.org/pdf/2103.12538.pdf
     """
-    from IPython.display import display, HTML
+    from IPython.display import HTML, display
 
     if lc is not None and lc.meta.get("CROWDSAP") is not None:
         display(
@@ -1585,7 +1582,7 @@ def download_kelt_fps_as_csv(kelt_fp_csv_path="data/kelt_fps.csv"):
 def search_multi_star_systems_of_tics(targets, also_display=True):
     """Search various published multi-star systems with TESS data used."""
     if also_display:
-        from IPython.display import display, HTML
+        from IPython.display import HTML, display
 
     def display_tab_list(tab_list: TableList):
         if not also_display:

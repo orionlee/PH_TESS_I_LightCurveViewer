@@ -10,41 +10,38 @@ from __future__ import annotations
 
 import inspect
 import numbers
-import warnings
 import re
+import warnings
 from types import SimpleNamespace
-
-
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter, AutoMinorLocator
-import matplotlib.animation as animation
-import numpy as np
-import pandas as pd
-
-from astropy.io import fits
-from astropy import units as u
-from astropy.table import Table
-
-import IPython
-from IPython.display import display, HTML, Audio
-from ipywidgets import interactive, interactive_output, fixed
-import ipywidgets as widgets
-
-import lightkurve as lk
-from lightkurve import (
-    LightCurve,
-    LightCurveCollection,
-    LightkurveWarning,
-    FoldedLightCurve,
-)
-from lightkurve.utils import TessQualityFlags
-from lightkurve_ext import of_sectors
-import lightkurve_ext as lke
-import lightkurve_ext_tess as lket
 
 # typing
 from typing import Callable, Optional, Tuple
+
+import IPython
+import ipywidgets as widgets
+import lightkurve as lk
+import matplotlib
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from astropy import units as u
+from astropy.io import fits
+from astropy.table import Table
+from IPython.display import HTML, Audio, display
+from ipywidgets import fixed, interactive, interactive_output
+from lightkurve import (
+    FoldedLightCurve,
+    LightCurve,
+    LightCurveCollection,
+    LightkurveWarning,
+)
+from lightkurve.utils import TessQualityFlags
+from matplotlib.ticker import AutoMinorLocator, FormatStrFormatter
+
+import lightkurve_ext as lke
+import lightkurve_ext_tess as lket
+from lightkurve_ext import of_sectors
 
 LC_Ylim_Func_Type = Callable[[LightCurve], Tuple[float, float]]
 
@@ -2142,15 +2139,14 @@ def interact(
     show_line: bool = False,
     notebook_url: str = "localhost:8888",
 ) -> SimpleNamespace:
-    from bokeh.plotting import ColumnDataSource, output_notebook, show
-    from bokeh.layouts import layout, row, column, Spacer
-    from bokeh.models import Button, Div, Whisker, TextInput, Dropdown
-    from bokeh.models.tools import BoxZoomTool, WheelZoomTool, UndoTool, RedoTool
-    from astropy.table import Table
-
     # need to import it, rather than relying on lk.interact
     # as the interact module may not have been loaded
     import lightkurve.interact as lk_interact
+    from astropy.table import Table
+    from bokeh.layouts import Spacer, column, layout, row
+    from bokeh.models import Button, Div, Dropdown, TextInput, Whisker
+    from bokeh.models.tools import BoxZoomTool, RedoTool, UndoTool, WheelZoomTool
+    from bokeh.plotting import ColumnDataSource, output_notebook, show
 
     # workaround: lk_interact.make_lightcurve_figure_elements() requires quality and cadenceno
     # until the requirement is relaxed. We'd add dummy column to it

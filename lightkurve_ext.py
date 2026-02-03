@@ -479,11 +479,9 @@ def _to_product_identifiers(search_res):
     """
     return list(
         map(
-            lambda e: e["obs_collection"]
-            + "/"
-            + e["obs_id"]
-            + "/"
-            + e["productFilename"],
+            lambda e: (
+                e["obs_collection"] + "/" + e["obs_id"] + "/" + e["productFilename"]
+            ),
             search_res.table,
         )
     )
