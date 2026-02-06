@@ -1309,7 +1309,9 @@ def plot_flux_sap_flux_comparison(
     lc_sap.label += f" {sap_col} + {offset:.0f}"
 
     ax = LightCurveCollection([lc, lc_sap]).plot(ax=ax, offset=offset, **kwargs)
-    ax.set_title(f"{lc.label}, sector {lc.sector} - flux vs {sap_col}")
+    ax.set_title(
+        f"{lc.label}, sector {lc.sector} - {lc.meta.get('FLUX_ORIGIN', 'flux')} vs {sap_col}"
+    )
     return ax
 
 
