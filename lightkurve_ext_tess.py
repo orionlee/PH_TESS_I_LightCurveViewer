@@ -639,7 +639,7 @@ def search_tess_point(tic):
     )
 
 
-def _search_tglc_lightcurve_csv(tic, csv_dir=".", grep_cmd="grep -H"):
+def _search_tglc_lightcurve_csv(tic, csv_dir=".", grep_cmd="grep -H", sectors=None):
     def parse_line(line):
         # eg: s0005.csv:5573000755560118784,393294857,91.82816617709965,-40.32806441931107
         f = re.split("[:,]", line)
@@ -650,17 +650,25 @@ def _search_tglc_lightcurve_csv(tic, csv_dir=".", grep_cmd="grep -H"):
     def parse_grep_out(lines):
         return [parse_line(l) for l in lines.splitlines()]
 
+    def to_sectors_cmdargs():
+        if sectors is None:
+            if "rg" not in grep_cmd:
+                return "s*.csv"
+            else:
+                # special case for ripgrep, glob does not work on Windows
+                # https://github.com/BurntSushi/ripgrep/issues/234
+                return "."
+        else:
+            # case explicit sectors are specified
+            return " ".join([f"s{s:04}.csv" for s in sectors])
+
     import subprocess
 
     # Note: the grep pattern ",{tic}," would be more precise for the original CSVs
     # but with the minimized CSVs (which only have Gaia DR3 Name, TIC),
     # it needs to be relaxed to be ",{tic}"
-    if "rg" not in grep_cmd:
-        cmdline = rf"{grep_cmd}  ,{tic} s*.csv"
-    else:
-        # special case for ripgrep, glob does not work on Windows
-        # https://github.com/BurntSushi/ripgrep/issues/234
-        cmdline = rf"{grep_cmd}  ,{tic} ."
+    cmdline = rf"{grep_cmd}  ,{tic} {to_sectors_cmdargs()}"
+    # print("DBG command line:", cmdline)
     res = subprocess.run(cmdline, cwd=csv_dir, capture_output=True, text=True)
     if res.returncode == 0:
         return parse_grep_out(res.stdout)
@@ -673,9 +681,11 @@ def _search_tglc_lightcurve_csv(tic, csv_dir=".", grep_cmd="grep -H"):
     )
 
 
-async def search_tglc_lightcurve(tic, csv_dir=".", grep_cmd="grep -H"):
+async def search_tglc_lightcurve(tic, csv_dir=".", grep_cmd="grep -H", sectors=None):
     tess_point_task = asyncio_compat.create_background_task(search_tess_point, tic)
-    csv_out = _search_tglc_lightcurve_csv(tic, csv_dir=csv_dir, grep_cmd=grep_cmd)
+    csv_out = _search_tglc_lightcurve_csv(
+        tic, csv_dir=csv_dir, grep_cmd=grep_cmd, sectors=sectors
+    )
     tess_point_out = await tess_point_task
 
     out = []
