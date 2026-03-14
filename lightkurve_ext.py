@@ -997,6 +997,10 @@ def stitch(
         if lc_stitched.meta.get(key, None) is not None:
             del lc_stitched.meta[key]
 
+    if not isinstance(lcf_coll, lk.LightCurveCollection):
+        # assume it it array-like
+        lcf_coll = lk.LightCurveCollection(lcf_coll)
+
     if to_add_sector_like_as_column:
         lcf_coll = add_sector_like_as_column(lcf_coll, warn_if_failed=True)
 
