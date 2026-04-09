@@ -4,15 +4,14 @@
 
 from copy import deepcopy
 
-from astropy.time import Time, TimeDelta
-from astropy import units as u
-import numpy as np
-
 import matplotlib.pyplot as plt
+import numpy as np
+from astropy import units as u
+from astropy.time import Time, TimeDelta
 from matplotlib.ticker import FuncFormatter
 
-import tic_plot as tplt
 import lightkurve_ext as lke
+import tic_plot as tplt
 
 
 def shift_flux(lc, lc_ref, inplace=False):
