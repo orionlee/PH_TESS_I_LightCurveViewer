@@ -108,58 +108,55 @@ def get_label_of_source(lc_dict, source, mag_shift_precision=3):
 # and the remaining LCs are from ground-based observations,
 # with relatively sparse data and larger errors.
 DEFAULT_MULTI_BANDS_PLOT_OPTIONS = [
+    ("scatter", dict(c="#3AF", s=0.1, alpha=1.0)),
     (
-        "scatter",
-        dict(
-            c="#3AF",
-            s=0.1,
-            alpha=1.0,
-        ),
+        "errorbar",
+        # keep an entry for markersize even though the default is used.
+        # it serves as a reminder to developer on the parameter name to customize the marker size
+        dict(marker=".", markersize=None, c="green", linewidth=0.5, ls="none"),
     ),
     (
         "errorbar",
-        dict(
-            marker=".",
-            c="green",
-            linewidth=0.5,
-            ls="none",
-        ),
+        dict(marker=".", markersize=None, c="pink", linewidth=0.5, ls="none"),
     ),
     (
         "errorbar",
-        dict(
-            marker=".",
-            c="pink",
-            linewidth=0.5,
-            ls="none",
-        ),
+        dict(marker=".", markersize=None, c="violet", linewidth=0.5, ls="none"),
     ),
     (
         "errorbar",
-        dict(
-            marker=".",
-            c="violet",
-            linewidth=0.5,
-            ls="none",
-        ),
+        dict(marker=".", markersize=None, c="orange", linewidth=0.5, ls="none"),
     ),
-    (
-        "errorbar",
-        dict(
-            marker=".",
-            c="orange",
-            linewidth=0.5,
-            ls="none",
-        ),
-    ),
+]
+
+DEFAULT_ALL_SCATTER_MULTI_BANDS_PLOT_OPTIONS = [
+    # the default size is optimized for the case that the first data set is from high-cadence TESS data,
+    # while the remaining are from relatively sparse ground-based data.
+    #
+    # set zorder to keep TESS data in the front
+    ("scatter", dict(c="#3AF", marker=".", s=0.1, alpha=0.4, zorder=9)),
+    # the default `s` is done such that:
+    # green / pink have larger dots than #3AF above (generally TESS or other high cadence data)
+    # violet / orange is slightly larger, generally used for data set with fewer data points
+    ("scatter", dict(c="green", marker=".", s=16, alpha=1.0)),
+    ("scatter", dict(c="pink", marker=".", s=16, alpha=1.0)),
+    ("scatter", dict(c="violet", marker="x", s=96, alpha=1.0)),
+    ("scatter", dict(c="orange", marker=".", s=96, alpha=1.0)),
 ]
 
 
 def get_default_plot_multi_bands_options_copy():
-    """Return a copy of the default plot_multi_bands(), so that
+    """Return a copy of the default plot options of plot_multi_bands(), so that
     callers could customize it for specific usage.
     """
     return deepcopy(DEFAULT_MULTI_BANDS_PLOT_OPTIONS)
+
+
+def get_default_all_scatter_plot_multi_bands_options_copy():
+    """Return a copy of the default all-scatter plot options of plot_multi_bands(), so that
+    callers could customize it for specific usage.
+    """
+    return deepcopy(DEFAULT_ALL_SCATTER_MULTI_BANDS_PLOT_OPTIONS)
 
 
 def _flip_yaxis_for_mag(ax, lc, plot_kwargs):
