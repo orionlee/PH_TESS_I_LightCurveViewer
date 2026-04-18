@@ -511,14 +511,22 @@ class MomentumDumpsAccessor:
         )
 
     @classmethod
-    def get_all(cls, refresh=False):
-        if refresh or cls._mom_dumps_tab is None:
-            cls.refresh()
-        return cls._mom_dumps_tab
+    def _compress_to_precision(cls, times, precision):
+        if precision is None:
+            return times
+        return np.unique(np.round(times, precision))
 
     @classmethod
-    def get_in_range(cls, lc_or_tpf=None, start=None, end=None, refresh=False):
-        times = cls.get_all(refresh=refresh)
+    def get_all(cls, precision=2, refresh=False):
+        if refresh or cls._mom_dumps_tab is None:
+            cls.refresh()
+        return cls._compress_to_precision(cls._mom_dumps_tab, precision=precision)
+
+    @classmethod
+    def get_in_range(
+        cls, lc_or_tpf=None, start=None, end=None, precision=2, refresh=False
+    ):
+        times = cls.get_all(precision=precision, refresh=refresh)
 
         if lc_or_tpf is not None:
             start, end = (
@@ -534,7 +542,11 @@ class MomentumDumpsAccessor:
 
     @classmethod
     def exclude_around(
-        cls, lc_or_tpf=None, window_before=15 / 60 / 24, window_after=15 / 60 / 24
+        cls,
+        lc_or_tpf=None,
+        window_before=15 / 60 / 24,
+        window_after=15 / 60 / 24,
+        precision=2,
     ):
         """Exclude cadences of the given LC / TPF around momentum dumps.
         Useful to exclude data points that are often skewed.
@@ -560,7 +572,7 @@ class MomentumDumpsAccessor:
             res.append(cur_range)
             return res
 
-        mom_dumps = cls.get_in_range(lc_or_tpf)
+        mom_dumps = cls.get_in_range(lc_or_tpf, precision=precision)
         exclude_ranges = compress_as_exclude_ranges(
             mom_dumps, window_before, window_after
         )
