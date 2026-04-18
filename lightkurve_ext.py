@@ -194,7 +194,11 @@ def select(lcf_coll_or_sr, filter_func):
 def exclude_range(lc, start, end, column="time"):
     """Exclude the specified range of time from the given lightcurve."""
     tmask = (lc[column].value >= start) & (lc[column].value < end)
-    return lc[~tmask]
+    if np.any(tmask):
+        return lc[~tmask]
+    else:
+        # nothing excluded, return the original LC as an optimization
+        return lc
 
 
 def get_obs_date_range(lcf_coll):
