@@ -1055,7 +1055,7 @@ def stitch_lc_dict(
         lc = lc_dict[k].copy()
         lc[source_colname] = k
         if normalize:
-            if lc.flux.unit is u.mag:
+            if lc.flux.unit == u.mag:
                 lc = to_normalized_flux_from_mag(lc)
             else:
                 lc = lc.normalize()
@@ -1483,7 +1483,7 @@ def normalized_flux_val_to_mag(flux_val, base_mag):
 
 def to_flux_in_mag_by_normalization(lc, base_mag_header_name=None, base_mag=None):
     """Convert the a lightcurve's flux to magnitude via a normalized lightcurve with a known average / base magnitude."""
-    if lc.flux.unit is u.mag:
+    if lc.flux.unit == u.mag:
         return lc
 
     lc = lc.copy()
@@ -1512,7 +1512,7 @@ def to_flux_in_mag_by_normalization(lc, base_mag_header_name=None, base_mag=None
 
 def to_normalized_flux_from_mag(lc):
     """Convert the a lightcurve's flux from magnitude to normalized flux."""
-    if lc.flux.unit is not u.mag:
+    if lc.flux.unit != u.mag:
         raise ValueError("The flux must be in magnitude")
 
     lc = lc.copy()
@@ -1532,7 +1532,7 @@ def to_normalized_flux_from_mag(lc):
 
 def to_normalized_flux_from_mag_vals(vals, errs):
     """Convert values (with errors) from magnitude to normalized values."""
-    if vals.unit is not u.mag:
+    if vals.unit != u.mag:
         raise ValueError("The values must be in magnitude")
 
     median_flux_mag = np.nanmedian(vals.value)
