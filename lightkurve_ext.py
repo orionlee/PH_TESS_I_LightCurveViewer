@@ -246,7 +246,12 @@ def _sort_chronologically(sr: lk.SearchResult):
     if len(sr) < 1:
         return sr
     res = lk.SearchResult(sr.table.copy())
-    res.table.sort(["distance", "year", "mission", "sort_order", "exptime"])
+    # add "sequence_number" to handle TESS sector 99 + 100, 101, etc.
+    # "mission" is still needed for Kepler data (which has no value in sequence_number)
+    res.table.sort(
+        ["distance", "year", "sequence_number", "mission", "sort_order", "exptime"]
+    )
+
     return res
 
 
