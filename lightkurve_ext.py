@@ -1072,6 +1072,17 @@ def stitch_lc_dict(
     )
 
 
+def get_lc_dict_subset(lc_dict: dict, *keys):
+    """Given a dictionary of lightcurves, return a subset of the given keys"""
+    res = {k: lc_dict[k] for k in lc_dict.keys() if k in keys}
+    if len(set(keys)) != len(res.keys()):
+        missing_keys = set(keys) - set(res.keys())
+        warnings.warn(
+            f"get_lc_dict_subset(): some given keys not found: {missing_keys}"
+        )
+    return res
+
+
 def to_window_length_for_2min_cadence(length_day):
     """Helper for LightCurve.flatten().
     Return a `window_length` for the given number of days, assuming the data has 2-minute cadence."""
