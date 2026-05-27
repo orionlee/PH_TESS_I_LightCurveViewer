@@ -335,7 +335,8 @@ def fold_n_plot_multi_bands(
         )
 
     if duration_hr is not None:
-        duration_phase = duration_hr / 24 / period
+        # convert to float to handle cases the inputs are python decimal.Decimal
+        duration_phase = float(duration_hr) / 24 / float(period)
         ax.axvline(
             duration_midpoint_phase - duration_phase / 2, linestyle="--", c="blue"
         )
