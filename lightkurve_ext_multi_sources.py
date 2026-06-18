@@ -281,6 +281,8 @@ def fold_n_plot_multi_bands(
     epoch: Time,
     phase_scale=2,
     target_name=None,
+    epoch_value_str=None,  # used for plotting purpose only,
+    #                        to get around cases, such as the value is 123.40, to display the 2 digit explicitly
     duration_hr=None,  # used for plotting purpose only
     # for plotting only, the midpoint of which duration_hr is based on
     # typically to draw lines for secondary eclipses / transits
@@ -355,7 +357,9 @@ def fold_n_plot_multi_bands(
     if period < 1 / 24:
         period_min = round(period * 24 * 60, 3)
         title += f" ({period_min} m)"
-    title += f", epoch={epoch.format.upper()} {epoch.value}, time span: {plot_time_span:.0f}d"
+    if epoch_value_str is None:
+        epoch_value_str = f"{epoch.format.upper()} {epoch.value}"
+    title += f", epoch={epoch_value_str}, time span: {plot_time_span:.0f}d"
     ax.set_title(title)
 
     return ax, lc_f_combined_dict
