@@ -51,6 +51,24 @@ def log_probability_p(theta, x, y, yerr):
     return lp + log_likelihood_p(theta, x, y, yerr)
 
 
+# --- custom log_probability func for modeling t0 as max
+
+def log_prior_t0_max_p(theta):
+    alpha0, alpha1, t0, d, Tau, p = theta
+
+    # alpha1 is positive for t0 as max; no t0 check, as t0 is time, not phase, 
+    if (0 < alpha0 < 10) and (0 < alpha1 < 10) and (0 < d < 10) and (0.5 < Tau < 50):
+        return 0.0
+    return -np.inf
+
+
+def log_probability_t0_max_p(theta, x, y, yerr):
+    # check that the priors are satisfied
+    lp = log_prior_t0_max_p(theta)
+    if not np.isfinite(lp):
+        return -np.inf
+    return lp + log_likelihood_p(theta, x, y, yerr)
+
 def run_mcmc_initial_fit_p(
     data,
     start_vals,
