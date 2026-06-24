@@ -65,14 +65,14 @@ def of_sectors(*args):
     sector_nums = args[1:]
 
     if hasattr(lk_coll_or_sr, "sector"):
-        return lk_coll_or_sr[np.in1d(lk_coll_or_sr.sector, sector_nums)]
+        return lk_coll_or_sr[np.isin(lk_coll_or_sr.sector, sector_nums)]
     elif (
         hasattr(lk_coll_or_sr, "table")
         and lk_coll_or_sr.table["sequence_number"] is not None
     ):
         res = lk.SearchResult(
             lk_coll_or_sr.table[
-                np.in1d(lk_coll_or_sr.table["sequence_number"], sector_nums)
+                np.isin(lk_coll_or_sr.table["sequence_number"], sector_nums)
             ]
         )
         res = _sort_chronologically(res)

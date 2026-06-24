@@ -2017,7 +2017,7 @@ def animate_folded_lightcurve(
         ]
 
         ax.cla()
-        lc_subset = lc[np.in1d(cycle_column, cycle_list_subset)]
+        lc_subset = lc[np.isin(cycle_column, cycle_list_subset)]
         scatter(lc_subset, ax=ax, **plot_kwargs)
 
         # ensure all plots have the same scale
