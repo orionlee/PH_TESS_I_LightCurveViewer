@@ -357,9 +357,9 @@ def get_tic_meta_in_html(
     tce_filter_func=None,
     include_transit_model_stellar_density=False,
 ):
-    # tess_dv_fast.py is at https://github.com/orionlee/tess_dv_fast
-    # copy it over (or include it in sys.path)
-    import tess_dv_fast
+    # tess_dv_fast is at https://github.com/orionlee/tess_dv_fast
+    # do a pip install
+    from tess_dv_fast import tess_dv_fast
 
     # This function does not do the actual display,
     # so that the caller can call it in background

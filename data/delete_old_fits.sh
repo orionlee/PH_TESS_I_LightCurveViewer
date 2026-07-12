@@ -3,9 +3,12 @@
 set -e
 
 # the primary data directory
+echo $0
 data_dir=`realpath $0`
 data_dir=`dirname ${data_dir}`
 echo data_dir: ${data_dir}
+
+exit 9
 
 cd ${data_dir}
 
