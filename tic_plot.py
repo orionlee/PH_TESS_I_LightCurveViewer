@@ -662,7 +662,7 @@ def vlines_y_in_axes_coord(ax, x, ymin, ymax, **kwargs):
 
 
 def plot_momentum_dumps(
-    lcf, ax, use_relative_time=False, mark_height_scale=0.15, color="red"
+    lcf, ax, use_relative_time=False, mark_height_scale=0.15, color="red", vlines_kwargs=None,
 ):
     """Mark  momentum dumps on the given plot."""
 
@@ -678,6 +678,8 @@ def plot_momentum_dumps(
         t_start = lcf.meta.get("TSTART")
         time_mom_dumps = time_mom_dumps - t_start
 
+    if vlines_kwargs is None:
+        vlines_kwargs = dict()
     vlines_y_in_axes_coord(
         ax,
         time_mom_dumps,
@@ -687,6 +689,7 @@ def plot_momentum_dumps(
         linewidth=1,
         linestyle="-.",
         label="Momentum dumps",
+        **vlines_kwargs,
     )
 
     return ax
