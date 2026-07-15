@@ -3,12 +3,10 @@
 set -e
 
 # the primary data directory
-echo $0
-data_dir=`realpath $0`
-data_dir=`dirname ${data_dir}`
+#data_dir=`realpath $0`
+#data_dir=`dirname ${data_dir}`
+data_dir=/c/dev/_juypter/PH_TESS_LightCurveViewer/data  # workaround after the script becomes non-executable
 echo data_dir: ${data_dir}
-
-exit 9
 
 cd ${data_dir}
 
@@ -75,8 +73,8 @@ cd -
 
 # Delete astropy / astroquery cache (primarily Vizier, and misc. downloads)
 cd ~/.astropy/cache
-find . -type f  -mtime +120 -delete
-cd - 
+find . -type f  -mtime +30 -delete
+cd -
 
 # OPEN: consider removing (at least the large files)
 # /l/home/orionlee/dev/triceratops/{vetting,misc_targets}/
