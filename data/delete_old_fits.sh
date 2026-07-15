@@ -3,9 +3,8 @@
 set -e
 
 # the primary data directory
-#data_dir=`realpath $0`
-#data_dir=`dirname ${data_dir}`
-data_dir=/c/dev/_juypter/PH_TESS_LightCurveViewer/data  # workaround after the script becomes non-executable
+data_dir=`realpath $0`
+data_dir=`dirname ${data_dir}`
 echo data_dir: ${data_dir}
 
 cd ${data_dir}
