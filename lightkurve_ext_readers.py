@@ -638,3 +638,84 @@ def read_aavso_csv(url):
     lc.meta["LABEL"] = target_name
 
     return lc
+
+
+def read_gaia_dr3_lc_from_vizier(source, flux_column="Gmag"):
+    """Read Gaia DR3 Epoch Photometry by Source from Vizier.
+    Use `'astroquery.vizier`' under the hood.
+    """
+    from astroquery.vizier import Vizier
+    import lightkurve_ext as lke  # for Gmag to Vmag conversion
+
+    def gdr3_time_vals_to_obj(time_vals):
+        GDR3_TIME_REF = 2455197.5
+        return Time(np.asarray(time_vals) + GDR3_TIME_REF, format="jd", scale="tdb")
+
+    ALL_BANDS = ["G", "BP", "RP"]
+
+    tab_list = Vizier(row_limit=-1).query_constraints(
+        catalog="I/355/epphot",
+        Source=source,
+    )
+    if len(tab_list) < 1:
+        return None
+    tab = tab_list[0]
+
+    for b in ALL_BANDS:
+         # add units
+        tab[f"F{b}"].unit = u.electron / u.second
+        tab[f"e_F{b}"].unit = u.electron / u.second
+        tab[f"{b}mag"].unit = u.mag
+
+        # rename error columns to lightkurve convention
+        tab.rename_column(f"e_F{b}", f"F{b}_err")
+
+        # add error in mag
+        tab[f"{b}mag_err"] = (1.086 * tab[f"F{b}_err"] / tab[f"F{b}"]) * u.mag
+
+    # for Gaia data, each transit / row has up to 3 timestamps, associated with the mean time for G, BP, RP, esepctively.
+    # we need to assign 1 timestamp  for each row
+
+    # TODO: should use TimeRP / TimeBP if the flux column is BP or RP
+    tab["time"] = tab["TimeG"]
+    # address cases that TimeG has no value, fill it with TimeBP or TimeRP
+    tmask = ~np.isfinite(tab["time"])
+    tab["time"][tmask] = tab["TimeBP"][tmask]  # backfill with BP
+    tmask = ~np.isfinite(tab["time"])
+    tab["time"][tmask] = tab["TimeRP"][tmask]  # then backfill with RP
+    tab["time"] = gdr3_time_vals_to_obj(tab["time"])
+
+
+    # add BP-RP
+    # - somehow the unit is lost when simplying doing BP - RP
+    tab["BP-RP"] = (tab["BPmag"].value - tab["RPmag"].value) * u.mag
+
+    # add Vmag (from Vmag and BP-RP)
+    # - need a copy of BP-RP (for edge cases where BP-RP for a given row is missing)
+    b_r = tab["BP-RP"].copy()
+    brmask = ~np.isfinite(b_r)
+    b_r[brmask] = np.nanmean(b_r)  # fill with mean BP-RP for rows with missing B or R
+    tab["Vmag"] = lke.gaia_dr3_mag_to_vmag(tab["Gmag"].value, b_r.value) * u.mag
+    tab["Vmag_err"] = tab["Gmag_err"]  # use Gmag err as-is. OPEN: is thtere a more accurate way?
+
+
+    tab["flux"] = tab[flux_column]
+    if f"{flux_column}_err" in tab.colnames:
+        tab["flux_err"] = tab[f"{flux_column}_err"]
+
+    tab.sort("time")
+
+    lc = lk.LightCurve(data=tab)
+    lc.meta.update({
+        "TARGET": f"Gaia DR3 {source}",
+        "LABEL": f"Gaia DR3 {source}",
+        "Source": source,
+        "RA_OBJ": tab["RA_ICRS"][0],
+        "DEC_OBJ": tab["DE_ICRS"][0],
+        "EQUINOX": 2016.0,
+        "FLUX_ORIGIN": flux_column,
+    })
+
+    lc.remove_columns(["Source", "RA_ICRS", "DE_ICRS"])
+
+    return lc;
