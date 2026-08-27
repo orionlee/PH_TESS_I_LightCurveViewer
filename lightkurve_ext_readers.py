@@ -531,7 +531,7 @@ def read_asas3(url, flux_column="mag_3", grade_mask=["A", "B", "C"]):
     else:
         asas_id = None
     if asas_id is not None:
-        lc.meta["LABEL"] = f"ASAS {asas_id}"
+        lc.meta["LABEL"] = f"ASAS J{asas_id}"
     return lc
 
 
