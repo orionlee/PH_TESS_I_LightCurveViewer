@@ -824,6 +824,7 @@ def get_compatible_periods_of_3dips(
     lcc: lk.LightCurveCollection,
     flux_column="flux",
     min_period=10,
+    tolerance=0.05, # observed epoch2 needs to be within tolerance (in epoch unit) with predicted epoch 2 time
     verbose=False,
 ):
     """For the case where 2 dips are observed. Return the compatible periods that fit the observations.
@@ -848,7 +849,6 @@ def get_compatible_periods_of_3dips(
         num_cycles_for_epoch2 = round((epoch2 - epoch1) / trial_p)
         epoch2_from_trial_p = epoch1 + trial_p * num_cycles_for_epoch2
         epoch2_diff = abs(epoch2 - epoch2_from_trial_p)
-        tolerance = 0.05  # observed epoch2 needs to be within tolerance (in days) with predicted epoch 2 time
         if epoch2_diff > tolerance:
             if verbose:
                 print(
