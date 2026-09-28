@@ -86,9 +86,7 @@ class TOIAccessor:
     # TODO: in-memory cache (with @cached) needs to be redone to properly support cache_policy_func
     @classmethod
     def get_all_tois(cls, download_dir=None, cache_policy_func=None):
-        url = (
-            "https://exofop.ipac.caltech.edu/tess/download_toi.php?sort=toi&output=csv"
-        )
+        url = "https://exofop.ipac.caltech.edu/tess/json/tois.csv"
         filename = "tess_tois.csv"
         res = _get_csv(
             url,
@@ -142,7 +140,7 @@ class CTOIAccessor:
 
     @classmethod
     def get_all_ctois(cls, download_dir=None, cache_policy_func=None):
-        url = "https://exofop.ipac.caltech.edu/tess/download_ctoi.php?sort=ctoi&output=csv"
+        url = "https://exofop.ipac.caltech.edu/tess/json/ctois.csv"
         filename = "tess_ctois.csv"
         res = _get_csv(
             url,
