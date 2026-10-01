@@ -769,6 +769,9 @@ def create_model_lc_of_frequencies(t_or_lc, pg, frequencies):
         lc_model_of_f = lk.LightCurve(time=t.copy(), flux=flux_model).normalize()
         # OPEN: double check to ensure the addition is sound
         lc_model = lc_model + (lc_model_of_f - 1)
+    # Need to re-normalize the final composite model,
+    # as the composite model is no longer normalized to 1 after the repeated additions.
+    lc_model = lc_model.normalize()
     if isinstance(t_or_lc, lk.LightCurve):
         lc_model.meta.update(t_or_lc.meta)
     return lc_model
