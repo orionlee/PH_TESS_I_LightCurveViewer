@@ -172,6 +172,9 @@ class CTOIAccessor:
     def of_tic(self, tic):
         return self._all[self._all[self.Headers.TIC] == int(tic)]
 
+    def of_tics(self, tics):
+        return self._all[np.isin(self._all[self.Headers.TIC], tics)]
+
 
 def add_transit_as_codes_column_to_df(df, headers, label_value_func):
     h = headers
