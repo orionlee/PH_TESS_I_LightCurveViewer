@@ -519,8 +519,11 @@ class MomentumDumpsAccessor:
 
     @classmethod
     def get_all(cls, precision=2, refresh=False):
-        if refresh or cls._mom_dumps_tab is None:
+        if refresh:
             cls.refresh()
+        elif cls._mom_dumps_tab is None:
+            cls._load_mom_dumps_from_file()
+
         return cls._compress_to_precision(cls._mom_dumps_tab, precision=precision)
 
     @classmethod
