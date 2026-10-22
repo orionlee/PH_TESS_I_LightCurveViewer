@@ -790,7 +790,7 @@ def get_compatible_periods_of_2dips(
     up such that each cadence is its own segment.
     Counting of transit times could miss some values due to rounding issues in those 1-cadence segments.
     """
-    num_cycles = 2
+    num_cycles = 1
     compat_p_list = []
     while True:
         trial_p = abs(epoch2 - epoch1) / num_cycles
